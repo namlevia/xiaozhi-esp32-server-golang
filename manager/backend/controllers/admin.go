@@ -117,7 +117,7 @@ var errDatabaseUnavailable = errors.New("database connection is unavailable")
 
 // 通用配置管理
 // GetDeviceConfigs 根据设备ID获取设备关联的配置信息
-// 如果设备不存在，则返回全局默认配置
+// 如果Thiết bị không tồn tại，则返回全局默认配置
 func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 	deviceID := c.Query("device_id")
 	if deviceID == "" {
@@ -182,7 +182,7 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 
 	if err := ac.DB.Where("device_name = ?", deviceID).First(&device).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// 设备不存在，使用全局默认配置
+			// Thiết bị không tồn tại，使用全局默认配置
 			deviceFound = false
 			response.AgentID = ""
 			configSource = "default_global_role"
@@ -198,7 +198,7 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 		log.Printf("设备 %s 存在，AgentID: %d", deviceID, device.AgentID)
 		if err := ac.DB.First(&agent, device.AgentID).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
-				// 智能体不存在，使用默认配置
+				// Trợ lý không tồn tại，使用默认配置
 				deviceFound = false
 				configSource = "default_global_role"
 				log.Printf("智能体 %d 不存在，使用全局默认配置", device.AgentID)
@@ -971,7 +971,7 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 				configData := make(map[string]interface{})
 				if config.JsonData != "" {
 					if err := json.Unmarshal([]byte(config.JsonData), &configData); err != nil {
-						// JSON解析失败，跳过此配置
+						// Phân tích JSON thất bại，跳过此配置
 						continue
 					}
 				}
@@ -1245,12 +1245,12 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 				}
 				cfgMap, _ := val.(map[string]interface{})
 				if cfgMap == nil {
-					result["ota"].(gin.H)[configID] = gin.H{"ok": false, "message": "配置格式无效"}
+					result["ota"].(gin.H)[configID] = gin.H{"ok": false, "message": "Định dạng cấu hình không hợp lệ"}
 					continue
 				}
 				jsonBytes, err := json.Marshal(cfgMap)
 				if err != nil {
-					result["ota"].(gin.H)[configID] = gin.H{"ok": false, "message": "配置序列化失败"}
+					result["ota"].(gin.H)[configID] = gin.H{"ok": false, "message": "Tuần tự hóa cấu hình thất bại"}
 					continue
 				}
 				cfg := models.Config{ConfigID: configID, JsonData: string(jsonBytes)}
@@ -1272,9 +1272,9 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 			}
 			var otaConfigs []models.Config
 			if err := q.Find(&otaConfigs).Error; err != nil {
-				result["ota"] = gin.H{"_error": gin.H{"ok": false, "message": "获取OTA配置失败"}}
+				result["ota"] = gin.H{"_error": gin.H{"ok": false, "message": "Lấy cấu hình OTA thất bại"}}
 			} else if len(otaConfigs) == 0 {
-				result["ota"] = gin.H{"_none": gin.H{"ok": false, "message": "未配置或未启用OTA"}}
+				result["ota"] = gin.H{"_none": gin.H{"ok": false, "message": "OTA chưa được cấu hình hoặc chưa được bật"}}
 			} else {
 				for _, cfg := range otaConfigs {
 					otaResult := ac.testOTAConfigWithMQTTUDP(cfg)
@@ -1300,7 +1300,7 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 			clientUUID = ac.WebSocketController.GetFirstConnectedClientUUID()
 		}
 		if clientUUID == "" {
-			noClient := gin.H{"ok": false, "message": "无主程序连接，无法测试"}
+			noClient := gin.H{"ok": false, "message": "Không có kết nối tới chương trình chính, không thể kiểm tra"}
 			if contains(body.Types, "vad") {
 				result["vad"] = gin.H{"_no_client": noClient}
 			}
@@ -1403,7 +1403,7 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 					if resp.Body == nil {
 						for _, typ := range []string{"vad", "asr", "llm", "tts"} {
 							if contains(body.Types, typ) {
-								result[typ] = gin.H{"_error": gin.H{"ok": false, "message": "主程序未返回测试数据"}}
+								result[typ] = gin.H{"_error": gin.H{"ok": false, "message": "Chương trình chính không trả về dữ liệu kiểm tra"}}
 							}
 						}
 					} else {
@@ -1411,7 +1411,7 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 							if r, ok := resp.Body[typ].(map[string]interface{}); ok {
 								result[typ] = r
 							} else if contains(body.Types, typ) && resp.Body[typ] != nil {
-								result[typ] = gin.H{"_error": gin.H{"ok": false, "message": "响应格式异常"}}
+								result[typ] = gin.H{"_error": gin.H{"ok": false, "message": "Định dạng phản hồi bất thường"}}
 							}
 						}
 					}
@@ -1472,7 +1472,7 @@ func (ac *AdminController) getConfigItemByTypeAndID(typ, configID string) map[st
 }
 
 func fillResultError(result gin.H, types []string, keys ...string) {
-	msg := gin.H{"ok": false, "message": "请求异常"}
+	msg := gin.H{"ok": false, "message": "Yêu cầu bất thường"}
 	for _, k := range keys {
 		if contains(types, k) {
 			result[k] = gin.H{"_error": msg}
@@ -2058,7 +2058,7 @@ func generateMQTTPassword(deviceID, signatureKey string) string {
 func (ac *AdminController) GetConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Find(&configs).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取配置列表失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy danh sách cấu hình thất bại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": configs})
@@ -2084,7 +2084,7 @@ func (ac *AdminController) GetConfigByID(c *gin.Context) {
 	var config models.Config
 
 	if err := ac.DB.First(&config, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "配置不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Cấu hình không tồn tại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": config})
@@ -2112,7 +2112,7 @@ func (ac *AdminController) CreateConfig(c *gin.Context) {
 	}
 
 	if err := ac.DB.Create(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo cấu hình thất bại"})
 		return
 	}
 
@@ -2125,7 +2125,7 @@ func (ac *AdminController) UpdateConfig(c *gin.Context) {
 	var config models.Config
 
 	if err := ac.DB.First(&config, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "配置不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Cấu hình không tồn tại"})
 		return
 	}
 
@@ -2148,7 +2148,7 @@ func (ac *AdminController) UpdateConfig(c *gin.Context) {
 	config.IsDefault = updateData.IsDefault
 
 	if err := ac.DB.Save(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật cấu hình thất bại"})
 		return
 	}
 
@@ -2159,11 +2159,11 @@ func (ac *AdminController) UpdateConfig(c *gin.Context) {
 func (ac *AdminController) DeleteConfig(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	if err := ac.DB.Delete(&models.Config{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa cấu hình thất bại"})
 		return
 	}
 	ac.notifySystemConfigChanged()
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 // 设置默认配置
@@ -2172,7 +2172,7 @@ func (ac *AdminController) SetDefaultConfig(c *gin.Context) {
 	var config models.Config
 
 	if err := ac.DB.First(&config, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "配置不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Cấu hình không tồn tại"})
 		return
 	}
 
@@ -2182,12 +2182,12 @@ func (ac *AdminController) SetDefaultConfig(c *gin.Context) {
 	// 设置当前配置为默认
 	config.IsDefault = true
 	if err := ac.DB.Save(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "设置默认配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đặt cấu hình mặc định thất bại"})
 		return
 	}
 
 	ac.notifySystemConfigChanged()
-	c.JSON(http.StatusOK, gin.H{"message": "设置默认配置成功", "data": config})
+	c.JSON(http.StatusOK, gin.H{"message": "Đặt cấu hình mặc định thành công", "data": config})
 }
 
 // 获取默认配置
@@ -2196,7 +2196,7 @@ func (ac *AdminController) GetDefaultConfig(c *gin.Context) {
 	var config models.Config
 
 	if err := ac.DB.Where("type = ? AND is_default = ?", configType, true).First(&config).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "默认配置不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Cấu hình mặc định không tồn tại"})
 		return
 	}
 
@@ -2207,7 +2207,7 @@ func (ac *AdminController) GetDefaultConfig(c *gin.Context) {
 func (ac *AdminController) GetGlobalRoles(c *gin.Context) {
 	var roles []models.GlobalRole
 	if err := ac.DB.Find(&roles).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取全局角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy vai trò toàn cục thất bại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": roles})
@@ -2221,7 +2221,7 @@ func (ac *AdminController) CreateGlobalRole(c *gin.Context) {
 	}
 
 	if err := ac.DB.Create(&role).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建全局角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo vai trò toàn cục thất bại"})
 		return
 	}
 
@@ -2233,7 +2233,7 @@ func (ac *AdminController) UpdateGlobalRole(c *gin.Context) {
 	var role models.GlobalRole
 
 	if err := ac.DB.First(&role, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "全局角色不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Vai trò toàn cục không tồn tại"})
 		return
 	}
 
@@ -2243,7 +2243,7 @@ func (ac *AdminController) UpdateGlobalRole(c *gin.Context) {
 	}
 
 	if err := ac.DB.Save(&role).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新全局角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật vai trò toàn cục thất bại"})
 		return
 	}
 
@@ -2253,17 +2253,17 @@ func (ac *AdminController) UpdateGlobalRole(c *gin.Context) {
 func (ac *AdminController) DeleteGlobalRole(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	if err := ac.DB.Delete(&models.GlobalRole{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除全局角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa vai trò toàn cục thất bại"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 // 用户管理
 func (ac *AdminController) GetUsers(c *gin.Context) {
 	var users []models.User
 	if err := ac.DB.Find(&users).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户列表失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy danh sách người dùng thất bại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": users})
@@ -2286,7 +2286,7 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 	var rawMap map[string]interface{}
 	if err := c.ShouldBindJSON(&rawMap); err != nil {
 		log.Printf("[CreateUser] 绑定到map失败: %v", err)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "JSON解析失败"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Phân tích JSON thất bại"})
 		return
 	}
 	log.Printf("[CreateUser] 原始JSON数据: %+v", rawMap)
@@ -2307,7 +2307,7 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 	if requestData.Username == "" || requestData.Email == "" || requestData.Password == "" {
 		log.Printf("[CreateUser] 缺少必要字段: username=%s, email=%s, password长度=%d",
 			requestData.Username, requestData.Email, len(requestData.Password))
-		c.JSON(http.StatusBadRequest, gin.H{"error": "用户名、邮箱和密码为必填项"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên đăng nhập, email và mật khẩu là các trường bắt buộc"})
 		return
 	}
 
@@ -2319,18 +2319,18 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 	var existingUser models.User
 	err := ac.DB.Where("username = ?", requestData.Username).First(&existingUser).Error
 	if err == nil {
-		// 用户名已存在
+		// Tên đăng nhập đã tồn tại
 		log.Printf("[CreateUser] 用户名 %s 已存在", requestData.Username)
-		c.JSON(http.StatusConflict, gin.H{"error": "用户名已存在"})
+		c.JSON(http.StatusConflict, gin.H{"error": "Tên đăng nhập đã tồn tại"})
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
 		// 数据库查询出错
 		log.Printf("[CreateUser] 数据库查询失败: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建用户失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo người dùng thất bại"})
 		return
 	}
 
-	// 用户不存在，创建新用户
+	// Người dùng không tồn tại，创建新用户
 	log.Printf("[CreateUser] 创建新用户: %s", requestData.Username)
 	var user models.User
 	user.Username = requestData.Username
@@ -2340,16 +2340,16 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 	// 加密密码
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(requestData.Password), bcrypt.DefaultCost)
 	if err != nil {
-		log.Printf("[CreateUser] 密码加密失败: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
+		log.Printf("[CreateUser] Mã hóa mật khẩu thất bại: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Mã hóa mật khẩu thất bại"})
 		return
 	}
 	user.Password = string(hashedPassword)
 	log.Printf("[CreateUser] 密码加密成功 - 哈希长度: %d, 哈希前缀: %s", len(user.Password), user.Password[:10])
 
 	if err := ac.DB.Create(&user).Error; err != nil {
-		log.Printf("[CreateUser] 数据库创建用户失败: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建用户失败"})
+		log.Printf("[CreateUser] 数据库Tạo người dùng thất bại: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo người dùng thất bại"})
 		return
 	}
 
@@ -2365,7 +2365,7 @@ func (ac *AdminController) UpdateUser(c *gin.Context) {
 	var user models.User
 
 	if err := ac.DB.First(&user, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Người dùng không tồn tại"})
 		return
 	}
 
@@ -2379,14 +2379,14 @@ func (ac *AdminController) UpdateUser(c *gin.Context) {
 	if password, ok := updateData["password"]; ok && password != "" {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password.(string)), bcrypt.DefaultCost)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Mã hóa mật khẩu thất bại"})
 			return
 		}
 		updateData["password"] = string(hashedPassword)
 	}
 
 	if err := ac.DB.Model(&user).Updates(updateData).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新用户失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật người dùng thất bại"})
 		return
 	}
 
@@ -2399,10 +2399,10 @@ func (ac *AdminController) UpdateUser(c *gin.Context) {
 func (ac *AdminController) DeleteUser(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	if err := ac.DB.Delete(&models.User{}, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除用户失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa người dùng thất bại"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 // 重置用户密码
@@ -2414,7 +2414,7 @@ func (ac *AdminController) ResetUserPassword(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&requestData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请输入有效的新密码（至少6位）"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Vui lòng nhập mật khẩu mới hợp lệ (ít nhất 6 ký tự)"})
 		return
 	}
 
@@ -2422,9 +2422,9 @@ func (ac *AdminController) ResetUserPassword(c *gin.Context) {
 	var user models.User
 	if err := ac.DB.First(&user, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Người dùng không tồn tại"})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "查找用户失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Tìm người dùng thất bại"})
 		}
 		return
 	}
@@ -2432,21 +2432,21 @@ func (ac *AdminController) ResetUserPassword(c *gin.Context) {
 	// 加密新密码
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(requestData.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
-		log.Printf("[ResetUserPassword] 密码加密失败: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
+		log.Printf("[ResetUserPassword] Mã hóa mật khẩu thất bại: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Mã hóa mật khẩu thất bại"})
 		return
 	}
 
 	// 更新用户密码
 	if err := ac.DB.Model(&user).Update("password", string(hashedPassword)).Error; err != nil {
 		log.Printf("[ResetUserPassword] 更新密码失败: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "重置密码失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đặt lại mật khẩu thất bại"})
 		return
 	}
 
 	log.Printf("[ResetUserPassword] 管理员重置用户密码成功 - 用户ID: %d, 用户名: %s", user.ID, user.Username)
 	c.JSON(http.StatusOK, gin.H{
-		"message": "密码重置成功",
+		"message": "Đặt lại mật khẩu thành công",
 		"data": gin.H{
 			"user_id":  user.ID,
 			"username": user.Username,
@@ -2458,33 +2458,33 @@ func (ac *AdminController) ResetUserPassword(c *gin.Context) {
 func (ac *AdminController) GetUserVoiceCloneQuotas(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "用户ID格式错误"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Định dạng ID người dùng không hợp lệ"})
 		return
 	}
 
 	var user models.User
 	if err = ac.DB.First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Người dùng không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询用户失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn người dùng thất bại"})
 		return
 	}
 	if strings.TrimSpace(user.Role) != "user" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "仅支持为普通用户分配复刻额度"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Chỉ hỗ trợ cấp hạn mức clone cho người dùng thường"})
 		return
 	}
 
 	var ttsConfigs []models.Config
 	if err = ac.DB.Where("type = ?", "tts").Order("enabled DESC, name ASC").Find(&ttsConfigs).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询TTS配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn cấu hình TTS thất bại"})
 		return
 	}
 
 	var quotas []models.UserVoiceCloneQuota
 	if err = ac.DB.Where("user_id = ?", user.ID).Find(&quotas).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询用户额度失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn hạn mức người dùng thất bại"})
 		return
 	}
 	quotaByConfigID := make(map[string]models.UserVoiceCloneQuota, len(quotas))
@@ -2502,7 +2502,7 @@ func (ac *AdminController) GetUserVoiceCloneQuotas(c *gin.Context) {
 		Where("user_id = ? AND status != ?", user.ID, "deleted").
 		Group("tts_config_id").
 		Scan(&usageRows).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "统计用户复刻次数失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Thống kê số lần clone của người dùng thất bại"})
 		return
 	}
 	usageByConfigID := make(map[string]int, len(usageRows))
@@ -2582,21 +2582,21 @@ func (ac *AdminController) GetUserVoiceCloneQuotas(c *gin.Context) {
 func (ac *AdminController) UpdateUserVoiceCloneQuotas(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "用户ID格式错误"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Định dạng ID người dùng không hợp lệ"})
 		return
 	}
 
 	var user models.User
 	if err = ac.DB.First(&user, id).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Người dùng không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询用户失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn người dùng thất bại"})
 		return
 	}
 	if strings.TrimSpace(user.Role) != "user" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "仅支持为普通用户分配复刻额度"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Chỉ hỗ trợ cấp hạn mức clone cho người dùng thường"})
 		return
 	}
 
@@ -2607,11 +2607,11 @@ func (ac *AdminController) UpdateUserVoiceCloneQuotas(c *gin.Context) {
 		} `json:"items"`
 	}
 	if err = c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数格式错误"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Định dạng tham số yêu cầu không hợp lệ"})
 		return
 	}
 	if len(req.Items) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "items不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "items không được để trống"})
 		return
 	}
 
@@ -2620,11 +2620,11 @@ func (ac *AdminController) UpdateUserVoiceCloneQuotas(c *gin.Context) {
 	for _, item := range req.Items {
 		configID := strings.TrimSpace(item.TTSConfigID)
 		if configID == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "tts_config_id不能为空"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "tts_config_id không được để trống"})
 			return
 		}
 		if item.MaxCount < -1 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "max_count 不能小于 -1"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "max_count không được nhỏ hơn -1"})
 			return
 		}
 		if _, exists := itemByConfigID[configID]; !exists {
@@ -2635,7 +2635,7 @@ func (ac *AdminController) UpdateUserVoiceCloneQuotas(c *gin.Context) {
 
 	var ttsConfigs []models.Config
 	if err = ac.DB.Where("type = ? AND config_id IN ?", "tts", configIDs).Find(&ttsConfigs).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询TTS配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn cấu hình TTS thất bại"})
 		return
 	}
 	validConfigIDSet := make(map[string]bool, len(ttsConfigs))
@@ -2651,7 +2651,7 @@ func (ac *AdminController) UpdateUserVoiceCloneQuotas(c *gin.Context) {
 			continue
 		}
 		if !validConfigIDSet[configID] {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("TTS配置不存在: %s", configID)})
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("TTSCấu hình không tồn tại: %s", configID)})
 			return
 		}
 	}
@@ -2666,7 +2666,7 @@ func (ac *AdminController) UpdateUserVoiceCloneQuotas(c *gin.Context) {
 		Where("user_id = ? AND status != ? AND tts_config_id IN ?", user.ID, "deleted", configIDs).
 		Group("tts_config_id").
 		Scan(&usageRows).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "统计用户已使用次数失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Thống kê số lượt đã dùng của người dùng thất bại"})
 		return
 	}
 	usageByConfigID := make(map[string]int, len(usageRows))
@@ -2715,11 +2715,11 @@ func (ac *AdminController) UpdateUserVoiceCloneQuotas(c *gin.Context) {
 		}
 		return nil
 	}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新用户复刻额度失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật hạn mức clone của người dùng thất bại"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"success": true, "message": "额度更新成功"})
+	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Cập nhật hạn mức thành công"})
 }
 
 // GetUserVoiceOptionsAdmin 获取指定用户可用音色，供管理员创建/编辑智能体时使用。
@@ -2756,7 +2756,7 @@ func (ac *AdminController) GetUserVoiceClonesAdmin(c *gin.Context) {
 	}
 	clones, err := getVoiceClonesForUser(ac.DB, userID, c.Query("tts_config_id"))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取复刻音色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy giọng clone thất bại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": clones})
@@ -2766,7 +2766,7 @@ func (ac *AdminController) GetUserVoiceClonesAdmin(c *gin.Context) {
 func (ac *AdminController) GetDevices(c *gin.Context) {
 	devices, err := NewDeviceService(ac.DB).List(scopeFromContext(c))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取设备列表失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy danh sách thiết bị thất bại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": devices})
@@ -2776,7 +2776,7 @@ func (ac *AdminController) GetDevices(c *gin.Context) {
 func (ac *AdminController) ValidateDeviceCode(c *gin.Context) {
 	deviceCode := c.Query("code")
 	if deviceCode == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "激活码不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Mã kích hoạt không được để trống"})
 		return
 	}
 
@@ -2786,7 +2786,7 @@ func (ac *AdminController) ValidateDeviceCode(c *gin.Context) {
 	if err == gorm.ErrRecordNotFound {
 		c.JSON(http.StatusOK, gin.H{"exists": false})
 	} else if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询设备失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn thiết bị thất bại"})
 	} else {
 		c.JSON(http.StatusOK, gin.H{"exists": true, "device": device})
 	}
@@ -2795,7 +2795,7 @@ func (ac *AdminController) ValidateDeviceCode(c *gin.Context) {
 func (ac *AdminController) CreateDevice(c *gin.Context) {
 	var req DevicePayload
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Lỗi tham số yêu cầu: " + err.Error()})
 		return
 	}
 	device, err := NewDeviceService(ac.DB).Create(scopeFromContext(c), req)
@@ -2804,7 +2804,7 @@ func (ac *AdminController) CreateDevice(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "设备创建成功",
+		"message": "Tạo thiết bị thành công",
 		"data":    device,
 	})
 }
@@ -2836,14 +2836,14 @@ func (ac *AdminController) DeleteDevice(c *gin.Context) {
 		writeServiceError(c, err, "删除设备失败")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 // 智能体管理
 func (ac *AdminController) GetAgents(c *gin.Context) {
 	result, err := NewAgentService(ac.DB).List(scopeFromContext(c))
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取智能体列表失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy danh sách trợ lý thất bại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": result})
@@ -2859,7 +2859,7 @@ func (ac *AdminController) GetDeviceMcpTools(c *gin.Context) {
 
 	var device models.Device
 	if err := ac.DB.Where("id = ?", deviceID).First(&device).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "设备不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Thiết bị không tồn tại"})
 		return
 	}
 
@@ -2880,13 +2880,13 @@ func (ac *AdminController) CallAgentMcpTool(c *gin.Context) {
 		Arguments map[string]interface{} `json:"arguments"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Lỗi tham số yêu cầu: " + err.Error()})
 		return
 	}
 
 	var agent models.Agent
 	if err := ac.DB.Where("id = ?", agentID).First(&agent).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "智能体不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Trợ lý không tồn tại"})
 		return
 	}
 
@@ -2897,7 +2897,7 @@ func (ac *AdminController) CallAgentMcpTool(c *gin.Context) {
 	}
 	result, err := ac.WebSocketController.CallMcpToolFromClient(context.Background(), body)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "调用MCP工具失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gọi công cụ MCP thất bại: " + err.Error()})
 		return
 	}
 
@@ -2912,13 +2912,13 @@ func (ac *AdminController) CallDeviceMcpTool(c *gin.Context) {
 		Arguments map[string]interface{} `json:"arguments"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Lỗi tham số yêu cầu: " + err.Error()})
 		return
 	}
 
 	var device models.Device
 	if err := ac.DB.Where("id = ?", deviceID).First(&device).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "设备不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Thiết bị không tồn tại"})
 		return
 	}
 
@@ -2929,7 +2929,7 @@ func (ac *AdminController) CallDeviceMcpTool(c *gin.Context) {
 	}
 	result, err := ac.WebSocketController.CallMcpToolFromClient(context.Background(), body)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "调用MCP工具失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Gọi công cụ MCP thất bại: " + err.Error()})
 		return
 	}
 
@@ -2947,12 +2947,12 @@ func (ac *AdminController) GetAgentMCPEndpoint(c *gin.Context) {
 	// 从JWT中间件获取当前用户ID
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户未认证"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Người dùng chưa được xác thực"})
 		return
 	}
 	userID, ok := userIDInterface.(uint)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "用户ID类型错误"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Kiểu ID người dùng không hợp lệ"})
 		return
 	}
 
@@ -2978,12 +2978,12 @@ func (ac *AdminController) GetAgentOpenClawEndpoint(c *gin.Context) {
 	// 从JWT中间件获取当前用户ID
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户未认证"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Người dùng chưa được xác thực"})
 		return
 	}
 	userID, ok := userIDInterface.(uint)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "用户ID类型错误"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Kiểu ID người dùng không hợp lệ"})
 		return
 	}
 
@@ -3051,18 +3051,18 @@ func (ac *AdminController) CallAgentOpenClawChatTest(c *gin.Context) {
 		TimeoutMs int    `json:"timeout_ms"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Lỗi tham số yêu cầu: " + err.Error()})
 		return
 	}
 	req.Message = strings.TrimSpace(req.Message)
 	if req.Message == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "message 不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "message không được để trống"})
 		return
 	}
 
 	var agent models.Agent
 	if err := ac.DB.Where("id = ?", agentID).First(&agent).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "智能体不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Trợ lý không tồn tại"})
 		return
 	}
 
@@ -3143,7 +3143,7 @@ func (ac *AdminController) CallAgentOpenClawChatTest(c *gin.Context) {
 		case strings.Contains(msg, "没有连接的客户端"):
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": msg})
 		default:
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "调用OpenClaw对话测试失败: " + msg})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Kiểm tra hội thoại OpenClaw thất bại: " + msg})
 		}
 		return
 	}
@@ -3159,7 +3159,7 @@ func (ac *AdminController) GetAgentMcpTools(c *gin.Context) {
 	adminAgentValidator := func(agentID string) error {
 		var agent models.Agent
 		if err := ac.DB.Where("id = ?", agentID).First(&agent).Error; err != nil {
-			return fmt.Errorf("智能体不存在")
+			return fmt.Errorf("Trợ lý không tồn tại")
 		}
 		return nil
 	}
@@ -3209,7 +3209,7 @@ func (ac *AdminController) DeleteAgent(c *gin.Context) {
 		writeServiceError(c, err, "删除智能体失败")
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 // VAD配置管理（兼容前端）
@@ -3353,7 +3353,7 @@ func (ac *AdminController) UpdateSpeakerConfig(c *gin.Context) {
 	var config models.Config
 
 	if err := ac.DB.Where("id = ? AND type = ?", id, "voice_identify").First(&config).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "配置不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Cấu hình không tồn tại"})
 		return
 	}
 
@@ -3379,7 +3379,7 @@ func (ac *AdminController) UpdateSpeakerConfig(c *gin.Context) {
 	}
 
 	if err := ac.DB.Save(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật cấu hình thất bại"})
 		return
 	}
 
@@ -3544,20 +3544,20 @@ func (ac *AdminController) UpdateChatSettings(c *gin.Context) {
 	}
 
 	if req.Chat.MaxIdleDuration < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "chat.max_idle_duration 不能小于 0，0 表示不限制"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "chat.max_idle_duration không được nhỏ hơn 0; 0 nghĩa là không giới hạn"})
 		return
 	}
 	if req.Chat.ChatMaxSilenceDuration < 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "chat.chat_max_silence_duration 不能小于 0"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "chat.chat_max_silence_duration không được nhỏ hơn 0"})
 		return
 	}
 	if req.Chat.RealtimeMode < 1 || req.Chat.RealtimeMode > 4 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "chat.realtime_mode 必须在 1-4 之间"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "chat.realtime_mode phải nằm trong khoảng 1-4"})
 		return
 	}
 	req.Chat.GlobalSystemPrompt = strings.TrimSpace(req.Chat.GlobalSystemPrompt)
 	if len(req.Chat.GlobalSystemPrompt) > 8000 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "chat.global_system_prompt 长度不能超过 8000 个字符"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Độ dài chat.global_system_prompt không được vượt quá 8000 ký tự"})
 		return
 	}
 
@@ -3571,7 +3571,7 @@ func (ac *AdminController) UpdateChatSettings(c *gin.Context) {
 		"login_captcha_enabled": loginCaptchaEnabled,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "auth 配置序列化失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "auth Tuần tự hóa cấu hình thất bại"})
 		return
 	}
 	chatJSON, err := json.Marshal(map[string]interface{}{
@@ -3581,13 +3581,13 @@ func (ac *AdminController) UpdateChatSettings(c *gin.Context) {
 		"global_system_prompt":      req.Chat.GlobalSystemPrompt,
 	})
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "chat 配置序列化失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "chat Tuần tự hóa cấu hình thất bại"})
 		return
 	}
 
 	tx := ac.DB.Begin()
 	if tx.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "启动事务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Khởi tạo transaction thất bại"})
 		return
 	}
 	defer func() {
@@ -3632,23 +3632,23 @@ func (ac *AdminController) UpdateChatSettings(c *gin.Context) {
 
 	if err := upsertConfig("auth", "auth", "auth", authJSON); err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存 auth 设置失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu thiết lập auth thất bại: " + err.Error()})
 		return
 	}
 	if err := upsertConfig("chat", "chat", "chat", chatJSON); err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存 chat 设置失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu thiết lập chat thất bại: " + err.Error()})
 		return
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "提交事务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Commit transaction thất bại"})
 		return
 	}
 
 	ac.notifySystemConfigChanged()
 	c.JSON(http.StatusOK, gin.H{
-		"message": "聊天设置更新成功",
+		"message": "Cập nhật cài đặt trò chuyện thành công",
 		"data": gin.H{
 			"auth": gin.H{
 				"enable":                req.Auth.Enable,
@@ -3805,9 +3805,9 @@ func (ac *AdminController) ToggleConfigEnable(c *gin.Context) {
 	var config models.Config
 	if err := ac.DB.First(&config, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "配置不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Cấu hình không tồn tại"})
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "查询配置失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn cấu hình thất bại"})
 		}
 		return
 	}
@@ -3815,7 +3815,7 @@ func (ac *AdminController) ToggleConfigEnable(c *gin.Context) {
 	// 切换启用状态
 	config.Enabled = !config.Enabled
 	if err := ac.DB.Save(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新配置状态失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật trạng thái cấu hình thất bại"})
 		return
 	}
 
@@ -3826,7 +3826,7 @@ func (ac *AdminController) ToggleConfigEnable(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{
-		"message": fmt.Sprintf("配置已%s", status),
+		"message": fmt.Sprintf("Cấu hình đã %s", status),
 		"data":    config,
 	})
 }
@@ -3847,7 +3847,7 @@ func (ac *AdminController) createConfigWithType(c *gin.Context, config *models.C
 	}
 
 	if err := ac.DB.Create(config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo cấu hình thất bại"})
 		return
 	}
 
@@ -3870,7 +3870,7 @@ func (ac *AdminController) updateConfigWithType(c *gin.Context, configType strin
 	var config models.Config
 
 	if err := ac.DB.Where("id = ? AND type = ?", id, configType).First(&config).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "配置不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Cấu hình không tồn tại"})
 		return
 	}
 
@@ -3900,7 +3900,7 @@ func (ac *AdminController) updateConfigWithType(c *gin.Context, configType strin
 	default:
 		bytes, err := json.Marshal(v)
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "json_data 格式无效"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Định dạng json_data không hợp lệ"})
 			return
 		}
 		config.JsonData = string(bytes)
@@ -3912,7 +3912,7 @@ func (ac *AdminController) updateConfigWithType(c *gin.Context, configType strin
 	}
 
 	if err := ac.DB.Save(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新配置失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật cấu hình thất bại: " + err.Error()})
 		return
 	}
 
@@ -3923,11 +3923,11 @@ func (ac *AdminController) updateConfigWithType(c *gin.Context, configType strin
 func (ac *AdminController) deleteConfigWithType(c *gin.Context, configType string) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	if err := ac.DB.Where("id = ? AND type = ?", id, configType).Delete(&models.Config{}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa cấu hình thất bại"})
 		return
 	}
 	ac.notifySystemConfigChanged()
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 // 导入导出配置相关方法
@@ -4351,17 +4351,17 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 								existingConfig.Enabled = config.Enabled
 								existingConfig.IsDefault = config.IsDefault
 								if err := tx.Save(&existingConfig).Error; err != nil {
-									log.Printf("更新配置失败: %v", err)
+									log.Printf("Cập nhật cấu hình thất bại: %v", err)
 									tx.Rollback()
 									c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update config"})
 									return
 								}
 								log.Printf("配置更新成功: %s", configID)
 							} else if err == gorm.ErrRecordNotFound {
-								log.Printf("配置不存在，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+								log.Printf("Cấu hình không tồn tại，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
 								// 创建新配置
 								if err := tx.Create(&config).Error; err != nil {
-									log.Printf("创建配置失败: %v", err)
+									log.Printf("Tạo cấu hình thất bại: %v", err)
 									tx.Rollback()
 									c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create config"})
 									return
@@ -4409,17 +4409,17 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 						existingConfig.Enabled = config.Enabled
 						existingConfig.IsDefault = config.IsDefault
 						if err := tx.Save(&existingConfig).Error; err != nil {
-							log.Printf("更新配置失败: %v", err)
+							log.Printf("Cập nhật cấu hình thất bại: %v", err)
 							tx.Rollback()
 							c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update config"})
 							return
 						}
 						log.Printf("配置更新成功: %s", configType)
 					} else if err == gorm.ErrRecordNotFound {
-						log.Printf("配置不存在，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+						log.Printf("Cấu hình không tồn tại，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
 						// 创建新配置
 						if err := tx.Create(&config).Error; err != nil {
-							log.Printf("创建配置失败: %v", err)
+							log.Printf("Tạo cấu hình thất bại: %v", err)
 							tx.Rollback()
 							c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create config"})
 							return
@@ -4491,7 +4491,7 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 					}
 					log.Printf("vision基础配置更新成功")
 				} else if err == gorm.ErrRecordNotFound {
-					log.Printf("vision基础配置不存在，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+					log.Printf("vision基础Cấu hình không tồn tại，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
 					// 创建新配置
 					if err := tx.Create(&config).Error; err != nil {
 						log.Printf("创建vision基础配置失败: %v", err)
@@ -4580,7 +4580,7 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 								}
 								log.Printf("vllm配置更新成功: %s", configID)
 							} else if err == gorm.ErrRecordNotFound {
-								log.Printf("vllm配置不存在，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+								log.Printf("vllmCấu hình không tồn tại，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
 								// 创建新配置
 								if err := tx.Create(&config).Error; err != nil {
 									log.Printf("创建vllm配置失败: %v", err)
@@ -4647,7 +4647,7 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 				}
 				log.Printf("local_mcp配置更新成功")
 			} else if err == gorm.ErrRecordNotFound {
-				log.Printf("local_mcp配置不存在，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+				log.Printf("local_mcpCấu hình không tồn tại，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
 				// 创建新配置
 				if err := tx.Create(&config).Error; err != nil {
 					log.Printf("创建local_mcp配置失败: %v", err)
@@ -4668,7 +4668,7 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 	// 提交事务
 	log.Printf("提交事务")
 	if err := tx.Commit().Error; err != nil {
-		log.Printf("提交事务失败: %v", err)
+		log.Printf("Commit transaction thất bại: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
 		return
 	}
@@ -4682,7 +4682,7 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 func (ac *AdminController) GetMCPConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "mcp").Find(&configs).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取MCP配置列表失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy danh sách cấu hình MCP thất bại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": configs})
@@ -4703,7 +4703,7 @@ func (ac *AdminController) CreateMCPConfig(c *gin.Context) {
 	}
 
 	if err := ac.DB.Create(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建MCP配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo cấu hình MCP thất bại"})
 		return
 	}
 	ac.notifySystemConfigChanged()
@@ -4715,7 +4715,7 @@ func (ac *AdminController) UpdateMCPConfig(c *gin.Context) {
 	var config models.Config
 
 	if err := ac.DB.First(&config, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "MCP配置不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "MCPCấu hình không tồn tại"})
 		return
 	}
 
@@ -4732,7 +4732,7 @@ func (ac *AdminController) UpdateMCPConfig(c *gin.Context) {
 
 	updateData.Type = "mcp"
 	if err := ac.DB.Model(&config).Updates(updateData).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新MCP配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật cấu hình MCP thất bại"})
 		return
 	}
 	ac.notifySystemConfigChanged()
@@ -4744,16 +4744,16 @@ func (ac *AdminController) DeleteMCPConfig(c *gin.Context) {
 	var config models.Config
 
 	if err := ac.DB.First(&config, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "MCP配置不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "MCPCấu hình không tồn tại"})
 		return
 	}
 
 	if err := ac.DB.Delete(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除MCP配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa cấu hình MCP thất bại"})
 		return
 	}
 	ac.notifySystemConfigChanged()
-	c.JSON(http.StatusOK, gin.H{"message": "MCP配置删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa cấu hình MCP thành công"})
 }
 
 // GenerateAgentMCPEndpoint 公共的MCP接入点生成函数
@@ -4853,7 +4853,7 @@ func GenerateAgentOpenClawEndpoint(db *gorm.DB, agentID string, userID uint, end
 func (ac *AdminController) GetMemoryConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "memory").Find(&configs).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取Memory配置列表失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy danh sách cấu hình Memory thất bại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": configs})
@@ -4871,7 +4871,7 @@ func (ac *AdminController) CreateMemoryConfig(c *gin.Context) {
 
 	// 验证provider字段
 	if config.Provider != "memobase" && config.Provider != "mem0" && config.Provider != "memos" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Provider必须是memobase、mem0或memos"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Provider phải là memobase, mem0 hoặc memos"})
 		return
 	}
 
@@ -4881,7 +4881,7 @@ func (ac *AdminController) CreateMemoryConfig(c *gin.Context) {
 	}
 
 	if err := ac.DB.Create(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建Memory配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo cấu hình Memory thất bại"})
 		return
 	}
 
@@ -4893,7 +4893,7 @@ func (ac *AdminController) UpdateMemoryConfig(c *gin.Context) {
 	var config models.Config
 
 	if err := ac.DB.Where("id = ? AND type = ?", id, "memory").First(&config).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Memory配置不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "MemoryCấu hình không tồn tại"})
 		return
 	}
 
@@ -4905,7 +4905,7 @@ func (ac *AdminController) UpdateMemoryConfig(c *gin.Context) {
 
 	// 验证provider字段
 	if updateData.Provider != "memobase" && updateData.Provider != "mem0" && updateData.Provider != "memos" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Provider必须是memobase、mem0或memos"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Provider phải là memobase, mem0 hoặc memos"})
 		return
 	}
 
@@ -4922,7 +4922,7 @@ func (ac *AdminController) UpdateMemoryConfig(c *gin.Context) {
 	config.IsDefault = updateData.IsDefault
 
 	if err := ac.DB.Save(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新Memory配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật cấu hình Memory thất bại"})
 		return
 	}
 
@@ -4932,10 +4932,10 @@ func (ac *AdminController) UpdateMemoryConfig(c *gin.Context) {
 func (ac *AdminController) DeleteMemoryConfig(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	if err := ac.DB.Where("id = ? AND type = ?", id, "memory").Delete(&models.Config{}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除Memory配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa cấu hình Memory thất bại"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 // 设置默认Memory配置
@@ -4944,7 +4944,7 @@ func (ac *AdminController) SetDefaultMemoryConfig(c *gin.Context) {
 	var config models.Config
 
 	if err := ac.DB.Where("id = ? AND type = ?", id, "memory").First(&config).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "Memory配置不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "MemoryCấu hình không tồn tại"})
 		return
 	}
 
@@ -4954,11 +4954,11 @@ func (ac *AdminController) SetDefaultMemoryConfig(c *gin.Context) {
 	// 设置当前配置为默认
 	config.IsDefault = true
 	if err := ac.DB.Save(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "设置默认Memory配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đặt cấu hình Memory mặc định thất bại"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "设置默认Memory配置成功", "data": config})
+	c.JSON(http.StatusOK, gin.H{"message": "Đặt cấu hình Memory mặc định thành công", "data": config})
 }
 
 // generateMCPToken 生成稳定的MCP JWT Token（同一agentID+userID下保持不变）
@@ -5035,7 +5035,7 @@ func (ac *AdminController) GetGlobalRolesNew(c *gin.Context) {
 	if err := ac.DB.Where("user_id IS NULL AND role_type = ?", "global").
 		Order("sort_order ASC, id ASC").
 		Find(&globalRoles).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取全局角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy vai trò toàn cục thất bại"})
 		return
 	}
 
@@ -5054,7 +5054,7 @@ func (ac *AdminController) GetRolesNew(c *gin.Context) {
 	if err := ac.DB.Where("user_id IS NULL AND role_type = ?", "global").
 		Order("sort_order ASC, id ASC").
 		Find(&globalRoles).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取全局角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy vai trò toàn cục thất bại"})
 		return
 	}
 
@@ -5065,7 +5065,7 @@ func (ac *AdminController) GetRolesNew(c *gin.Context) {
 		if err := ac.DB.Where("role_type = ?", "user").
 			Order("created_at DESC").
 			Find(&userRoles).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户角色失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy vai trò người dùng thất bại"})
 			return
 		}
 	} else if exists {
@@ -5073,7 +5073,7 @@ func (ac *AdminController) GetRolesNew(c *gin.Context) {
 		if err := ac.DB.Where("user_id = ? AND role_type = ?", userID, "user").
 			Order("created_at DESC").
 			Find(&userRoles).Error; err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "获取用户角色失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy vai trò người dùng thất bại"})
 			return
 		}
 	}
@@ -5092,11 +5092,11 @@ func (ac *AdminController) GetRoleNew(c *gin.Context) {
 	var role models.Role
 
 	if err := ac.DB.First(&role, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "角色不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Vai trò không tồn tại"})
 		return
 	}
 	if strings.Contains(c.FullPath(), "/admin/roles/global/") && role.RoleType != "global" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "该接口仅允许操作全局角色"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "API này chỉ cho phép thao tác với vai trò toàn cục"})
 		return
 	}
 
@@ -5109,7 +5109,7 @@ func (ac *AdminController) GetRoleNew(c *gin.Context) {
 			if exists && userID != nil {
 				uid := userID.(uint)
 				if uid != *role.UserID {
-					c.JSON(http.StatusForbidden, gin.H{"error": "无权访问此角色"})
+					c.JSON(http.StatusForbidden, gin.H{"error": "Bạn không có quyền truy cập vai trò này"})
 					return
 				}
 			}
@@ -5151,23 +5151,23 @@ func (ac *AdminController) CreateRoleNew(c *gin.Context) {
 		// 用户角色不能设为默认
 		role.IsDefault = false
 	} else {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa được ủy quyền"})
 		return
 	}
 
 	// 验证必填字段
 	if role.Name == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "角色名称不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên vai trò không được để trống"})
 		return
 	}
 	if role.Prompt == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "系统提示词不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "System prompt không được để trống"})
 		return
 	}
 
 	role.Status = normalizeRoleStatus(role.Status)
 	if role.Status != "active" && role.Status != "inactive" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "角色状态无效"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Trạng thái vai trò không hợp lệ"})
 		return
 	}
 
@@ -5179,7 +5179,7 @@ func (ac *AdminController) CreateRoleNew(c *gin.Context) {
 	}
 
 	if err := ac.DB.Create(&role).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo vai trò thất bại"})
 		return
 	}
 
@@ -5192,11 +5192,11 @@ func (ac *AdminController) UpdateRoleNew(c *gin.Context) {
 	var role models.Role
 
 	if err := ac.DB.First(&role, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "角色不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Vai trò không tồn tại"})
 		return
 	}
 	if strings.Contains(c.FullPath(), "/admin/roles/global/") && role.RoleType != "global" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "该接口仅允许操作全局角色"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "API này chỉ cho phép thao tác với vai trò toàn cục"})
 		return
 	}
 
@@ -5213,7 +5213,7 @@ func (ac *AdminController) UpdateRoleNew(c *gin.Context) {
 	}
 
 	if !isAdmin && !isOwner {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权修改此角色"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Bạn không có quyền sửa vai trò này"})
 		return
 	}
 
@@ -5245,7 +5245,7 @@ func (ac *AdminController) UpdateRoleNew(c *gin.Context) {
 	}
 	normalizedStatus = normalizeRoleStatus(normalizedStatus)
 	if normalizedStatus != "active" && normalizedStatus != "inactive" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "角色状态无效"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Trạng thái vai trò không hợp lệ"})
 		return
 	}
 	role.Status = normalizedStatus
@@ -5256,7 +5256,7 @@ func (ac *AdminController) UpdateRoleNew(c *gin.Context) {
 	}
 
 	if err := ac.DB.Save(&role).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật vai trò thất bại"})
 		return
 	}
 
@@ -5269,11 +5269,11 @@ func (ac *AdminController) DeleteRoleNew(c *gin.Context) {
 	var role models.Role
 
 	if err := ac.DB.First(&role, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "角色不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Vai trò không tồn tại"})
 		return
 	}
 	if strings.Contains(c.FullPath(), "/admin/roles/global/") && role.RoleType != "global" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "该接口仅允许操作全局角色"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "API này chỉ cho phép thao tác với vai trò toàn cục"})
 		return
 	}
 
@@ -5290,7 +5290,7 @@ func (ac *AdminController) DeleteRoleNew(c *gin.Context) {
 	}
 
 	if !isAdmin && !isOwner {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权删除此角色"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Bạn không có quyền xóa vai trò này"})
 		return
 	}
 
@@ -5299,17 +5299,17 @@ func (ac *AdminController) DeleteRoleNew(c *gin.Context) {
 	ac.DB.Model(&models.Device{}).Where("role_id = ?", id).Count(&deviceCount)
 	if deviceCount > 0 {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": fmt.Sprintf("有 %d 个设备正在使用此角色，请先解除关联", deviceCount),
+			"error": fmt.Sprintf("Có %d thiết bị đang dùng vai trò này, vui lòng gỡ liên kết trước", deviceCount),
 		})
 		return
 	}
 
 	if err := ac.DB.Delete(&role).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa vai trò thất bại"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 // ToggleRoleStatus 切换角色状态（启用/禁用）
@@ -5318,11 +5318,11 @@ func (ac *AdminController) ToggleRoleStatus(c *gin.Context) {
 	var role models.Role
 
 	if err := ac.DB.First(&role, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "角色不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Vai trò không tồn tại"})
 		return
 	}
 	if strings.Contains(c.FullPath(), "/admin/roles/global/") && role.RoleType != "global" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "该接口仅允许操作全局角色"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "API này chỉ cho phép thao tác với vai trò toàn cục"})
 		return
 	}
 
@@ -5339,7 +5339,7 @@ func (ac *AdminController) ToggleRoleStatus(c *gin.Context) {
 	}
 
 	if !isAdmin && !isOwner {
-		c.JSON(http.StatusForbidden, gin.H{"error": "无权修改此角色"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Bạn không có quyền sửa vai trò này"})
 		return
 	}
 
@@ -5352,7 +5352,7 @@ func (ac *AdminController) ToggleRoleStatus(c *gin.Context) {
 	}
 
 	if err := ac.DB.Save(&role).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新状态失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật trạng thái thất bại"})
 		return
 	}
 
@@ -5365,20 +5365,20 @@ func (ac *AdminController) SetDefaultRole(c *gin.Context) {
 	var role models.Role
 
 	if err := ac.DB.First(&role, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "角色不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Vai trò không tồn tại"})
 		return
 	}
 
-	// 只有全局角色可以设为默认
+	// Chỉ vai trò toàn cục mới có thể được đặt mặc định
 	if role.RoleType != "global" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "只有全局角色可以设为默认"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Chỉ vai trò toàn cục mới có thể được đặt mặc định"})
 		return
 	}
 
-	// 权限检查：只有管理员可以设置默认角色
+	// 权限检查：Chỉ quản trị viên mới có thể đặt vai trò mặc định
 	userRole, roleExists := c.Get("role")
 	if !roleExists || userRole.(string) != "admin" {
-		c.JSON(http.StatusForbidden, gin.H{"error": "只有管理员可以设置默认角色"})
+		c.JSON(http.StatusForbidden, gin.H{"error": "Chỉ quản trị viên mới có thể đặt vai trò mặc định"})
 		return
 	}
 
@@ -5390,11 +5390,11 @@ func (ac *AdminController) SetDefaultRole(c *gin.Context) {
 	// 设置当前角色为默认
 	role.IsDefault = true
 	if err := ac.DB.Save(&role).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "设置默认角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đặt vai trò mặc định thất bại"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"data": role, "message": "已设为默认角色"})
+	c.JSON(http.StatusOK, gin.H{"data": role, "message": "Đã đặt làm vai trò mặc định"})
 }
 
 type applyDeviceRoleRequest struct {
@@ -5490,7 +5490,7 @@ func getRequestUserInfo(c *gin.Context) (uint, bool, bool) {
 func (ac *AdminController) ApplyRoleToDevice(c *gin.Context) {
 	deviceID, err := strconv.Atoi(c.Param("id"))
 	if err != nil || deviceID <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的设备ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID thiết bị không hợp lệ"})
 		return
 	}
 
@@ -5502,14 +5502,14 @@ func (ac *AdminController) ApplyRoleToDevice(c *gin.Context) {
 
 	var device models.Device
 	if err := ac.DB.First(&device, deviceID).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "设备不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Thiết bị không tồn tại"})
 		return
 	}
 
 	uid, hasUserID, isAdmin := getRequestUserInfo(c)
 	if !isAdmin {
 		if !hasUserID || device.UserID != uid {
-			c.JSON(http.StatusForbidden, gin.H{"error": "无权操作该设备"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Bạn không có quyền thao tác thiết bị này"})
 			return
 		}
 	}
@@ -5517,13 +5517,13 @@ func (ac *AdminController) ApplyRoleToDevice(c *gin.Context) {
 	if req.RoleID != nil {
 		var role models.Role
 		if err := ac.DB.First(&role, *req.RoleID).Error; err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "角色不存在"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Vai trò không tồn tại"})
 			return
 		}
 
 		roleStatus := normalizeRoleStatus(role.Status)
 		if roleStatus != "active" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "角色未启用"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Vai trò chưa được bật"})
 			return
 		}
 		if role.Status == "" {
@@ -5536,7 +5536,7 @@ func (ac *AdminController) ApplyRoleToDevice(c *gin.Context) {
 		if !isAdmin {
 			if role.RoleType != "global" {
 				if role.UserID == nil || *role.UserID != uid {
-					c.JSON(http.StatusForbidden, gin.H{"error": "无权使用该角色"})
+					c.JSON(http.StatusForbidden, gin.H{"error": "Bạn không có quyền dùng vai trò này"})
 					return
 				}
 			}
@@ -5547,7 +5547,7 @@ func (ac *AdminController) ApplyRoleToDevice(c *gin.Context) {
 	if err := updateDeviceColumns(ac.DB, device.ID, map[string]interface{}{
 		"role_id": device.RoleID,
 	}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "应用角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Áp dụng vai trò thất bại"})
 		return
 	}
 
@@ -5563,7 +5563,7 @@ func (ac *AdminController) ApplyRoleToDevice(c *gin.Context) {
 func (ac *AdminController) SwitchDeviceRoleByNameInternal(c *gin.Context) {
 	deviceName := strings.TrimSpace(c.Param("device_name"))
 	if deviceName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "设备名称不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên thiết bị không được để trống"})
 		return
 	}
 
@@ -5574,13 +5574,13 @@ func (ac *AdminController) SwitchDeviceRoleByNameInternal(c *gin.Context) {
 	}
 	req.RoleName = strings.TrimSpace(req.RoleName)
 	if req.RoleName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "role_name 不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "role_name không được để trống"})
 		return
 	}
 
 	var device models.Device
 	if err := ac.DB.Where("device_name = ?", deviceName).First(&device).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "设备不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Thiết bị không tồn tại"})
 		return
 	}
 
@@ -5589,14 +5589,14 @@ func (ac *AdminController) SwitchDeviceRoleByNameInternal(c *gin.Context) {
 		Where("(role_type = ? OR (role_type = ? AND user_id = ?))", "global", "user", device.UserID).
 		Order("sort_order ASC, id ASC").
 		Find(&roles).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn vai trò thất bại"})
 		return
 	}
 
 	matchedRole, matchType := matchDeviceRoleByName(req.RoleName, roles)
 	if matchedRole == nil {
 		c.JSON(http.StatusNotFound, gin.H{
-			"error":               "未找到匹配的角色",
+			"error":               "Không tìm thấy vai trò phù hợp",
 			"requested_role_name": req.RoleName,
 		})
 		return
@@ -5607,7 +5607,7 @@ func (ac *AdminController) SwitchDeviceRoleByNameInternal(c *gin.Context) {
 	if err := updateDeviceColumns(ac.DB, device.ID, map[string]interface{}{
 		"role_id": device.RoleID,
 	}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "切换设备角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Chuyển vai trò thiết bị thất bại"})
 		return
 	}
 
@@ -5628,13 +5628,13 @@ func (ac *AdminController) SwitchDeviceRoleByNameInternal(c *gin.Context) {
 func (ac *AdminController) RestoreDeviceDefaultRoleInternal(c *gin.Context) {
 	deviceName := strings.TrimSpace(c.Param("device_name"))
 	if deviceName == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "设备名称不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên thiết bị không được để trống"})
 		return
 	}
 
 	var device models.Device
 	if err := ac.DB.Where("device_name = ?", deviceName).First(&device).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "设备不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Thiết bị không tồn tại"})
 		return
 	}
 
@@ -5642,7 +5642,7 @@ func (ac *AdminController) RestoreDeviceDefaultRoleInternal(c *gin.Context) {
 	if err := updateDeviceColumns(ac.DB, device.ID, map[string]interface{}{
 		"role_id": nil,
 	}); err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "恢复默认角色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Khôi phục vai trò mặc định thất bại"})
 		return
 	}
 

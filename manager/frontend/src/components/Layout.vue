@@ -3,17 +3,17 @@
     <aside class="sidebar-shell">
       <div class="sidebar-card apple-surface">
         <div class="brand-panel">
-          <img class="brand-mark" :src="appLogo" alt="小智管理系统" />
+          <img class="brand-mark" :src="appLogo" :alt="t('app.name')" />
           <div class="brand-copy">
             <p class="brand-eyebrow">Control Center</p>
-            <h3>小智管理系统</h3>
-            <p>{{ authStore.isAdmin ? 'AI 服务与设备管理台' : '设备与智能体工作台' }}</p>
+            <h3>{{ t('app.name') }}</h3>
+            <p>{{ authStore.isAdmin ? t('layout.adminWorkspace') : t('layout.userWorkspace') }}</p>
           </div>
         </div>
 
         <div class="sidebar-meta">
-          <span class="apple-chip is-primary">{{ authStore.isAdmin ? '管理员模式' : '用户模式' }}</span>
-          <span class="apple-chip is-success">在线中</span>
+          <span class="apple-chip is-primary">{{ authStore.isAdmin ? t('layout.adminMode') : t('layout.userMode') }}</span>
+          <span class="apple-chip is-success">{{ t('layout.online') }}</span>
         </div>
 
         <el-scrollbar class="sidebar-scroll">
@@ -26,99 +26,99 @@
           >
             <el-menu-item v-if="authStore.isAdmin" index="/dashboard">
               <el-icon><House /></el-icon>
-              <span>仪表板</span>
+              <span>{{ t('menu.dashboard') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="!authStore.isAdmin" index="/agents">
               <el-icon><Connection /></el-icon>
-              <span>智能体管理</span>
+              <span>{{ t('menu.agents') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="!authStore.isAdmin" index="/user/devices">
               <el-icon><Iphone /></el-icon>
-              <span>设备列表</span>
+              <span>{{ t('menu.devices') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="!authStore.isAdmin" index="/user/roles">
               <el-icon><User /></el-icon>
-              <span>我的角色</span>
+              <span>{{ t('menu.myRoles') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="!authStore.isAdmin" index="/speakers">
               <el-icon><Microphone /></el-icon>
-              <span>声纹管理</span>
+              <span>{{ t('menu.speakers') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="!authStore.isAdmin" index="/voice-clones">
               <el-icon><Microphone /></el-icon>
-              <span>声音复刻</span>
+              <span>{{ t('menu.voiceClones') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="!authStore.isAdmin" index="/user/knowledge-bases">
               <el-icon><Document /></el-icon>
-              <span>我的知识库</span>
+              <span>{{ t('menu.knowledgeBases') }}</span>
             </el-menu-item>
 
             <el-sub-menu v-if="authStore.isAdmin" index="/admin/service-config">
               <template #title>
                 <el-icon><Tools /></el-icon>
-                <span>服务配置</span>
+                <span>{{ t('menu.serviceConfig') }}</span>
               </template>
-              <el-menu-item index="/admin/ota-config">OTA 配置</el-menu-item>
-              <el-menu-item index="/admin/mqtt-config">MQTT 配置</el-menu-item>
-              <el-menu-item index="/admin/mqtt-server-config">MQTT Server 配置</el-menu-item>
-              <el-menu-item index="/admin/udp-config">UDP 配置</el-menu-item>
+              <el-menu-item index="/admin/ota-config">{{ t('nav.otaConfig') }}</el-menu-item>
+              <el-menu-item index="/admin/mqtt-config">MQTT {{ t('menu.config') }}</el-menu-item>
+              <el-menu-item index="/admin/mqtt-server-config">MQTT Server {{ t('menu.config') }}</el-menu-item>
+              <el-menu-item index="/admin/udp-config">UDP {{ t('menu.config') }}</el-menu-item>
               <el-sub-menu index="/admin/mcp-config-group" class="menu-sub-child">
-                <template #title>MCP 配置</template>
-                <el-menu-item class="menu-grandchild" index="/admin/mcp-config">配置</el-menu-item>
-                <el-menu-item class="menu-grandchild" index="/admin/mcp-market">MCP 市场</el-menu-item>
+                <template #title>MCP {{ t('menu.config') }}</template>
+                <el-menu-item class="menu-grandchild" index="/admin/mcp-config">{{ t('menu.config') }}</el-menu-item>
+                <el-menu-item class="menu-grandchild" index="/admin/mcp-market">{{ t('menu.mcpMarket') }}</el-menu-item>
               </el-sub-menu>
-              <el-menu-item index="/admin/speaker-config">声纹识别配置</el-menu-item>
-              <el-menu-item index="/admin/chat-settings">聊天设置</el-menu-item>
+              <el-menu-item index="/admin/speaker-config">{{ t('menu.speakerConfig') }}</el-menu-item>
+              <el-menu-item index="/admin/chat-settings">{{ t('menu.chatSettings') }}</el-menu-item>
             </el-sub-menu>
 
             <el-sub-menu v-if="authStore.isAdmin" index="/admin/ai-config">
               <template #title>
                 <el-icon><Cpu /></el-icon>
-                <span>AI 配置</span>
+                <span>{{ t('menu.aiConfig') }}</span>
               </template>
-              <el-menu-item index="/admin/vad-config">VAD 配置</el-menu-item>
-              <el-menu-item index="/admin/asr-config">ASR 配置</el-menu-item>
-              <el-menu-item index="/admin/llm-config">LLM 配置</el-menu-item>
-              <el-menu-item index="/admin/tts-config">TTS 配置</el-menu-item>
-              <el-menu-item index="/admin/vision-config">Vision 配置</el-menu-item>
-              <el-menu-item index="/admin/memory-config">Memory 配置</el-menu-item>
-              <el-menu-item index="/admin/knowledge-search-config">知识库检索配置</el-menu-item>
+              <el-menu-item index="/admin/vad-config">VAD {{ t('menu.config') }}</el-menu-item>
+              <el-menu-item index="/admin/asr-config">ASR {{ t('menu.config') }}</el-menu-item>
+              <el-menu-item index="/admin/llm-config">LLM {{ t('menu.config') }}</el-menu-item>
+              <el-menu-item index="/admin/tts-config">TTS {{ t('menu.config') }}</el-menu-item>
+              <el-menu-item index="/admin/vision-config">Vision {{ t('menu.config') }}</el-menu-item>
+              <el-menu-item index="/admin/memory-config">Memory {{ t('menu.config') }}</el-menu-item>
+              <el-menu-item index="/admin/knowledge-search-config">{{ t('menu.knowledgeSearchConfig') }}</el-menu-item>
             </el-sub-menu>
 
             <el-menu-item v-if="authStore.isAdmin" index="/voice-clones">
               <el-icon><Microphone /></el-icon>
-              <span>声音复刻</span>
+              <span>{{ t('menu.voiceClones') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="authStore.isAdmin" index="/admin/pool-stats">
               <el-icon><DataAnalysis /></el-icon>
-              <span>资源池统计</span>
+              <span>{{ t('menu.poolStats') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="authStore.isAdmin" index="/admin/global-roles">
               <el-icon><Setting /></el-icon>
-              <span>全局角色</span>
+              <span>{{ t('menu.globalRoles') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="authStore.isAdmin" index="/admin/users">
               <el-icon><UserFilled /></el-icon>
-              <span>用户管理</span>
+              <span>{{ t('menu.users') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="authStore.isAdmin" index="/admin/devices">
               <el-icon><Iphone /></el-icon>
-              <span>设备管理</span>
+              <span>{{ t('menu.deviceManagement') }}</span>
             </el-menu-item>
 
             <el-menu-item v-if="authStore.isAdmin" index="/admin/agents">
               <el-icon><Connection /></el-icon>
-              <span>智能体管理</span>
+              <span>{{ t('menu.agents') }}</span>
             </el-menu-item>
           </el-menu>
         </el-scrollbar>
@@ -128,9 +128,9 @@
     <div class="content-shell">
       <AppHeader
         :title="currentPageTitle"
-        :eyebrow="authStore.isAdmin ? 'Admin Console' : 'User Workspace'"
+        :eyebrow="authStore.isAdmin ? t('layout.adminConsole') : t('layout.userWorkspaceEyebrow')"
         :username="authStore.user?.username || ''"
-        :role-label="authStore.isAdmin ? '管理员' : '普通用户'"
+        :role-label="authStore.isAdmin ? t('layout.admin') : t('layout.user')"
         :initial="usernameInitial"
         :is-admin="authStore.isAdmin"
         :show-admin-shortcuts="authStore.isAdmin"
@@ -149,6 +149,7 @@
 <script setup>
 import { computed } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useAuthStore } from '../stores/auth'
 import { isMobile } from '../utils/device'
@@ -171,11 +172,18 @@ import {
 
 const router = useRouter()
 const route = useRoute()
+const { t, te } = useI18n()
 const authStore = useAuthStore()
 
 const isMobileDevice = computed(() => isMobile())
 
-const currentPageTitle = computed(() => route.meta?.title || (authStore.isAdmin ? '仪表板' : '我的智能体'))
+const currentPageTitle = computed(() => {
+  const titleKey = route.meta?.titleKey
+  if (titleKey && te(titleKey)) {
+    return t(titleKey)
+  }
+  return route.meta?.title || (authStore.isAdmin ? t('menu.dashboard') : t('menu.agents'))
+})
 const isFormHeavyRoute = computed(() => ['AgentEdit', 'UserAgentEdit'].includes(String(route.name || '')))
 
 const usernameInitial = computed(() => {
@@ -191,14 +199,14 @@ const handleCommand = async (command) => {
 
   if (command === 'logout') {
     try {
-      await ElMessageBox.confirm('确定要退出登录吗？', '提示', {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
+      await ElMessageBox.confirm(t('layout.logoutConfirmMessage'), t('layout.logoutConfirmTitle'), {
+        confirmButtonText: t('common.confirm'),
+        cancelButtonText: t('common.cancel'),
         type: 'warning'
       })
 
       authStore.logout()
-      ElMessage.success('已退出登录')
+      ElMessage.success(t('layout.loggedOut'))
       router.push('/login')
     } catch {
       // 用户取消

@@ -1,7 +1,7 @@
 <template>
   <el-form ref="formRef" :model="model" :rules="rules" label-width="120px">
-    <el-form-item label="提供商" prop="provider" required>
-      <el-select v-model="model.provider" placeholder="请选择提供商" style="width: 100%" @change="onProviderChange">
+    <el-form-item label="Nhà cung cấp" prop="provider" required>
+      <el-select v-model="model.provider" placeholder="Vui lòng chọn nhà cung cấp" style="width: 100%" @change="onProviderChange">
         <el-option label="OpenAI" value="openai" />
         <el-option label="Ollama" value="ollama" />
         <el-option label="Azure OpenAI" value="azure" />
@@ -15,11 +15,11 @@
         <el-option label="Coze" value="coze" />
       </el-select>
     </el-form-item>
-    <el-form-item label="配置名称" prop="name">
-      <el-input v-model="model.name" placeholder="请输入配置名称" />
+    <el-form-item label="Tên cấu hình" prop="name">
+      <el-input v-model="model.name" placeholder="Vui lòng nhập tên cấu hình" />
     </el-form-item>
-    <el-form-item label="配置ID" prop="config_id">
-      <el-input v-model="model.config_id" placeholder="请输入唯一的配置ID" />
+    <el-form-item label="ID cấu hình" prop="config_id">
+      <el-input v-model="model.config_id" placeholder="Vui lòng nhập ID cấu hình duy nhất" />
     </el-form-item>
 
     <el-form-item v-if="isOpenAIOrOllama" :label="modelFieldLabel" prop="model_name" required>
@@ -50,39 +50,39 @@
       />
     </el-form-item>
 
-    <el-form-item label="API密钥" prop="api_key" :required="apiKeyRequired">
-      <el-input v-model="model.api_key" type="password" placeholder="请输入API密钥" show-password />
+    <el-form-item label="API key" prop="api_key" :required="apiKeyRequired">
+      <el-input v-model="model.api_key" type="password" placeholder="Vui lòng nhập API key" show-password />
     </el-form-item>
 
-    <el-form-item v-if="showBaseURL" label="基础URL" prop="base_url" required>
-      <el-input v-model="model.base_url" placeholder="请输入基础URL" style="width: 100%" />
+    <el-form-item v-if="showBaseURL" label="Base URL" prop="base_url" required>
+      <el-input v-model="model.base_url" placeholder="Vui lòng nhập Base URL" style="width: 100%" />
     </el-form-item>
 
     <el-form-item v-if="isCoze" label="Bot ID" prop="bot_id" required>
-      <el-input v-model="model.bot_id" placeholder="请输入 Coze Bot ID" />
+      <el-input v-model="model.bot_id" placeholder="Vui lòng nhập Coze Bot ID" />
     </el-form-item>
 
-    <el-form-item v-if="isDify || isCoze" label="User前缀" prop="user_prefix">
-      <el-input v-model="model.user_prefix" placeholder="可选，默认 xiaozhi" />
+    <el-form-item v-if="isDify || isCoze" label="Tiền tố User" prop="user_prefix">
+      <el-input v-model="model.user_prefix" placeholder="Không bắt buộc, mặc định xiaozhi" />
     </el-form-item>
 
     <el-form-item v-if="isCoze" label="Connector ID" prop="connector_id">
-      <el-input v-model="model.connector_id" placeholder="可选，默认 1024" />
+      <el-input v-model="model.connector_id" placeholder="Không bắt buộc, mặc định 1024" />
     </el-form-item>
 
     <el-form-item v-if="isOpenAIOrOllama && requestConfig.allowMaxTokens" label="max_tokens" prop="max_tokens" required>
       <el-input-number v-model="model.max_tokens" :min="1" :max="100000" placeholder="max_tokens" style="width: 100%" />
     </el-form-item>
 
-    <el-form-item v-if="isOpenAIOrOllama && requestConfig.allowTemperature" label="温度" prop="temperature">
-      <el-input-number v-model="model.temperature" :min="0" :max="requestConfig.temperatureMax" :step="0.1" placeholder="温度" style="width: 100%" />
+    <el-form-item v-if="isOpenAIOrOllama && requestConfig.allowTemperature" label="Temperature" prop="temperature">
+      <el-input-number v-model="model.temperature" :min="0" :max="requestConfig.temperatureMax" :step="0.1" placeholder="Temperature" style="width: 100%" />
     </el-form-item>
 
     <el-form-item v-if="isOpenAIOrOllama && requestConfig.allowTopP" label="Top P" prop="top_p">
       <el-input-number v-model="model.top_p" :min="0" :max="1" :step="0.1" placeholder="Top P" style="width: 100%" />
     </el-form-item>
 
-    <el-form-item v-if="isOpenAIOrOllama && requestCapabilityHint" label="参数提示">
+    <el-form-item v-if="isOpenAIOrOllama && requestCapabilityHint" label="Gợi ý tham số">
       <el-alert
         :title="requestCapabilityHint"
         type="info"
@@ -93,7 +93,7 @@
 
     <template v-if="thinkingConfig.visible">
       <el-form-item :label="thinkingConfig.label" prop="thinking_mode">
-        <el-select v-model="model.thinking_mode" placeholder="请选择深度思考模式" style="width: 100%">
+        <el-select v-model="model.thinking_mode" placeholder="Vui lòng chọn chế độ suy luận sâu" style="width: 100%">
           <el-option
             v-for="option in thinkingConfig.options"
             :key="option.value"
@@ -103,8 +103,8 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item v-if="thinkingConfig.showEffort" label="思考力度" prop="thinking_effort">
-        <el-select v-model="model.thinking_effort" placeholder="请选择思考力度" style="width: 100%">
+      <el-form-item v-if="thinkingConfig.showEffort" label="Mức suy luận" prop="thinking_effort">
+        <el-select v-model="model.thinking_effort" placeholder="Vui lòng chọn mức suy luận" style="width: 100%">
           <el-option
             v-for="option in thinkingConfig.effortOptions"
             :key="option.value"
@@ -114,19 +114,19 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item v-if="thinkingConfig.showBudget" label="思考预算" prop="thinking_budget_tokens">
+      <el-form-item v-if="thinkingConfig.showBudget" label="Ngân sách suy luận" prop="thinking_budget_tokens">
         <el-input-number
           v-model="model.thinking_budget_tokens"
           :min="thinkingConfig.budgetMin"
           :max="thinkingConfig.budgetMax"
           :step="thinkingConfig.budgetStep"
-          placeholder="预算 token"
+          placeholder="Ngân sách token"
           style="width: 100%"
         />
       </el-form-item>
 
-      <el-form-item v-if="thinkingConfig.showClearThinking" label="历史思考链">
-        <el-select v-model="model.thinking_clear_thinking" placeholder="请选择历史思考链处理方式" style="width: 100%">
+      <el-form-item v-if="thinkingConfig.showClearThinking" label="Chuỗi suy luận lịch sử">
+        <el-select v-model="model.thinking_clear_thinking" placeholder="Vui lòng chọn cách xử lý chuỗi suy luận lịch sử" style="width: 100%">
           <el-option
             v-for="option in thinkingConfig.clearThinkingOptions"
             :key="String(option.value)"
@@ -208,7 +208,7 @@ const requestCapabilityHint = computed(() => {
   if (!blockedFields.length) {
     return ''
   }
-  return `当前模型按文档不建议单独设置 ${blockedFields.join('、')}，保存时不会透传这些字段。`
+  return `Model hiện tại không khuyến nghị đặt riêng theo tài liệu ${blockedFields.join('、')}，khi lưu sẽ không truyền các field này。`
 })
 
 const thinkingConfig = computed(() => {
@@ -216,7 +216,7 @@ const thinkingConfig = computed(() => {
   if (!config?.visible) {
     return {
       visible: false,
-      label: '深度思考',
+      label: 'Suy luận sâu',
       options: [],
       showBudget: false,
       budgetMin: 1,
@@ -249,7 +249,7 @@ const thinkingConfig = computed(() => {
     effortOptions: config.effortOptions,
     showClearThinking,
     clearThinkingOptions: config.clearThinkingOptions,
-    hint: config.hint || '开启更强的深度思考后，模型通常会花更多时间推理，首包和整体响应都会明显变慢。'
+    hint: config.hint || 'Sau khi bật suy luận sâu mạnh hơn, model thường mất nhiều thời gian suy luận hơn, first packet và phản hồi tổng thể sẽ chậm hơn rõ rệt.'
   }
 })
 
@@ -423,13 +423,13 @@ function validate(callback) {
 
   return formRef.value?.validate().then(() => {
     if (isCoze.value && !props.model?.bot_id) {
-      return Promise.reject(new Error('请输入Coze Bot ID'))
+      return Promise.reject(new Error('Vui lòng nhập Coze Bot ID'))
     }
     if (thinkingConfig.value.showBudget && thinkingConfig.value.budgetRequired && (props.model?.thinking_budget_tokens === null || props.model?.thinking_budget_tokens === undefined || props.model?.thinking_budget_tokens === '')) {
-      return Promise.reject(new Error('请填写思考预算'))
+      return Promise.reject(new Error('Vui lòng nhập ngân sách suy luận'))
     }
     if (thinkingConfig.value.showBudget && props.model?.thinking_budget_tokens !== null && props.model?.thinking_budget_tokens !== undefined && props.model?.thinking_budget_tokens !== '' && Number(props.model?.thinking_budget_tokens) < thinkingConfig.value.budgetMin) {
-      return Promise.reject(new Error(`思考预算不能小于 ${thinkingConfig.value.budgetMin}`))
+      return Promise.reject(new Error(`Ngân sách suy luận không được nhỏ hơn ${thinkingConfig.value.budgetMin}`))
     }
     return true
   })

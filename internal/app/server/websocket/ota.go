@@ -33,8 +33,8 @@ func (s *WebSocketServer) handleOta(w http.ResponseWriter, r *http.Request) {
 	clientId := r.Header.Get("Client-Id")
 
 	if deviceId == "" || clientId == "" {
-		log.Errorf("缺少Device-Id或Client-Id")
-		http.Error(w, "缺少Device-Id或Client-Id", http.StatusBadRequest)
+		log.Errorf("Thiếu Device-Id hoặc Client-Id")
+		http.Error(w, "Thiếu Device-Id hoặc Client-Id", http.StatusBadRequest)
 		return
 	}
 
@@ -58,7 +58,7 @@ func (s *WebSocketServer) handleOta(w http.ResponseWriter, r *http.Request) {
 		isActivited, err := configProvider.IsDeviceActivated(r.Context(), deviceId, clientId)
 		if err != nil {
 			log.Errorf("检查设备是否认证失败: %v", err)
-			http.Error(w, "内部服务器错误", http.StatusInternalServerError)
+			http.Error(w, "Lỗi máy chủ nội bộ", http.StatusInternalServerError)
 			return
 		}
 		if !isActivited {
@@ -103,7 +103,7 @@ func (s *WebSocketServer) handleOta(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(respData); err != nil {
 		log.Errorf("OTA响应序列化失败: %v", err)
-		http.Error(w, "内部服务器错误", http.StatusInternalServerError)
+		http.Error(w, "Lỗi máy chủ nội bộ", http.StatusInternalServerError)
 		return
 	}
 	return
@@ -137,19 +137,19 @@ func (s *WebSocketServer) handleOtaActivate(w http.ResponseWriter, r *http.Reque
 	deviceId := r.Header.Get("Device-Id")
 	clientId := r.Header.Get("Client-Id")
 	if deviceId == "" || clientId == "" {
-		log.Errorf("缺少Device-Id或Client-Id")
-		http.Error(w, "缺少Device-Id或Client-Id", http.StatusBadRequest)
+		log.Errorf("Thiếu Device-Id hoặc Client-Id")
+		http.Error(w, "Thiếu Device-Id hoặc Client-Id", http.StatusBadRequest)
 		return
 	}
 	var req ActivationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		log.Errorf("激活请求解析失败: %v", err)
-		http.Error(w, "请求体解析失败", http.StatusBadRequest)
+		http.Error(w, "Phân tích request body thất bại", http.StatusBadRequest)
 		return
 	}
 	// 校验算法
 	if req.Payload.Algorithm != "hmac-sha256" {
-		http.Error(w, "不支持的算法", http.StatusBadRequest)
+		http.Error(w, "Thuật toán không được hỗ trợ", http.StatusBadRequest)
 		return
 	}
 
@@ -157,18 +157,18 @@ func (s *WebSocketServer) handleOtaActivate(w http.ResponseWriter, r *http.Reque
 	configProvider, err := user_config.GetProvider(viper.GetString("config_provider.type"))
 	if err != nil {
 		log.Errorf("获取配置Provider失败: %v", err)
-		http.Error(w, "内部服务器错误", http.StatusInternalServerError)
+		http.Error(w, "Lỗi máy chủ nội bộ", http.StatusInternalServerError)
 		return
 	}
 	ok, err := configProvider.VerifyChallenge(r.Context(), deviceId, clientId, req.Payload)
 	if err != nil {
-		log.Errorf("设备激活校验失败: %v", err)
-		http.Error(w, "设备激活校验失败", http.StatusInternalServerError)
+		log.Errorf("Kiểm tra kích hoạt thiết bị thất bại: %v", err)
+		http.Error(w, "Kiểm tra kích hoạt thiết bị thất bại", http.StatusInternalServerError)
 		return
 	}
 	if !ok {
-		log.Warnf("设备激活校验未通过: deviceId=%s, clientId=%s", deviceId, clientId)
-		http.Error(w, "设备激活校验未通过", http.StatusAccepted)
+		log.Warnf("Kiểm tra kích hoạt thiết bị chưa đạt: deviceId=%s, clientId=%s", deviceId, clientId)
+		http.Error(w, "Kiểm tra kích hoạt thiết bị chưa đạt", http.StatusAccepted)
 		return
 	}
 	// 激活成功，返回200

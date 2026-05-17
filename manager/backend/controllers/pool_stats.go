@@ -27,7 +27,7 @@ func (c *PoolStatsController) ReportPoolStats(ctx *gin.Context) {
 	}
 
 	if err := ctx.ShouldBindJSON(&request); err != nil {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Lỗi tham số yêu cầu: " + err.Error()})
 		return
 	}
 
@@ -35,7 +35,7 @@ func (c *PoolStatsController) ReportPoolStats(ctx *gin.Context) {
 	c.storage.AddStats(request.Stats)
 
 	ctx.JSON(http.StatusOK, gin.H{
-		"message":   "统计数据上报成功",
+		"message":   "Báo cáo dữ liệu thống kê thành công",
 		"timestamp": time.Now().Unix(),
 	})
 }
@@ -52,7 +52,7 @@ func (c *PoolStatsController) GetPoolStats(ctx *gin.Context) {
 		if latest == nil {
 			ctx.JSON(http.StatusOK, gin.H{
 				"data":    nil,
-				"message": "暂无统计数据",
+				"message": "Chưa có dữ liệu thống kê",
 			})
 			return
 		}
@@ -74,19 +74,19 @@ func (c *PoolStatsController) GetPoolStats(ctx *gin.Context) {
 		endStr := ctx.Query("end")
 
 		if startStr == "" || endStr == "" {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "时间范围参数 start 和 end 不能为空"})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Tham số khoảng thời gian start và end không được để trống"})
 			return
 		}
 
 		start, err := time.Parse(time.RFC3339, startStr)
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "开始时间格式错误，请使用 RFC3339 格式"})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Thời gian bắt đầu không đúng định dạng, vui lòng dùng RFC3339"})
 			return
 		}
 
 		end, err := time.Parse(time.RFC3339, endStr)
 		if err != nil {
-			ctx.JSON(http.StatusBadRequest, gin.H{"error": "结束时间格式错误，请使用 RFC3339 格式"})
+			ctx.JSON(http.StatusBadRequest, gin.H{"error": "Thời gian kết thúc không đúng định dạng, vui lòng dùng RFC3339"})
 			return
 		}
 
@@ -97,7 +97,7 @@ func (c *PoolStatsController) GetPoolStats(ctx *gin.Context) {
 		})
 
 	default:
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "无效的查询类型，支持: latest, all, range"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "Loại truy vấn không hợp lệ, hỗ trợ: latest, all, range"})
 	}
 }
 

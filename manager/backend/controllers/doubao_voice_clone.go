@@ -185,7 +185,7 @@ func (vcc *VoiceCloneController) pollDoubaoCloneStatus(ctx context.Context, stat
 		if isDoubaoCloneFailed(statusResp) {
 			msg := statusResp.BaseResp.StatusMsg
 			if strings.TrimSpace(msg) == "" {
-				msg = firstNonEmptyDoubaoVoiceID(getStringAny(raw, "message"), getStringAny(raw, "error"), "豆包复刻训练失败")
+				msg = firstNonEmptyDoubaoVoiceID(getStringAny(raw, "message"), getStringAny(raw, "error"), "Huấn luyện clone Doubao thất bại")
 			}
 			return nil, nil, httpCode, fmt.Errorf("%s", msg)
 		}

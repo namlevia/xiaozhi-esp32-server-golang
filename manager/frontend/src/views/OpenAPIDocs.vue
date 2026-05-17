@@ -1,32 +1,32 @@
 <template>
   <div class="vp-docs">
     <aside class="vp-sidebar">
-      <div class="vp-sidebar-title">OpenAPI 文档</div>
+      <div class="vp-sidebar-title">Tài liệu OpenAPI</div>
       <a v-for="item in nav" :key="item.id" :href="`#${item.id}`" class="vp-nav-item">{{ item.label }}</a>
     </aside>
 
     <main class="vp-content">
       <header class="vp-hero">
-        <h1>小智 OpenAPI 文档</h1>
-        <p class="lead">公开可访问，按接口提供请求方式、参数、出参与示例。</p>
+        <h1>Tài liệu OpenAPI Xiaozhi</h1>
+        <p class="lead">Công khai truy cập, có mô tả method, tham số, dữ liệu trả về và ví dụ cho từng API.</p>
         <div class="hero-meta">
           <span>Base URL: <code>/api/open/v1</code></span>
           <span>Content-Type: <code>application/json</code></span>
-          <el-button size="small" type="primary" plain @click="$router.push('/login')">返回登录</el-button>
+          <el-button size="small" type="primary" plain @click="$router.push('/login')">Quay lại đăng nhập</el-button>
         </div>
       </header>
 
       <section id="auth" class="vp-section">
-        <h2>认证方式</h2>
+        <h2>Cách xác thực</h2>
         <pre><code>Authorization: Bearer &lt;jwt-or-api-token&gt;
 X-API-Token: &lt;api-token&gt;</code></pre>
       </section>
 
       <section id="common" class="vp-section">
-        <h2>通用响应说明</h2>
+        <h2>Giải thích phản hồi chung</h2>
         <ul>
-          <li>常见错误码：<code>400</code> 参数错误，<code>401</code> 认证失败，<code>404</code> 资源不存在，<code>500</code> 服务端异常。</li>
-          <li>分页接口默认：<code>page=1</code>、<code>page_size=50</code>。</li>
+          <li>Mã lỗi thường gặp: <code>400</code> tham số không hợp lệ, <code>401</code> xác thực thất bại, <code>404</code> không tìm thấy tài nguyên, <code>500</code> lỗi máy chủ.</li>
+          <li>API phân trang mặc định dùng: <code>page=1</code> và <code>page_size=50</code>.</li>
         </ul>
       </section>
 
@@ -233,14 +233,14 @@ X-API-Token: &lt;api-token&gt;</code></pre>
 
 <script setup>
 const nav = [
-  { id: 'auth', label: '认证方式' },
-  { id: 'common', label: '通用说明' },
-  { id: 'profile', label: '1. 用户信息' },
-  { id: 'devices', label: '2. 设备接口' },
-  { id: 'agents', label: '3. 智能体接口' },
-  { id: 'history', label: '4. 聊天记录' },
-  { id: 'inject', label: '5. 语音推送' },
-  { id: 'mcp', label: '6. MCP 工具' }
+  { id: 'auth', label: 'Cách xác thực' },
+  { id: 'common', label: 'Giải thích chung' },
+  { id: 'profile', label: '1. Thông tin người dùng' },
+  { id: 'devices', label: '2. API thiết bị' },
+  { id: 'agents', label: '3. API trợ lý' },
+  { id: 'history', label: '4. Lịch sử trò chuyện' },
+  { id: 'inject', label: '5. Đẩy giọng nói' },
+  { id: 'mcp', label: '6. Công cụ MCP' }
 ]
 </script>
 

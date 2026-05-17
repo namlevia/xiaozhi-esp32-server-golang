@@ -1,7 +1,7 @@
 <template>
   <el-form ref="formRef" :model="model" :rules="rules" label-width="120px">
-    <el-form-item label="提供商" prop="provider">
-      <el-select v-model="model.provider" placeholder="请选择提供商" style="width: 100%">
+    <el-form-item label="Nhà cung cấp" prop="provider">
+      <el-select v-model="model.provider" placeholder="Vui lòng chọn nhà cung cấp" style="width: 100%">
         <el-option
           v-for="provider in TTS_PROVIDER_OPTIONS"
           :key="provider.value"
@@ -10,37 +10,37 @@
         >
           <div style="display:flex; align-items:center; justify-content:space-between; gap:8px;">
             <span>{{ provider.label }}</span>
-            <el-tag v-if="provider.supports_voice_clone" size="small" type="success" effect="plain">支持复刻</el-tag>
+            <el-tag v-if="provider.supports_voice_clone" size="small" type="success" effect="plain">Hỗ trợ clone</el-tag>
           </div>
         </el-option>
       </el-select>
     </el-form-item>
-    <el-form-item label="配置名称" prop="name">
-      <el-input v-model="model.name" placeholder="请输入配置名称" />
+    <el-form-item label="Tên cấu hình" prop="name">
+      <el-input v-model="model.name" placeholder="Vui lòng nhập tên cấu hình" />
     </el-form-item>
-    <el-form-item label="配置ID" prop="config_id">
-      <el-input v-model="model.config_id" placeholder="请输入唯一的配置ID" />
+    <el-form-item label="ID cấu hình" prop="config_id">
+      <el-input v-model="model.config_id" placeholder="Vui lòng nhập ID cấu hình duy nhất" />
     </el-form-item>
 
     <template v-if="model.provider === 'doubao_ws'">
-      <el-form-item label="应用ID" prop="doubao_ws.appid">
-        <el-input v-model="model.doubao_ws.appid" placeholder="请输入应用ID" />
+      <el-form-item label="App ID" prop="doubao_ws.appid">
+        <el-input v-model="model.doubao_ws.appid" placeholder="Vui lòng nhập App ID" />
       </el-form-item>
-      <el-form-item label="访问令牌" prop="doubao_ws.access_token">
-        <el-input v-model="model.doubao_ws.access_token" placeholder="请输入访问令牌" type="password" show-password />
+      <el-form-item label="Access token" prop="doubao_ws.access_token">
+        <el-input v-model="model.doubao_ws.access_token" placeholder="Vui lòng nhập access token" type="password" show-password />
       </el-form-item>
-      <el-form-item label="模型" prop="doubao_ws.model">
-        <el-select v-model="model.doubao_ws.model" placeholder="请选择模型" style="width: 100%">
+      <el-form-item label="Model" prop="doubao_ws.model">
+        <el-select v-model="model.doubao_ws.model" placeholder="Vui lòng chọn model" style="width: 100%">
           <el-option v-for="option in DOUBAO_MODEL_OPTIONS" :key="option.value" :label="option.label" :value="option.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="资源 ID" prop="doubao_ws.resource_id">
-        <el-input v-model="model.doubao_ws.resource_id" placeholder="可选；如 TTS-SeedTTS2.xxxxx，优先使用控制台实例 ID" />
+      <el-form-item label="Resource ID" prop="doubao_ws.resource_id">
+        <el-input v-model="model.doubao_ws.resource_id" placeholder="Không bắt buộc; ví dụ TTS-SeedTTS2.xxxxx, ưu tiên dùng instance ID trong console" />
       </el-form-item>
-      <el-form-item label="音色" prop="doubao_ws.voice">
+      <el-form-item label="Giọng" prop="doubao_ws.voice">
         <el-select
           v-model="model.doubao_ws.voice"
-          placeholder="请选择音色"
+          placeholder="Vui lòng chọn giọng"
           style="width: 100%"
           filterable
           :loading="voiceLoading"
@@ -57,10 +57,10 @@
     </template>
 
     <template v-if="model.provider === 'edge'">
-      <el-form-item label="音色" prop="edge.voice">
+      <el-form-item label="Giọng" prop="edge.voice">
         <el-select
           v-model="model.edge.voice"
-          placeholder="请选择音色"
+          placeholder="Vui lòng chọn giọng"
           style="width: 100%"
           filterable
           :loading="voiceLoading"
@@ -71,86 +71,86 @@
           <el-option v-for="option in voiceOptionsList" :key="option.value" :label="option.label" :value="option.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="语速" prop="edge.rate">
-        <el-input v-model="model.edge.rate" placeholder="请输入语速（如：+0%）" />
+      <el-form-item label="Tốc độ nói" prop="edge.rate">
+        <el-input v-model="model.edge.rate" placeholder="Vui lòng nhập tốc độ nói (ví dụ: +0%)" />
       </el-form-item>
-      <el-form-item label="音量" prop="edge.volume">
-        <el-input v-model="model.edge.volume" placeholder="请输入音量（如：+0%）" />
+      <el-form-item label="Âm lượng" prop="edge.volume">
+        <el-input v-model="model.edge.volume" placeholder="Vui lòng nhập âm lượng (ví dụ: +0%)" />
       </el-form-item>
-      <el-form-item label="音调" prop="edge.pitch">
-        <el-input v-model="model.edge.pitch" placeholder="请输入音调（如：+0Hz）" />
+      <el-form-item label="Cao độ" prop="edge.pitch">
+        <el-input v-model="model.edge.pitch" placeholder="Vui lòng nhập cao độ (ví dụ: +0Hz)" />
       </el-form-item>
-      <el-form-item label="连接超时" prop="edge.connect_timeout">
+      <el-form-item label="Timeout kết nối" prop="edge.connect_timeout">
         <el-input-number v-model="model.edge.connect_timeout" :min="1" :max="60" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="接收超时" prop="edge.receive_timeout">
+      <el-form-item label="Timeout nhận" prop="edge.receive_timeout">
         <el-input-number v-model="model.edge.receive_timeout" :min="1" :max="300" style="width: 100%" />
       </el-form-item>
     </template>
 
     <template v-if="model.provider === 'edge_offline'">
-      <el-form-item label="服务器URL" prop="edge_offline.server_url">
-        <el-input v-model="model.edge_offline.server_url" placeholder="请输入服务器URL" />
+      <el-form-item label="Server URL" prop="edge_offline.server_url">
+        <el-input v-model="model.edge_offline.server_url" placeholder="Vui lòng nhập Server URL" />
       </el-form-item>
-      <el-form-item label="超时时间" prop="edge_offline.timeout">
+      <el-form-item label="Thời gian timeout" prop="edge_offline.timeout">
         <el-input-number v-model="model.edge_offline.timeout" :min="1" :max="300" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="采样率" prop="edge_offline.sample_rate">
+      <el-form-item label="Sample rate" prop="edge_offline.sample_rate">
         <el-input-number v-model="model.edge_offline.sample_rate" :min="8000" :max="48000" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="声道数" prop="edge_offline.channels">
+      <el-form-item label="Số kênh" prop="edge_offline.channels">
         <el-input-number v-model="model.edge_offline.channels" :min="1" :max="8" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="帧时长" prop="edge_offline.frame_duration">
+      <el-form-item label="Thời lượng frame" prop="edge_offline.frame_duration">
         <el-input-number v-model="model.edge_offline.frame_duration" :min="1" :max="100" style="width: 100%" />
       </el-form-item>
     </template>
 
     <template v-if="model.provider === 'aliyun_qwen'">
       <el-form-item label="API Key" prop="qwen_tts.api_key">
-        <el-input v-model="model.qwen_tts.api_key" placeholder="请输入API Key" type="password" show-password />
+        <el-input v-model="model.qwen_tts.api_key" placeholder="Vui lòng nhập API Key" type="password" show-password />
       </el-form-item>
-      <el-form-item label="地域" prop="qwen_tts.region">
-        <el-select v-model="model.qwen_tts.region" placeholder="请选择地域" style="width: 100%">
-          <el-option label="北京" value="beijing" />
-          <el-option label="新加坡" value="singapore" />
+      <el-form-item label="Khu vực" prop="qwen_tts.region">
+        <el-select v-model="model.qwen_tts.region" placeholder="Vui lòng chọn khu vực" style="width: 100%">
+          <el-option label="Bắc Kinh" value="beijing" />
+          <el-option label="Singapore" value="singapore" />
         </el-select>
       </el-form-item>
-      <el-form-item label="模型" prop="qwen_tts.model">
+      <el-form-item label="Model" prop="qwen_tts.model">
         <el-input v-model="model.qwen_tts.model" placeholder="qwen3-tts-flash" />
       </el-form-item>
-      <el-form-item label="音色" prop="qwen_tts.voice">
+      <el-form-item label="Giọng" prop="qwen_tts.voice">
         <el-input v-model="model.qwen_tts.voice" placeholder="Cherry" />
       </el-form-item>
-      <el-form-item label="语种" prop="qwen_tts.language_type">
-        <el-select v-model="model.qwen_tts.language_type" placeholder="请选择语种" style="width: 100%">
-          <el-option label="自动" value="Auto" />
-          <el-option label="中文" value="Chinese" />
-          <el-option label="英文" value="English" />
+      <el-form-item label="Ngôn ngữ" prop="qwen_tts.language_type">
+        <el-select v-model="model.qwen_tts.language_type" placeholder="Vui lòng chọn ngôn ngữ" style="width: 100%">
+          <el-option label="Tự động" value="Auto" />
+          <el-option label="Tiếng Trung" value="Chinese" />
+          <el-option label="Tiếng Anh" value="English" />
         </el-select>
       </el-form-item>
-      <el-form-item label="使用流式" prop="qwen_tts.stream">
+      <el-form-item label="Dùng streaming" prop="qwen_tts.stream">
         <el-switch v-model="model.qwen_tts.stream" />
       </el-form-item>
-      <el-form-item label="帧时长" prop="qwen_tts.frame_duration">
+      <el-form-item label="Thời lượng frame" prop="qwen_tts.frame_duration">
         <el-input-number v-model="model.qwen_tts.frame_duration" :min="1" :max="1000" style="width: 100%" />
       </el-form-item>
     </template>
 
     <template v-if="model.provider === 'zhipu'">
       <el-form-item label="API Key" prop="zhipu.api_key">
-        <el-input v-model="model.zhipu.api_key" placeholder="请输入API Key" type="password" show-password />
+        <el-input v-model="model.zhipu.api_key" placeholder="Vui lòng nhập API Key" type="password" show-password />
       </el-form-item>
       <el-form-item label="API URL" prop="zhipu.api_url">
         <el-input v-model="model.zhipu.api_url" placeholder="https://open.bigmodel.cn/api/paas/v4/audio/speech" />
       </el-form-item>
-      <el-form-item label="模型" prop="zhipu.model">
+      <el-form-item label="Model" prop="zhipu.model">
         <el-input v-model="model.zhipu.model" placeholder="glm-tts" />
       </el-form-item>
-      <el-form-item label="音色" prop="zhipu.voice">
+      <el-form-item label="Giọng" prop="zhipu.voice">
         <el-select
           v-model="model.zhipu.voice"
-          placeholder="请选择音色"
+          placeholder="Vui lòng chọn giọng"
           style="width: 100%"
           filterable
           :loading="voiceLoading"
@@ -159,43 +159,43 @@
           <el-option v-for="option in voiceOptionsList" :key="option.value" :label="option.label" :value="option.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="响应格式" prop="zhipu.response_format">
-        <el-select v-model="model.zhipu.response_format" placeholder="请选择响应格式" style="width: 100%">
+      <el-form-item label="Định dạng phản hồi" prop="zhipu.response_format">
+        <el-select v-model="model.zhipu.response_format" placeholder="Vui lòng chọn định dạng phản hồi" style="width: 100%">
           <el-option label="WAV" value="wav" />
           <el-option label="PCM" value="pcm" />
         </el-select>
       </el-form-item>
-      <el-form-item label="音量" prop="zhipu.volume">
-        <el-input-number v-model="model.zhipu.volume" :min="0" :max="10" :step="0.1" style="width: 100%" placeholder="0-10，默认1.0" />
+      <el-form-item label="Âm lượng" prop="zhipu.volume">
+        <el-input-number v-model="model.zhipu.volume" :min="0" :max="10" :step="0.1" style="width: 100%" placeholder="0-10, mặc định 1.0" />
       </el-form-item>
-      <el-form-item label="语速" prop="zhipu.speed">
-        <el-input-number v-model="model.zhipu.speed" :min="0.5" :max="2.0" :step="0.1" style="width: 100%" placeholder="0.5-2.0，默认1.0" />
+      <el-form-item label="Tốc độ nói" prop="zhipu.speed">
+        <el-input-number v-model="model.zhipu.speed" :min="0.5" :max="2.0" :step="0.1" style="width: 100%" placeholder="0.5-2.0, mặc định 1.0" />
       </el-form-item>
-      <el-form-item label="使用流式" prop="zhipu.stream">
+      <el-form-item label="Dùng streaming" prop="zhipu.stream">
         <el-switch v-model="model.zhipu.stream" />
       </el-form-item>
-      <el-form-item v-if="model.zhipu.stream" label="编码格式" prop="zhipu.encode_format">
-        <el-select v-model="model.zhipu.encode_format" placeholder="请选择编码格式" style="width: 100%">
+      <el-form-item v-if="model.zhipu.stream" label="Định dạng mã hóa" prop="zhipu.encode_format">
+        <el-select v-model="model.zhipu.encode_format" placeholder="Vui lòng chọn định dạng mã hóa" style="width: 100%">
           <el-option label="Base64" value="base64" />
           <el-option label="Hex" value="hex" />
         </el-select>
       </el-form-item>
-      <el-form-item label="帧时长" prop="zhipu.frame_duration">
-        <el-input-number v-model="model.zhipu.frame_duration" :min="1" :max="1000" style="width: 100%" placeholder="毫秒" />
+      <el-form-item label="Thời lượng frame" prop="zhipu.frame_duration">
+        <el-input-number v-model="model.zhipu.frame_duration" :min="1" :max="1000" style="width: 100%" placeholder="ms" />
       </el-form-item>
     </template>
 
     <template v-if="model.provider === 'minimax'">
       <el-form-item label="API Key" prop="minimax.api_key">
-        <el-input v-model="model.minimax.api_key" placeholder="请输入API Key" type="password" show-password />
+        <el-input v-model="model.minimax.api_key" placeholder="Vui lòng nhập API Key" type="password" show-password />
       </el-form-item>
-      <el-form-item label="模型" prop="minimax.model">
+      <el-form-item label="Model" prop="minimax.model">
         <el-input v-model="model.minimax.model" placeholder="speech-2.8-hd" />
       </el-form-item>
-      <el-form-item label="音色" prop="minimax.voice">
+      <el-form-item label="Giọng" prop="minimax.voice">
         <el-select
           v-model="model.minimax.voice"
-          placeholder="请选择音色"
+          placeholder="Vui lòng chọn giọng"
           style="width: 100%"
           filterable
           :loading="voiceLoading"
@@ -206,47 +206,47 @@
           <el-option v-for="option in voiceOptionsList" :key="option.value" :label="option.label" :value="option.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="语速" prop="minimax.speed">
-        <el-input-number v-model="model.minimax.speed" :min="0.5" :max="2.0" :step="0.1" style="width: 100%" placeholder="0.5-2.0，默认1.0" />
+      <el-form-item label="Tốc độ nói" prop="minimax.speed">
+        <el-input-number v-model="model.minimax.speed" :min="0.5" :max="2.0" :step="0.1" style="width: 100%" placeholder="0.5-2.0, mặc định 1.0" />
       </el-form-item>
-      <el-form-item label="音量" prop="minimax.vol">
-        <el-input-number v-model="model.minimax.vol" :min="0" :max="2" :step="0.1" style="width: 100%" placeholder="0-2，默认1.0" />
+      <el-form-item label="Âm lượng" prop="minimax.vol">
+        <el-input-number v-model="model.minimax.vol" :min="0" :max="2" :step="0.1" style="width: 100%" placeholder="0-2, mặc định 1.0" />
       </el-form-item>
-      <el-form-item label="音调" prop="minimax.pitch">
-        <el-input-number v-model="model.minimax.pitch" :min="-12" :max="12" :step="1" style="width: 100%" placeholder="-12到12，默认0" />
+      <el-form-item label="Cao độ" prop="minimax.pitch">
+        <el-input-number v-model="model.minimax.pitch" :min="-12" :max="12" :step="1" style="width: 100%" placeholder="-12 đến 12, mặc định 0" />
       </el-form-item>
-      <el-form-item label="采样率" prop="minimax.sample_rate">
-        <el-input-number v-model="model.minimax.sample_rate" :min="8000" :max="48000" :step="1000" style="width: 100%" placeholder="默认32000" />
+      <el-form-item label="Sample rate" prop="minimax.sample_rate">
+        <el-input-number v-model="model.minimax.sample_rate" :min="8000" :max="48000" :step="1000" style="width: 100%" placeholder="Mặc định 32000" />
       </el-form-item>
-      <el-form-item label="比特率" prop="minimax.bitrate">
-        <el-input-number v-model="model.minimax.bitrate" :min="32000" :max="320000" :step="16000" style="width: 100%" placeholder="默认128000" />
+      <el-form-item label="Bitrate" prop="minimax.bitrate">
+        <el-input-number v-model="model.minimax.bitrate" :min="32000" :max="320000" :step="16000" style="width: 100%" placeholder="Mặc định 128000" />
       </el-form-item>
-      <el-form-item label="音频格式" prop="minimax.format">
-        <el-select v-model="model.minimax.format" placeholder="请选择音频格式" style="width: 100%">
+      <el-form-item label="Định dạng âm thanh" prop="minimax.format">
+        <el-select v-model="model.minimax.format" placeholder="Vui lòng chọn định dạng âm thanh" style="width: 100%">
           <el-option label="MP3" value="mp3" />
           <el-option label="WAV" value="wav" />
           <el-option label="PCM" value="pcm" />
         </el-select>
       </el-form-item>
-      <el-form-item label="声道数" prop="minimax.channel">
-        <el-input-number v-model="model.minimax.channel" :min="1" :max="2" style="width: 100%" placeholder="默认1" />
+      <el-form-item label="Số kênh" prop="minimax.channel">
+        <el-input-number v-model="model.minimax.channel" :min="1" :max="2" style="width: 100%" placeholder="Mặc định 1" />
       </el-form-item>
     </template>
 
     <template v-if="model.provider === 'openai'">
       <el-form-item label="API Key" prop="openai.api_key">
-        <el-input v-model="model.openai.api_key" placeholder="请输入API Key" type="password" show-password />
+        <el-input v-model="model.openai.api_key" placeholder="Vui lòng nhập API Key" type="password" show-password />
       </el-form-item>
       <el-form-item label="API URL" prop="openai.api_url">
-        <el-input v-model="model.openai.api_url" placeholder="请输入API URL（默认：https://api.openai.com/v1/audio/speech）" />
+        <el-input v-model="model.openai.api_url" placeholder="Vui lòng nhập API URL (mặc định: https://api.openai.com/v1/audio/speech)" />
       </el-form-item>
-      <el-form-item label="模型" prop="openai.model">
-        <el-input v-model="model.openai.model" placeholder="请输入模型（默认：tts-1）" />
+      <el-form-item label="Model" prop="openai.model">
+        <el-input v-model="model.openai.model" placeholder="Vui lòng nhập model (mặc định: tts-1)" />
       </el-form-item>
-      <el-form-item label="音色" prop="openai.voice">
+      <el-form-item label="Giọng" prop="openai.voice">
         <el-select
           v-model="model.openai.voice"
-          placeholder="请选择音色"
+          placeholder="Vui lòng chọn giọng"
           style="width: 100%"
           filterable
           :loading="voiceLoading"
@@ -255,8 +255,8 @@
           <el-option v-for="option in voiceOptionsList" :key="option.value" :label="option.label" :value="option.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="响应格式" prop="openai.response_format">
-        <el-select v-model="model.openai.response_format" placeholder="请选择响应格式" style="width: 100%">
+      <el-form-item label="Định dạng phản hồi" prop="openai.response_format">
+        <el-select v-model="model.openai.response_format" placeholder="Vui lòng chọn định dạng phản hồi" style="width: 100%">
           <el-option label="MP3" value="mp3" />
           <el-option label="Opus" value="opus" />
           <el-option label="AAC" value="aac" />
@@ -265,64 +265,64 @@
           <el-option label="PCM" value="pcm" />
         </el-select>
       </el-form-item>
-      <el-form-item label="语速" prop="openai.speed">
-        <el-input-number v-model="model.openai.speed" :min="0.25" :max="4.0" :step="0.1" style="width: 100%" placeholder="0.25-4.0，默认1.0" />
+      <el-form-item label="Tốc độ nói" prop="openai.speed">
+        <el-input-number v-model="model.openai.speed" :min="0.25" :max="4.0" :step="0.1" style="width: 100%" placeholder="0.25-4.0, mặc định 1.0" />
       </el-form-item>
-      <el-form-item label="使用流式" prop="openai.stream">
+      <el-form-item label="Dùng streaming" prop="openai.stream">
         <el-switch v-model="model.openai.stream" />
       </el-form-item>
-      <el-form-item label="帧时长" prop="openai.frame_duration">
-        <el-input-number v-model="model.openai.frame_duration" :min="1" :max="1000" style="width: 100%" placeholder="毫秒" />
+      <el-form-item label="Thời lượng frame" prop="openai.frame_duration">
+        <el-input-number v-model="model.openai.frame_duration" :min="1" :max="1000" style="width: 100%" placeholder="ms" />
       </el-form-item>
     </template>
 
     <template v-if="model.provider === 'xunfei'">
       <XunfeiCommonConfig :model-value="model" prefix="xunfei" default-ws-url="wss://tts-api.xfyun.cn/v2/tts" />
-      <el-form-item label="音色" prop="xunfei.voice">
-        <el-input v-model="model.xunfei.voice" placeholder="请输入音色，例如 xiaoyan" />
+      <el-form-item label="Giọng" prop="xunfei.voice">
+        <el-input v-model="model.xunfei.voice" placeholder="Vui lòng nhập giọng, ví dụ xiaoyan" />
       </el-form-item>
-      <el-form-item label="音频编码" prop="xunfei.audio_encoding">
-        <el-select v-model="model.xunfei.audio_encoding" placeholder="请选择音频编码" style="width: 100%">
+      <el-form-item label="Mã hóa âm thanh" prop="xunfei.audio_encoding">
+        <el-select v-model="model.xunfei.audio_encoding" placeholder="Vui lòng chọn mã hóa âm thanh" style="width: 100%">
           <el-option label="RAW" value="raw" />
           <el-option label="Opus" value="opus" />
         </el-select>
       </el-form-item>
-      <el-form-item label="采样率" prop="xunfei.sample_rate">
-        <el-select v-model="model.xunfei.sample_rate" placeholder="请选择采样率" style="width: 100%">
+      <el-form-item label="Sample rate" prop="xunfei.sample_rate">
+        <el-select v-model="model.xunfei.sample_rate" placeholder="Vui lòng chọn sample rate" style="width: 100%">
           <el-option label="8000" :value="8000" />
           <el-option label="16000" :value="16000" />
         </el-select>
       </el-form-item>
-      <el-form-item label="语速" prop="xunfei.speed">
+      <el-form-item label="Tốc độ nói" prop="xunfei.speed">
         <el-input-number v-model="model.xunfei.speed" :min="0" :max="100" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="音量" prop="xunfei.volume">
+      <el-form-item label="Âm lượng" prop="xunfei.volume">
         <el-input-number v-model="model.xunfei.volume" :min="0" :max="100" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="音调" prop="xunfei.pitch">
+      <el-form-item label="Cao độ" prop="xunfei.pitch">
         <el-input-number v-model="model.xunfei.pitch" :min="0" :max="100" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="文本编码" prop="xunfei.tte">
-        <el-select v-model="model.xunfei.tte" placeholder="请选择文本编码" style="width: 100%">
+      <el-form-item label="Mã hóa văn bản" prop="xunfei.tte">
+        <el-select v-model="model.xunfei.tte" placeholder="Vui lòng chọn mã hóa văn bản" style="width: 100%">
           <el-option label="UTF8" value="UTF8" />
           <el-option label="UNICODE" value="UNICODE" />
           <el-option label="GB2312" value="GB2312" />
         </el-select>
       </el-form-item>
-      <el-form-item label="数字发音" prop="xunfei.reg">
+      <el-form-item label="Phát âm số" prop="xunfei.reg">
         <el-input-number v-model="model.xunfei.reg" :min="0" :max="2" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="数字读法" prop="xunfei.rdn">
+      <el-form-item label="Cách đọc số" prop="xunfei.rdn">
         <el-input-number v-model="model.xunfei.rdn" :min="0" :max="2" style="width: 100%" />
       </el-form-item>
     </template>
 
     <template v-if="model.provider === 'xunfei_super_tts'">
       <XunfeiCommonConfig :model-value="model" prefix="xunfei_super_tts" default-ws-url="wss://cbm01.cn-huabei-1.xf-yun.com/v1/private/mcd9m97e6" />
-      <el-form-item label="音色" prop="xunfei_super_tts.voice">
+      <el-form-item label="Giọng" prop="xunfei_super_tts.voice">
         <el-select
           v-model="model.xunfei_super_tts.voice"
-          placeholder="请选择或输入音色"
+          placeholder="Vui lòng chọn hoặc nhập giọng"
           style="width: 100%"
           filterable
           :loading="voiceLoading"
@@ -333,42 +333,42 @@
           <el-option v-for="option in voiceOptionsList" :key="option.value" :label="option.label" :value="option.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="音频编码" prop="xunfei_super_tts.audio_encoding">
-        <el-select v-model="model.xunfei_super_tts.audio_encoding" placeholder="请选择音频编码" style="width: 100%">
+      <el-form-item label="Mã hóa âm thanh" prop="xunfei_super_tts.audio_encoding">
+        <el-select v-model="model.xunfei_super_tts.audio_encoding" placeholder="Vui lòng chọn mã hóa âm thanh" style="width: 100%">
           <el-option label="RAW" value="raw" />
           <el-option label="Opus" value="opus" />
         </el-select>
       </el-form-item>
-      <el-form-item label="采样率" prop="xunfei_super_tts.sample_rate">
-        <el-select v-model="model.xunfei_super_tts.sample_rate" placeholder="请选择采样率" style="width: 100%">
+      <el-form-item label="Sample rate" prop="xunfei_super_tts.sample_rate">
+        <el-select v-model="model.xunfei_super_tts.sample_rate" placeholder="Vui lòng chọn sample rate" style="width: 100%">
           <el-option label="8000" :value="8000" />
           <el-option label="16000" :value="16000" />
           <el-option label="24000" :value="24000" />
         </el-select>
       </el-form-item>
-      <el-form-item label="语速" prop="xunfei_super_tts.speed">
+      <el-form-item label="Tốc độ nói" prop="xunfei_super_tts.speed">
         <el-input-number v-model="model.xunfei_super_tts.speed" :min="0" :max="100" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="音量" prop="xunfei_super_tts.volume">
+      <el-form-item label="Âm lượng" prop="xunfei_super_tts.volume">
         <el-input-number v-model="model.xunfei_super_tts.volume" :min="0" :max="100" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="音调" prop="xunfei_super_tts.pitch">
+      <el-form-item label="Cao độ" prop="xunfei_super_tts.pitch">
         <el-input-number v-model="model.xunfei_super_tts.pitch" :min="0" :max="100" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="背景音" prop="xunfei_super_tts.bgs">
+      <el-form-item label="Âm nền" prop="xunfei_super_tts.bgs">
         <el-input-number v-model="model.xunfei_super_tts.bgs" :min="0" :max="10" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="数字发音" prop="xunfei_super_tts.reg">
+      <el-form-item label="Phát âm số" prop="xunfei_super_tts.reg">
         <el-input-number v-model="model.xunfei_super_tts.reg" :min="0" :max="2" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="数字读法" prop="xunfei_super_tts.rdn">
+      <el-form-item label="Cách đọc số" prop="xunfei_super_tts.rdn">
         <el-input-number v-model="model.xunfei_super_tts.rdn" :min="0" :max="2" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="韵律增强" prop="xunfei_super_tts.rhy">
+      <el-form-item label="Tăng cường ngữ điệu" prop="xunfei_super_tts.rhy">
         <el-input-number v-model="model.xunfei_super_tts.rhy" :min="0" :max="1" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="口语级别" prop="xunfei_super_tts.oral_level">
-        <el-select v-model="model.xunfei_super_tts.oral_level" placeholder="请选择口语级别" style="width: 100%">
+      <el-form-item label="Mức hội thoại" prop="xunfei_super_tts.oral_level">
+        <el-select v-model="model.xunfei_super_tts.oral_level" placeholder="Vui lòng chọn mức hội thoại" style="width: 100%">
           <el-option label="low" value="low" />
           <el-option label="mid" value="mid" />
           <el-option label="high" value="high" />
@@ -377,15 +377,15 @@
       <el-form-item label="Spark Assist" prop="xunfei_super_tts.spark_assist">
         <el-input-number v-model="model.xunfei_super_tts.spark_assist" :min="0" :max="1" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="停顿切分" prop="xunfei_super_tts.stop_split">
+      <el-form-item label="Tách theo khoảng dừng" prop="xunfei_super_tts.stop_split">
         <el-input-number v-model="model.xunfei_super_tts.stop_split" :min="0" :max="1" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="保留口语化" prop="xunfei_super_tts.remain">
+      <el-form-item label="Giữ văn nói" prop="xunfei_super_tts.remain">
         <el-input-number v-model="model.xunfei_super_tts.remain" :min="0" :max="1" style="width: 100%" />
       </el-form-item>
       <el-form-item label-width="0">
         <div class="indextts-help">
-          <div class="indextts-help-subtitle">x4 系列支持口语化参数，x5/x6 建议主要调整音色、语速和采样率。</div>
+          <div class="indextts-help-subtitle">Dòng x4 hỗ trợ tham số văn nói; x5/x6 nên chủ yếu điều chỉnh giọng, tốc độ nói và sample rate.</div>
         </div>
       </el-form-item>
     </template>
@@ -396,13 +396,13 @@
       <el-form-item label-width="0" class="indextts-help-item">
         <div class="indextts-help">
           <div class="indextts-help-head">
-            <div class="indextts-help-title">IndexTTS vLLM 接口指南</div>
-            <div class="indextts-help-subtitle">确保服务端支持 /audio/speech、/audio/voices，复刻需 /audio/clone</div>
+            <div class="indextts-help-title">Hướng dẫn API IndexTTS vLLM</div>
+            <div class="indextts-help-subtitle">Đảm bảo server hỗ trợ /audio/speech, /audio/voices; clone giọng cần /audio/clone</div>
           </div>
           <div class="indextts-help-links">
-            <el-link :href="indexTTSDocURL" target="_blank" type="primary" :underline="false">项目接入文档（GitHub）</el-link>
+            <el-link :href="indexTTSDocURL" target="_blank" type="primary" :underline="false">Tài liệu tích hợp dự án (GitHub)</el-link>
             <span class="indextts-help-divider">|</span>
-            <el-link :href="indexTTSReferenceURL" target="_blank" type="info" :underline="false">参考 api_server.py</el-link>
+            <el-link :href="indexTTSReferenceURL" target="_blank" type="info" :underline="false">Tham khảo api_server.py</el-link>
           </div>
           <div class="indextts-help-tags">
             <el-tag size="small" effect="plain" type="success">/audio/speech</el-tag>
@@ -412,18 +412,18 @@
         </div>
       </el-form-item>
       <el-form-item label="API URL" prop="indextts_vllm.api_url">
-        <el-input v-model="model.indextts_vllm.api_url" placeholder="请输入IndexTTS服务地址（例如：http://127.0.0.1:7860）" />
+        <el-input v-model="model.indextts_vllm.api_url" placeholder="Vui lòng nhập địa chỉ dịch vụ IndexTTS (ví dụ: http://127.0.0.1:7860)" />
       </el-form-item>
       <el-form-item label="API Key" prop="indextts_vllm.api_key">
-        <el-input v-model="model.indextts_vllm.api_key" placeholder="可选，按需填写" type="password" show-password />
+        <el-input v-model="model.indextts_vllm.api_key" placeholder="Không bắt buộc, điền khi cần" type="password" show-password />
       </el-form-item>
-      <el-form-item label="模型" prop="indextts_vllm.model">
+      <el-form-item label="Model" prop="indextts_vllm.model">
         <el-input v-model="model.indextts_vllm.model" placeholder="indextts-vllm" />
       </el-form-item>
-      <el-form-item label="音色" prop="indextts_vllm.voice">
+      <el-form-item label="Giọng" prop="indextts_vllm.voice">
         <el-select
           v-model="model.indextts_vllm.voice"
-          placeholder="请选择音色"
+          placeholder="Vui lòng chọn giọng"
           style="width: 100%"
           filterable
           :loading="voiceLoading"
@@ -435,33 +435,33 @@
           <el-option v-for="option in voiceOptionsList" :key="option.value" :label="option.label" :value="option.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="帧时长" prop="indextts_vllm.frame_duration">
+      <el-form-item label="Thời lượng frame" prop="indextts_vllm.frame_duration">
         <el-input-number v-model="model.indextts_vllm.frame_duration" :min="1" :max="1000" style="width: 100%" />
       </el-form-item>
     </template>
 
     <template v-if="model.provider === 'cosyvoice'">
       <el-form-item label="API URL" prop="cosyvoice.api_url">
-        <el-input v-model="model.cosyvoice.api_url" placeholder="请输入API URL" />
+        <el-input v-model="model.cosyvoice.api_url" placeholder="Vui lòng nhập API URL" />
       </el-form-item>
-      <el-form-item label="说话人ID" prop="cosyvoice.spk_id">
-        <el-input v-model="model.cosyvoice.spk_id" placeholder="请输入说话人ID" />
+      <el-form-item label="Speaker ID" prop="cosyvoice.spk_id">
+        <el-input v-model="model.cosyvoice.spk_id" placeholder="Vui lòng nhập speaker ID" />
       </el-form-item>
-      <el-form-item label="帧时长" prop="cosyvoice.frame_duration">
+      <el-form-item label="Thời lượng frame" prop="cosyvoice.frame_duration">
         <el-input-number v-model="model.cosyvoice.frame_duration" :min="1" :max="1000" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="目标采样率" prop="cosyvoice.target_sr">
+      <el-form-item label="Sample rate đích" prop="cosyvoice.target_sr">
         <el-input-number v-model="model.cosyvoice.target_sr" :min="8000" :max="48000" style="width: 100%" />
       </el-form-item>
-      <el-form-item label="音频格式" prop="cosyvoice.audio_format">
-        <el-select v-model="model.cosyvoice.audio_format" placeholder="请选择音频格式" style="width: 100%">
+      <el-form-item label="Định dạng âm thanh" prop="cosyvoice.audio_format">
+        <el-select v-model="model.cosyvoice.audio_format" placeholder="Vui lòng chọn định dạng âm thanh" style="width: 100%">
           <el-option label="MP3" value="mp3" />
           <el-option label="WAV" value="wav" />
           <el-option label="PCM" value="pcm" />
         </el-select>
       </el-form-item>
-      <el-form-item label="指示文本" prop="cosyvoice.instruct_text">
-        <el-input v-model="model.cosyvoice.instruct_text" placeholder="请输入指示文本（可选）" />
+      <el-form-item label="Văn bản chỉ dẫn" prop="cosyvoice.instruct_text">
+        <el-input v-model="model.cosyvoice.instruct_text" placeholder="Nhập văn bản chỉ dẫn (không bắt buộc)" />
       </el-form-item>
     </template>
   </el-form>
@@ -490,7 +490,7 @@ const props = defineProps({
 const emit = defineEmits(['request-voice-options'])
 
 const formRef = ref()
-// 保证音色选项始终为数组且响应式，供下拉使用
+// Giữ danh sách giọng luôn là mảng phản ứng cho dropdown
 const voiceOptionsList = computed(() => Array.isArray(props.voiceOptions) ? props.voiceOptions : [])
 const indexTTSDocURL = 'https://github.com/hackers365/xiaozhi-esp32-server-golang/blob/main/doc/indextts_vllm_api.md'
 const indexTTSReferenceURL = 'https://github.com/hackers365/index-tts-vllm/blob/master/api_server.py'

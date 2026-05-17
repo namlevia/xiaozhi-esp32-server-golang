@@ -25,9 +25,9 @@ func NewConfigFromDatabase(cfg *config.SQLiteConfig) *Config {
 	}
 
 	return &Config{
-		FilePath:       filePath,
-		MaxIdleConns:   1,
-		MaxOpenConns:   1,
+		FilePath:        filePath,
+		MaxIdleConns:    1,
+		MaxOpenConns:    1,
 		ConnMaxLifetime: 3600,
 	}
 }

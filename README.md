@@ -8,6 +8,43 @@
 
 xiaozhi-esp32-server-golang 是一款高性能、全流式的 AI 后端服务，专为物联网与智能语音场景设计。项目基于 Go 语言开发，集成了 ASR（自动语音识别）、LLM（大语言模型）、TTS（语音合成）等核心能力，支持大规模并发与多协议接入，助力智能终端与边缘设备的 AI 语音交互。
 
+## 🇻🇳 Ghi chú nhanh cho bản fork tiếng Việt
+
+### Tổng quan ngắn
+
+Bản fork này giữ nguyên lõi backend AI cho ESP32 nhưng bổ sung tài liệu và giao diện tiếng Việt để dễ triển khai, cấu hình và vận hành hơn. Hệ thống tập trung vào luồng thoại thời gian thực, hỗ trợ WebSocket hoặc MQTT+UDP, đồng thời tách rõ các lớp VAD, ASR, LLM, TTS, OTA, console quản trị và các module mở rộng như MCP, voice clone, speaker identification.
+
+### Chạy nhanh sau khi fork
+
+- Ưu tiên chạy bằng Docker Compose để lên nhanh MySQL, main server, backend và frontend.
+- Xem hướng dẫn tiếng Việt tại [docs/vi_quickstart.md](docs/vi_quickstart.md).
+- Sau khi hệ thống lên, kiểm tra lại các field quan trọng trong `config/config.yaml` như `manager.backend_url`, `udp.external_host`, `ota.test.websocket.url`, `ota.external.websocket.url` và provider ASR / LLM / TTS đang dùng.
+
+### Cảnh báo production security
+
+Trước khi đưa lên môi trường thật, bắt buộc thay toàn bộ giá trị mẫu hoặc mặc định như:
+
+- `manager.auth_token`
+- `manager.endpoint_auth_token`
+- `mqtt.password`
+- `mqtt_server.password`
+- `mqtt_server.signature_key`
+- `ota.signature_key`
+- mọi `api_key`, `api_secret`, `access_token`
+
+Không nên giữ `127.0.0.1`, IP mẫu, domain mẫu hoặc credential ví dụ trong cấu hình OTA / MQTT / UDP khi thiết bị kết nối từ mạng khác máy chủ.
+
+### Các module chính
+
+- **VAD**: phát hiện hoạt động giọng nói
+- **ASR**: nhận dạng giọng nói thành văn bản
+- **LLM**: suy luận hội thoại và điều phối tool
+- **TTS**: tổng hợp giọng nói phản hồi
+- **WebSocket / MQTT + UDP**: lớp transport cho thiết bị
+- **Manager console**: frontend/backend quản trị cấu hình, thiết bị và kiểm thử
+- **OTA**: cấp cấu hình kết nối và hỗ trợ cập nhật từ xa
+- **MCP / OpenClaw / Knowledge Base / Voice Clone / Speaker Identification**: các tính năng mở rộng theo nhu cầu triển khai
+
 ---
 
 ## ✨ 主要特性 | Key Features

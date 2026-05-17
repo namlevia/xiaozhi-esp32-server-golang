@@ -58,12 +58,12 @@ func (s *Storage) configureConnectionPool() {
 	if s.DB == nil {
 		return
 	}
-	
+
 	sqlDB, err := s.DB.DB()
 	if err != nil {
 		return
 	}
-	
+
 	sqlDB.SetMaxIdleConns(s.config.MaxIdleConns)
 	sqlDB.SetMaxOpenConns(s.config.MaxOpenConns)
 	sqlDB.SetConnMaxLifetime(time.Duration(s.config.ConnMaxLifetime) * time.Second)

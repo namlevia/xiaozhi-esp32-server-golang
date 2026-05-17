@@ -37,13 +37,13 @@ func (s *GormAgentStorage) GetAgentByID(ctx context.Context, id uint) (*models.A
 func (s *GormAgentStorage) GetAgentsByUserID(ctx context.Context, userID uint, offset, limit int) ([]*models.Agent, int64, error) {
 	var agents []*models.Agent
 	var total int64
-	
+
 	// 获取总数
 	err := s.db.WithContext(ctx).Model(&models.Agent{}).Where("user_id = ?", userID).Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
-	
+
 	// 获取分页数据
 	err = s.db.WithContext(ctx).Where("user_id = ?", userID).Offset(offset).Limit(limit).Find(&agents).Error
 	return agents, total, err

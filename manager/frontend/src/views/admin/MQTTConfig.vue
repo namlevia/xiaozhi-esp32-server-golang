@@ -13,26 +13,26 @@
             <div class="card-head">
               <div>
                 <p class="card-kicker">Connection</p>
-                <h3>连接参数</h3>
-                <p class="card-description">先补齐地址、协议和客户端身份，保证主程序能稳定连接到目标 Broker。</p>
+                <h3>Tham số kết nối</h3>
+                <p class="card-description">Điền địa chỉ, giao thức và danh tính client để chương trình chính kết nối ổn định tới Broker mục tiêu.</p>
               </div>
               <el-tag :type="isCoreFieldsComplete ? 'success' : 'warning'" effect="plain" round>
-                {{ isCoreFieldsComplete ? '参数完整' : '待补充' }}
+                {{ isCoreFieldsComplete ? 'Đã đủ tham số' : 'Cần bổ sung' }}
               </el-tag>
             </div>
           </template>
 
           <div class="field-grid">
-            <el-form-item label="配置名称" prop="name">
-              <el-input v-model="form.name" placeholder="例如：默认 MQTT 连接" />
+            <el-form-item label="Tên cấu hình" prop="name">
+              <el-input v-model="form.name" placeholder="Ví dụ: Kết nối MQTT mặc định" />
             </el-form-item>
 
-            <el-form-item label="Broker 地址" prop="broker">
-              <el-input v-model="form.broker" placeholder="例如：mqtt://127.0.0.1 或 broker.example.com" />
+            <el-form-item label="Địa chỉ Broker" prop="broker">
+              <el-input v-model="form.broker" placeholder="Ví dụ: mqtt://127.0.0.1 hoặc broker.example.com" />
             </el-form-item>
 
-            <el-form-item label="连接类型" prop="type">
-              <el-select v-model="form.type" placeholder="请选择连接类型" style="width: 100%">
+            <el-form-item label="Kiểu kết nối" prop="type">
+              <el-select v-model="form.type" placeholder="Vui lòng chọn kiểu kết nối" style="width: 100%">
                 <el-option
                   v-for="option in connectionTypeOptions"
                   :key="option.value"
@@ -42,7 +42,7 @@
               </el-select>
             </el-form-item>
 
-            <el-form-item label="端口" prop="port">
+            <el-form-item label="Cổng" prop="port">
               <el-input-number
                 v-model="form.port"
                 :min="1"
@@ -52,13 +52,13 @@
               />
             </el-form-item>
 
-            <el-form-item label="客户端 ID" prop="client_id" class="field-span-full">
+            <el-form-item label="Client ID" prop="client_id" class="field-span-full">
               <el-input
                 v-model="form.client_id"
-                placeholder="请输入主程序连接 Broker 时使用的 Client ID"
+                placeholder="Nhập Client ID dùng khi chương trình chính kết nối Broker"
               />
               <div class="field-help">
-                建议使用稳定且可识别的 Client ID，便于在 Broker 侧定位连接来源。
+                Nên dùng Client ID ổn định, dễ nhận biết để xác định nguồn kết nối ở phía Broker.
               </div>
             </el-form-item>
           </div>
@@ -69,25 +69,25 @@
             <div class="card-head">
               <div>
                 <p class="card-kicker">Authentication</p>
-                <h3>认证信息</h3>
-                <p class="card-description">如果 Broker 开启账号密码认证，请填写具有订阅权限的凭证。</p>
+                <h3>Thông tin xác thực</h3>
+                <p class="card-description">Nếu Broker bật xác thực tài khoản/mật khẩu, hãy nhập thông tin có quyền subscribe.</p>
               </div>
               <el-tag :type="hasCredentials ? 'success' : 'info'" effect="plain" round>
-                {{ hasCredentials ? '已填写凭证' : '可留空' }}
+                {{ hasCredentials ? 'Đã nhập thông tin' : 'Có thể để trống' }}
               </el-tag>
             </div>
           </template>
 
           <div class="field-stack">
-            <el-form-item label="用户名" prop="username">
-              <el-input v-model="form.username" placeholder="未启用鉴权可留空" />
+            <el-form-item label="Tên người dùng" prop="username">
+              <el-input v-model="form.username" placeholder="Có thể để trống nếu chưa bật xác thực" />
             </el-form-item>
 
-            <el-form-item label="密码" prop="password">
+            <el-form-item label="Mật khẩu" prop="password">
               <el-input
                 v-model="form.password"
                 type="password"
-                placeholder="未启用鉴权可留空"
+                placeholder="Có thể để trống nếu chưa bật xác thực"
                 show-password
               />
             </el-form-item>
@@ -95,12 +95,12 @@
 
           <div class="helper-panel">
             <div class="helper-item">
-              <span>鉴权说明</span>
-              <p>如果只填写了用户名或密码，也会一并保存；建议按 Broker 的实际策略成对维护。</p>
+              <span>Ghi chú xác thực</span>
+              <p>Nếu chỉ nhập tên người dùng hoặc mật khẩu, hệ thống vẫn lưu lại; nên cấu hình theo đúng chính sách của Broker.</p>
             </div>
             <div class="helper-item">
-              <span>协议提醒</span>
-              <p>常见组合是 TCP/1883、SSL/TLS/8883、WebSocket/8083，最终以你的 Broker 设置为准。</p>
+              <span>Gợi ý giao thức</span>
+              <p>Tổ hợp thường gặp là TCP/1883, SSL/TLS/8883, WebSocket/8083; cấu hình cuối cùng phụ thuộc vào Broker của bạn.</p>
             </div>
           </div>
         </el-card>
@@ -108,11 +108,11 @@
 
       <div class="footer-bar">
         <p class="footer-note">
-          保存后会更新默认 MQTT Client 配置，供主程序后续连接 Broker 使用。
+          Sau khi lưu, cấu hình MQTT Client mặc định sẽ được cập nhật để chương trình chính kết nối Broker.
         </p>
         <div class="footer-actions">
-          <el-button plain :loading="loading" @click="loadConfig">重置为当前配置</el-button>
-          <el-button type="primary" :loading="saving" @click="handleSave">保存配置</el-button>
+          <el-button plain :loading="loading" @click="loadConfig">Đặt lại theo cấu hình hiện tại</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSave">Lưu cấu hình</el-button>
         </div>
       </div>
     </el-form>
@@ -130,7 +130,7 @@ const configId = ref(null)
 const formRef = ref()
 
 const createDefaultFormState = () => ({
-  name: 'MQTT配置',
+  name: 'Cấu hình MQTT',
   is_default: true,
   enable: true,
   broker: '',
@@ -150,14 +150,14 @@ const connectionTypeOptions = [
 ]
 
 const rules = {
-  name: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
-  broker: [{ required: true, message: '请输入 MQTT Broker 地址', trigger: 'blur' }],
-  type: [{ required: true, message: '请选择连接类型', trigger: 'change' }],
+  name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
+  broker: [{ required: true, message: 'Vui lòng nhập địa chỉ MQTT Broker', trigger: 'blur' }],
+  type: [{ required: true, message: 'Vui lòng chọn kiểu kết nối', trigger: 'change' }],
   port: [
-    { required: true, message: '请输入端口号', trigger: 'blur' },
-    { type: 'number', min: 1, max: 65535, message: '端口号必须在 1-65535 之间', trigger: 'blur' }
+    { required: true, message: 'Vui lòng nhập số cổng', trigger: 'blur' },
+    { type: 'number', min: 1, max: 65535, message: 'Số cổng phải nằm trong khoảng 1-65535', trigger: 'blur' }
   ],
-  client_id: [{ required: true, message: '请输入客户端 ID', trigger: 'blur' }]
+  client_id: [{ required: true, message: 'Vui lòng nhập Client ID', trigger: 'blur' }]
 }
 
 const hasCredentials = computed(() => {
@@ -191,14 +191,14 @@ const generateConfig = () => {
 
 const applyLoadedConfig = (config) => {
   configId.value = config?.id || null
-  form.name = config?.name || 'MQTT配置'
+  form.name = config?.name || 'Cấu hình MQTT'
   form.is_default = config?.is_default ?? true
 
   let configData = {}
   try {
     configData = JSON.parse(config?.json_data || '{}')
   } catch (error) {
-    ElMessage.warning('MQTT 配置格式异常，已回退到默认值')
+    ElMessage.warning('Định dạng cấu hình MQTT bất thường, đã khôi phục giá trị mặc định')
     configData = {}
   }
 
@@ -224,7 +224,7 @@ const loadConfig = async () => {
       resetForm()
     }
   } catch (error) {
-    ElMessage.error('加载 MQTT 配置失败')
+    ElMessage.error('Tải cấu hình MQTT thất bại')
   } finally {
     loading.value = false
   }
@@ -286,16 +286,16 @@ const handleSave = async () => {
 
     if (isUpdate) {
       await api.put(`/admin/mqtt-configs/${configId.value}`, configData)
-      ElMessage.success('MQTT 配置已更新')
+      ElMessage.success('Đã cập nhật cấu hình MQTT')
     } else {
       const response = await api.post('/admin/mqtt-configs', configData)
       configId.value = response.data?.data?.id || configId.value
-      ElMessage.success('MQTT 配置已保存')
+      ElMessage.success('Đã lưu cấu hình MQTT')
     }
 
     await loadConfig()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '保存 MQTT 配置失败')
+    ElMessage.error(error.response?.data?.message || 'Lưu cấu hình MQTT thất bại')
   } finally {
     saving.value = false
   }

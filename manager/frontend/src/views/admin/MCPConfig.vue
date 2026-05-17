@@ -7,27 +7,27 @@
             <div class="card-head">
               <div>
                 <p class="card-kicker">Global MCP</p>
-                <h3>全局 MCP 服务</h3>
-                <p class="card-description">维护服务端统一可用的 MCP 服务器、重连策略和允许工具范围。</p>
+                <h3>Dịch vụ MCP toàn cục</h3>
+                <p class="card-description">Quản lý MCP server dùng chung phía server, chính sách kết nối lại và phạm vi công cụ được phép.</p>
               </div>
               <el-tag :type="form.mcp.global.enabled ? 'success' : 'info'" effect="plain" round>
-                {{ form.mcp.global.enabled ? `${enabledServerCount} 个启用服务` : '全局 MCP 已停用' }}
+                {{ form.mcp.global.enabled ? `${enabledServerCount} dịch vụ đang bật` : 'Global MCP đã tắt' }}
               </el-tag>
             </div>
           </template>
 
           <div class="field-grid field-grid-main">
-            <el-form-item label="启用全局 MCP" prop="mcp.global.enabled">
+            <el-form-item label="Bật Global MCP" prop="mcp.global.enabled">
               <div class="switch-field">
                 <div>
-                  <div class="switch-title">允许服务端统一连接 MCP</div>
-                  <div class="field-help">关闭后不会主动建立全局 MCP 连接，但本地 MCP 仍可单独控制。</div>
+                  <div class="switch-title">Cho phép server kết nối MCP tập trung</div>
+                  <div class="field-help">Khi tắt, hệ thống sẽ không chủ động tạo kết nối MCP toàn cục, nhưng MCP cục bộ vẫn có thể điều khiển riêng.</div>
                 </div>
                 <el-switch v-model="form.mcp.global.enabled" />
               </div>
             </el-form-item>
 
-            <el-form-item label="重连间隔（秒）" prop="mcp.global.reconnect_interval">
+            <el-form-item label="Khoảng kết nối lại (giây)" prop="mcp.global.reconnect_interval">
               <el-input-number
                 v-model="form.mcp.global.reconnect_interval"
                 :min="1"
@@ -37,7 +37,7 @@
               />
             </el-form-item>
 
-            <el-form-item label="最大重连次数" prop="mcp.global.max_reconnect_attempts">
+            <el-form-item label="Số lần kết nối lại tối đa" prop="mcp.global.max_reconnect_attempts">
               <el-input-number
                 v-model="form.mcp.global.max_reconnect_attempts"
                 :min="1"
@@ -51,74 +51,74 @@
           <div class="server-list">
             <div class="server-list-header">
               <div>
-                <h4>服务器列表</h4>
-                <p>每个服务器都可以单独启停、探测工具，并限制只暴露给主程序的工具集合。</p>
+                <h4>Danh sách server</h4>
+                <p>Mỗi server có thể bật/tắt riêng, dò tìm công cụ và giới hạn tập công cụ chỉ mở cho chương trình chính.</p>
               </div>
               <el-button type="primary" @click="addGlobalServer">
                 <el-icon><Plus /></el-icon>
-                添加服务器
+                Thêm server
               </el-button>
             </div>
 
             <div v-if="form.mcp.global.servers.length === 0" class="empty-state">
-              <strong>还没有 MCP 服务器</strong>
-              <p>先添加一台服务器，再填写名称、类型和 URL；留空允许工具则表示该服务器的全部工具可用。</p>
+              <strong>Chưa có MCP server</strong>
+              <p>Hãy thêm một server rồi điền tên, loại và URL; để trống công cụ được phép nghĩa là cho phép toàn bộ công cụ của server đó.</p>
             </div>
 
             <div v-for="(server, index) in form.mcp.global.servers" :key="index" class="server-item">
               <div class="server-item-header">
                 <div class="server-title-row">
-                  <strong>服务器 {{ index + 1 }}</strong>
+                  <strong>Server {{ index + 1 }}</strong>
                   <el-tag size="small" :type="server.enabled ? 'success' : 'info'" effect="plain" round>
-                    {{ server.enabled ? '已启用' : '已停用' }}
+                    {{ server.enabled ? 'Đã bật' : 'Đã tắt' }}
                   </el-tag>
                   <el-tag size="small" :type="server.allowed_tools?.length ? 'warning' : 'info'" effect="plain" round>
-                    {{ server.allowed_tools?.length ? `${server.allowed_tools.length} 个工具` : '全部工具' }}
+                    {{ server.allowed_tools?.length ? `${server.allowed_tools.length} công cụ` : 'Tất cả công cụ' }}
                   </el-tag>
                 </div>
 
                 <div class="server-actions">
                   <el-button size="small" :loading="server._tools_loading" @click="discoverGlobalServerTools(server)">
-                    探测工具
+                    Dò tìm công cụ
                   </el-button>
                   <el-button size="small" type="danger" @click="removeGlobalServer(index)">
                     <el-icon><Delete /></el-icon>
-                    删除
+                    Xóa
                   </el-button>
                 </div>
               </div>
 
               <div class="field-grid server-grid">
-                <el-form-item :label="'服务器名称'" :prop="`mcp.global.servers.${index}.name`">
-                  <el-input v-model="server.name" placeholder="例如：Amap MCP" />
+                <el-form-item :label="'Tên server'" :prop="`mcp.global.servers.${index}.name`">
+                  <el-input v-model="server.name" placeholder="Ví dụ: Amap MCP" />
                 </el-form-item>
 
-                <el-form-item :label="'服务器类型'" :prop="`mcp.global.servers.${index}.type`">
-                  <el-select v-model="server.type" placeholder="选择服务器类型" style="width: 100%">
+                <el-form-item :label="'Loại server'" :prop="`mcp.global.servers.${index}.type`">
+                  <el-select v-model="server.type" placeholder="Chọn loại server" style="width: 100%">
                     <el-option label="SSE" value="sse" />
-                    <el-option label="StreamableHTTP" value="streamablehttp" />
+                    <el-option label="streamableHTTP" value="streamablehttp" />
                   </el-select>
                 </el-form-item>
 
-                <el-form-item :label="'服务器 URL'" :prop="`mcp.global.servers.${index}.url`" class="field-span-full">
-                  <el-input v-model="server.url" placeholder="例如：https://example.com/mcp" />
+                <el-form-item :label="'Server URL'" :prop="`mcp.global.servers.${index}.url`" class="field-span-full">
+                  <el-input v-model="server.url" placeholder="Ví dụ: https://example.com/mcp" />
                 </el-form-item>
 
-                <el-form-item :label="'启用状态'" :prop="`mcp.global.servers.${index}.enabled`">
+                <el-form-item :label="'Trạng thái bật/tắt'" :prop="`mcp.global.servers.${index}.enabled`">
                   <div class="switch-field">
                     <div>
-                      <div class="switch-title">允许主程序连接该服务</div>
-                      <div class="field-help">停用后该服务不会参与全局工具发现与调用。</div>
+                      <div class="switch-title">Cho phép chương trình chính kết nối dịch vụ này</div>
+                      <div class="field-help">Sau khi tắt, dịch vụ này sẽ không tham gia dò tìm và gọi công cụ toàn cục.</div>
                     </div>
                     <el-switch v-model="server.enabled" />
                   </div>
                 </el-form-item>
               </div>
 
-              <el-form-item :label="'允许工具'" class="tool-form-item">
+              <el-form-item :label="'Công cụ được phép'" class="tool-form-item">
                 <div class="tool-picker">
                   <div class="field-help">
-                    留空表示允许该服务器的全部工具。探测工具时会使用当前填写的类型与 URL。
+                    Để trống nghĩa là cho phép toàn bộ công cụ của server này. Khi dò tìm công cụ, hệ thống dùng loại và URL hiện đang nhập.
                   </div>
                   <el-select
                     v-model="server.allowed_tools"
@@ -128,13 +128,13 @@
                     collapse-tags
                     collapse-tags-tooltip
                     style="width: 100%"
-                    placeholder="不选择则允许全部工具"
+                    placeholder="Không chọn nghĩa là cho phép toàn bộ công cụ"
                     :loading="server._tools_loading"
                   >
                     <el-option v-for="tool in server._tool_options" :key="tool.name" :label="tool.name" :value="tool.name">
                       <div class="tool-option-row">
                         <span class="tool-option-name">{{ tool.name }}</span>
-                        <span class="tool-option-desc">{{ tool.description || '无描述' }}</span>
+                        <span class="tool-option-desc">{{ tool.description || 'Không có mô tả' }}</span>
                       </div>
                     </el-option>
                   </el-select>
@@ -149,38 +149,38 @@
             <div class="card-head">
               <div>
                 <p class="card-kicker">Local MCP</p>
-                <h3>本地 MCP 能力</h3>
-                <p class="card-description">这些是主程序本地暴露给模型的基础能力开关，可以按场景逐项控制。</p>
+                <h3>Năng lực MCP cục bộ</h3>
+                <p class="card-description">Đây là các công tắc năng lực cơ bản mà chương trình chính mở cục bộ cho mô hình, có thể điều khiển theo từng tình huống.</p>
               </div>
             </div>
           </template>
 
           <div class="field-stack">
-            <el-form-item label="退出对话" prop="local_mcp.exit_conversation">
+            <el-form-item label="Thoát hội thoại" prop="local_mcp.exit_conversation">
               <div class="switch-field">
                 <div>
-                  <div class="switch-title">允许模型结束当前会话</div>
-                  <div class="field-help">适合需要主动收尾、关闭会话的工具链场景。</div>
+                  <div class="switch-title">Cho phép mô hình kết thúc phiên hiện tại</div>
+                  <div class="field-help">Phù hợp với chuỗi công cụ cần chủ động kết thúc và đóng phiên.</div>
                 </div>
                 <el-switch v-model="form.local_mcp.exit_conversation" />
               </div>
             </el-form-item>
 
-            <el-form-item label="清除对话历史" prop="local_mcp.clear_conversation_history">
+            <el-form-item label="Xóa lịch sử hội thoại" prop="local_mcp.clear_conversation_history">
               <div class="switch-field">
                 <div>
-                  <div class="switch-title">允许模型清空当前上下文</div>
-                  <div class="field-help">适合切换任务或重置上下文时主动调用。</div>
+                  <div class="switch-title">Cho phép mô hình xóa ngữ cảnh hiện tại</div>
+                  <div class="field-help">Phù hợp khi chuyển tác vụ hoặc chủ động đặt lại ngữ cảnh.</div>
                 </div>
                 <el-switch v-model="form.local_mcp.clear_conversation_history" />
               </div>
             </el-form-item>
 
-            <el-form-item label="播放音乐" prop="local_mcp.play_music">
+            <el-form-item label="Phát nhạc" prop="local_mcp.play_music">
               <div class="switch-field">
                 <div>
-                  <div class="switch-title">允许模型触发音乐播放</div>
-                  <div class="field-help">如果你的产品场景不需要音频娱乐能力，可以关闭。</div>
+                  <div class="switch-title">Cho phép mô hình kích hoạt phát nhạc</div>
+                  <div class="field-help">Nếu sản phẩm không cần khả năng giải trí âm thanh, có thể tắt.</div>
                 </div>
                 <el-switch v-model="form.local_mcp.play_music" />
               </div>
@@ -191,11 +191,11 @@
 
       <div class="footer-bar">
         <p class="footer-note">
-          保存后会更新默认 MCP 全局配置；如果某台服务器只希望暴露部分工具，请先探测工具后再限制允许列表。
+          Sau khi lưu, cấu hình MCP toàn cục mặc định sẽ được cập nhật; nếu một server chỉ nên mở một phần công cụ, hãy dò tìm công cụ trước rồi giới hạn danh sách được phép.
         </p>
         <div class="footer-actions">
-          <el-button plain :loading="loading" @click="loadConfig">重置为当前配置</el-button>
-          <el-button type="primary" :loading="saving" @click="handleSave">保存配置</el-button>
+          <el-button plain :loading="loading" @click="loadConfig">Đặt lại theo cấu hình hiện tại</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSave">Lưu cấu hình</el-button>
         </div>
       </div>
     </el-form>
@@ -233,12 +233,12 @@ const form = reactive(createDefaultState())
 
 const rules = {
   'mcp.global.reconnect_interval': [
-    { required: true, message: '请输入重连间隔', trigger: 'blur' },
-    { type: 'number', min: 1, max: 3600, message: '重连间隔必须在 1-3600 之间', trigger: 'blur' }
+    { required: true, message: 'Vui lòng nhập khoảng kết nối lại', trigger: 'blur' },
+    { type: 'number', min: 1, max: 3600, message: 'Khoảng kết nối lại phải nằm trong khoảng 1-3600', trigger: 'blur' }
   ],
   'mcp.global.max_reconnect_attempts': [
-    { required: true, message: '请输入最大重连次数', trigger: 'blur' },
-    { type: 'number', min: 1, max: 100, message: '最大重连次数必须在 1-100 之间', trigger: 'blur' }
+    { required: true, message: 'Vui lòng nhập số lần kết nối lại tối đa', trigger: 'blur' },
+    { type: 'number', min: 1, max: 100, message: 'Số lần kết nối lại tối đa phải nằm trong khoảng 1-100', trigger: 'blur' }
   ]
 }
 
@@ -267,7 +267,7 @@ const mergeServerToolOptions = (server, tools = []) => {
     if (!name || merged.has(name)) return
     merged.set(name, {
       name,
-      description: '当前已选择'
+      description: 'Đang được chọn'
     })
   })
 
@@ -333,7 +333,7 @@ const generateConfig = () => {
 
 const discoverGlobalServerTools = async (server) => {
   if (!server?.url) {
-    ElMessage.warning('请先填写服务器 URL')
+    ElMessage.warning('Vui lòng nhập URL server trước')
     return
   }
 
@@ -345,10 +345,10 @@ const discoverGlobalServerTools = async (server) => {
       headers: server.headers || null
     })
     mergeServerToolOptions(server, response.data?.data?.tools || [])
-    ElMessage.success(`探测到 ${server._tool_options.length} 个工具`)
+    ElMessage.success(`Đã dò tìm được ${server._tool_options.length} công cụ`)
   } catch (error) {
     mergeServerToolOptions(server)
-    ElMessage.error(error.response?.data?.error || '探测工具失败')
+    ElMessage.error(error.response?.data?.error || 'Dò tìm công cụ thất bại')
   } finally {
     server._tools_loading = false
   }
@@ -390,13 +390,13 @@ const loadConfig = async () => {
           Object.assign(form.local_mcp, configData.local_mcp)
         }
       } catch (error) {
-        ElMessage.warning('MCP 配置格式异常，已回退到默认值')
+        ElMessage.warning('Định dạng cấu hình MCP bất thường, đã khôi phục giá trị mặc định')
       }
     } else {
       configId.value = null
     }
   } catch (error) {
-    ElMessage.error('加载 MCP 配置失败')
+    ElMessage.error('Tải cấu hình MCP thất bại')
   } finally {
     loading.value = false
   }
@@ -414,7 +414,7 @@ const handleSave = async () => {
   saving.value = true
   try {
     const payload = {
-      name: 'MCP全局配置',
+      name: 'Cấu hình MCP toàn cục',
       config_id: 'mcp_global_config',
       is_default: true,
       json_data: generateConfig()
@@ -422,16 +422,16 @@ const handleSave = async () => {
 
     if (configId.value) {
       await api.put(`/admin/mcp-configs/${configId.value}`, payload)
-      ElMessage.success('MCP 配置已更新')
+      ElMessage.success('Đã cập nhật cấu hình MCP')
     } else {
       const response = await api.post('/admin/mcp-configs', payload)
       configId.value = response.data?.data?.id || configId.value
-      ElMessage.success('MCP 配置已保存')
+      ElMessage.success('Đã lưu cấu hình MCP')
     }
 
     await loadConfig()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '保存 MCP 配置失败')
+    ElMessage.error(error.response?.data?.message || 'Lưu cấu hình MCP thất bại')
   } finally {
     saving.value = false
   }

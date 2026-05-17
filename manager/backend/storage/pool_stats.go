@@ -13,8 +13,8 @@ type PoolStatsData struct {
 
 // PoolStatsStorage 资源池统计存储（内存存储，只保存最新数据）
 type PoolStatsStorage struct {
-	mu       sync.RWMutex
-	latest   *PoolStatsData // 只保存最新的统计数据
+	mu     sync.RWMutex
+	latest *PoolStatsData // 只保存最新的统计数据
 }
 
 var (

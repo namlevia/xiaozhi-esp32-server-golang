@@ -264,6 +264,6 @@ func ParseMCPResponse(jsonStr string) (MCPResponse, error) {
 		}
 		return &response, nil
 	default:
-		return NewErrorResponse("unknown", "未知的响应类型", "INVALID_TYPE", "请检查工具实现"), fmt.Errorf("未知的响应类型: %s", base.Type)
+		return NewErrorResponse("unknown", "Loại phản hồi không xác định", "INVALID_TYPE", "Vui lòng kiểm tra phần triển khai công cụ"), fmt.Errorf("Loại phản hồi không xác định: %s", base.Type)
 	}
 }

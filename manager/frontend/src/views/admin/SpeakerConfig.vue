@@ -2,14 +2,14 @@
   <div class="config-page">
     <el-card v-loading="loading" class="config-card">
       <el-alert
-        title="提示"
+        title="Gợi ý"
         type="info"
         :closable="false"
         show-icon
         style="margin-bottom: 20px;"
       >
         <template #default>
-          如果是docker-compose环境部署会读取环境变量中的api地址，无需进行配置
+          Nếu triển khai bằng docker-compose, hệ thống sẽ đọc địa chỉ API từ biến môi trường nên không cần cấu hình.
         </template>
       </el-alert>
       
@@ -19,19 +19,19 @@
         :rules="rules"
         label-width="120px"
       >
-        <el-form-item label="服务地址" prop="base_url">
+        <el-form-item label="Địa chỉ dịch vụ" prop="base_url">
           <el-input 
             v-model="form.base_url" 
-            placeholder="请输入HTTP服务地址，如：http://192.168.208.214:8080"
+            placeholder="Vui lòng nhập địa chỉ dịch vụ HTTP，ví dụ: http://192.168.208.214:8080"
             style="width: 100%"
           />
           <div class="form-tip">
             <el-icon><InfoFilled /></el-icon>
-            请输入HTTP地址，系统会自动转换为WebSocket地址
+            Vui lòng nhập địa chỉ HTTP, hệ thống sẽ tự động chuyển thành địa chỉ WebSocket
           </div>
         </el-form-item>
         
-        <el-form-item label="识别阈值" prop="threshold">
+        <el-form-item label="Ngưỡng nhận diện" prop="threshold">
           <el-input-number 
             v-model="form.threshold" 
             :min="0" 
@@ -43,18 +43,18 @@
           />
           <div class="form-tip">
             <el-icon><InfoFilled /></el-icon>
-            声纹识别阈值，范围 0.0-1.0，默认 0.4。值越大识别越严格
+            Ngưỡng nhận diện người nói, phạm vi 0.0-1.0, mặc định 0.4. Giá trị càng lớn càng nghiêm ngặt
           </div>
         </el-form-item>
         
-        <el-form-item label="启用状态">
+        <el-form-item label="Trạng thái bật">
           <el-switch v-model="form.enabled" />
         </el-form-item>
       </el-form>
       
       <div class="form-actions">
         <el-button type="primary" @click="handleSave" :loading="saving">
-          保存配置
+          Lưu cấu hình
         </el-button>
       </div>
     </el-card>
@@ -80,20 +80,20 @@ const form = reactive({
 
 const rules = {
   base_url: [
-    { required: true, message: '请输入服务地址', trigger: 'blur' },
+    { required: true, message: 'Vui lòng nhập địa chỉ dịch vụ', trigger: 'blur' },
     { 
       pattern: /^https?:\/\/.+/, 
-      message: '请输入有效的HTTP地址，如：http://192.168.208.214:8080', 
+      message: 'Vui lòng nhập địa chỉ HTTP hợp lệ, ví dụ:http://192.168.208.214:8080', 
       trigger: 'blur' 
     }
   ],
   threshold: [
-    { required: true, message: '请输入识别阈值', trigger: 'blur' },
+    { required: true, message: 'Vui lòng nhập ngưỡng nhận diện', trigger: 'blur' },
     { 
       type: 'number', 
       min: 0, 
       max: 1, 
-      message: '阈值必须在 0.0 到 1.0 之间', 
+      message: 'Ngưỡng phải nằm trong khoảng 0.0 đến 1.0', 
       trigger: 'blur' 
     }
   ]
@@ -117,21 +117,21 @@ const loadConfig = async () => {
         // 兼容旧格式
         form.base_url = configObj.base_url
       }
-      // 读取阈值配置
+      // 读取Ngưỡng配置
       if (configObj.service && configObj.service.threshold !== undefined) {
         form.threshold = configObj.service.threshold
       } else if (configObj.threshold !== undefined) {
         // 兼容旧格式
         form.threshold = configObj.threshold
       } else {
-        // 默认值
+        // Mặc định值
         form.threshold = 0.4
       }
-      // 开关对应 json_data.enable（业务启用），不使用接口返回的 enabled 列
+      // 开关对应 json_data.enable（业务Bật），不使用接口返回的 enabled 列
       form.enabled = configObj.enable !== undefined ? configObj.enable : true
     }
   } catch (error) {
-    ElMessage.error('加载配置失败')
+    ElMessage.error('Tải cấu hình thất bại')
   } finally {
     loading.value = false
   }
@@ -154,7 +154,7 @@ const handleSave = async () => {
         }
         
         const saveData = {
-          name: '声纹识别配置',
+          name: 'Cấu hình nhận diện người nói',
           config_id: 'asr_server',
           provider: 'asr_server',
           is_default: true,
@@ -165,17 +165,17 @@ const handleSave = async () => {
         if (currentConfig.value) {
           // 更新现有配置
           await api.put(`/admin/speaker-configs/${currentConfig.value.id}`, saveData)
-          ElMessage.success('配置更新成功')
+          ElMessage.success('Cập nhật cấu hình thành công')
         } else {
           // 创建新配置
           await api.post('/admin/speaker-configs', saveData)
-          ElMessage.success('配置创建成功')
+          ElMessage.success('Tạo cấu hình thành công')
         }
         
         // 重新加载配置
         await loadConfig()
       } catch (error) {
-        ElMessage.error('保存失败: ' + (error.response?.data?.message || error.message))
+        ElMessage.error('Lưu thất bại: ' + (error.response?.data?.message || error.message))
       } finally {
         saving.value = false
       }

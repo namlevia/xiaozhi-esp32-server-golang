@@ -30,7 +30,7 @@ func (s *WebSocketServer) handleMCPWebSocket(w http.ResponseWriter, r *http.Requ
 		claims, err := s.parseMCPToken(token)
 		if err != nil {
 			log.Warnf("解析token失败: %v", err)
-			http.Error(w, "无效的token", http.StatusUnauthorized)
+			http.Error(w, "Token không hợp lệ", http.StatusUnauthorized)
 			return
 		}
 		log.Infof("解析token成功: %v", claims)
@@ -105,13 +105,13 @@ func (s *WebSocketServer) handleMCPAPI(w http.ResponseWriter, r *http.Request) {
 	// URL格式: /xiaozhi/api/mcp/tools/{deviceId}
 	path := strings.TrimPrefix(r.URL.Path, "/xiaozhi/api/mcp/tools/")
 	if path == "" || path == r.URL.Path {
-		http.Error(w, "缺少设备ID参数", http.StatusBadRequest)
+		http.Error(w, "Thiếu tham số ID thiết bị", http.StatusBadRequest)
 		return
 	}
 
 	deviceID := strings.TrimSuffix(path, "/")
 	if deviceID == "" {
-		http.Error(w, "设备ID不能为空", http.StatusBadRequest)
+		http.Error(w, "ID thiết bị không được để trống", http.StatusBadRequest)
 		return
 	}
 
@@ -119,6 +119,6 @@ func (s *WebSocketServer) handleMCPAPI(w http.ResponseWriter, r *http.Request) {
 	case "GET":
 		s.handleGetDeviceTools(w, r, deviceID)
 	default:
-		http.Error(w, "不支持的HTTP方法", http.StatusMethodNotAllowed)
+		http.Error(w, "Phương thức HTTP không được hỗ trợ", http.StatusMethodNotAllowed)
 	}
 }

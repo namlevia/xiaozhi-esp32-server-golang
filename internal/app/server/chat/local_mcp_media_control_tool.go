@@ -28,7 +28,7 @@ func musicPlaybackControlHandler(ctx context.Context, argumentsInJSON string) (s
 	var params MusicPlaybackControlParams
 	if argumentsInJSON != "" {
 		if err := json.Unmarshal([]byte(argumentsInJSON), &params); err != nil {
-			response := NewErrorResponse(localMcpMusicControlToolName, "参数解析失败", "PARSE_ERROR", "请检查 action 参数格式是否正确")
+			response := NewErrorResponse(localMcpMusicControlToolName, "Phân tích tham số thất bại", "PARSE_ERROR", "Vui lòng kiểm tra định dạng tham số action")
 			return response.ToJSON()
 		}
 	}
@@ -45,8 +45,8 @@ func musicPlaybackControlHandler(ctx context.Context, argumentsInJSON string) (s
 
 	result, err := chatSessionOperator.LocalMcpControlMusicPlayback(ctx, &params)
 	if err != nil {
-		log.Errorf("媒体控制失败: %v", err)
-		response := NewErrorResponse(localMcpMusicControlToolName, fmt.Sprintf("媒体控制失败: %v", err), "MEDIA_CONTROL_FAILED", "请检查当前播放状态后重试")
+		log.Errorf("Điều khiển media thất bại: %v", err)
+		response := NewErrorResponse(localMcpMusicControlToolName, fmt.Sprintf("Điều khiển media thất bại: %v", err), "MEDIA_CONTROL_FAILED", "Vui lòng kiểm tra trạng thái phát hiện tại rồi thử lại")
 		return response.ToJSON()
 	}
 	if result == nil {
@@ -84,37 +84,37 @@ func buildMusicPlaybackControlMessage(result *MusicPlaybackControlResult) string
 	switch result.Action {
 	case "resume":
 		if result.CurrentTitle != "" {
-			return fmt.Sprintf("已继续播放：%s", result.CurrentTitle)
+			return fmt.Sprintf("Đã tiếp tục phát: %s", result.CurrentTitle)
 		}
 		return "已继续播放"
 	case "pause":
 		if result.CurrentTitle != "" {
-			return fmt.Sprintf("已暂停：%s", result.CurrentTitle)
+			return fmt.Sprintf("Đã tạm dừng: %s", result.CurrentTitle)
 		}
 		return "已暂停播放"
 	case "stop":
 		if result.CurrentTitle != "" {
-			return fmt.Sprintf("已停止：%s", result.CurrentTitle)
+			return fmt.Sprintf("Đã dừng: %s", result.CurrentTitle)
 		}
 		return "已停止播放"
 	case "prev":
 		if result.CurrentTitle != "" {
-			return fmt.Sprintf("已切到上一首：%s", result.CurrentTitle)
+			return fmt.Sprintf("Đã chuyển bài trước: %s", result.CurrentTitle)
 		}
 		return "已切到上一首"
 	case "next":
 		if result.CurrentTitle != "" {
-			return fmt.Sprintf("已切到下一首：%s", result.CurrentTitle)
+			return fmt.Sprintf("Đã chuyển bài tiếp theo: %s", result.CurrentTitle)
 		}
 		return "已切到下一首"
 	case "play_playlist":
 		if result.CurrentTitle != "" {
-			return fmt.Sprintf("已开始播放歌单：%s", result.CurrentTitle)
+			return fmt.Sprintf("Đã bắt đầu phát danh sách: %s", result.CurrentTitle)
 		}
 		return "已开始播放歌单"
 	case "enqueue_current":
 		if result.AddedTitle != "" {
-			return fmt.Sprintf("已将当前播放源加入歌单：%s", result.AddedTitle)
+			return fmt.Sprintf("Đã thêm nguồn đang phát vào danh sách: %s", result.AddedTitle)
 		}
 		return "已将当前播放源加入歌单"
 	default:

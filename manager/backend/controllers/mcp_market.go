@@ -54,7 +54,7 @@ func (ac *AdminController) GetMCPMarketProviders(c *gin.Context) {
 func (ac *AdminController) GetMCPMarkets(c *gin.Context) {
 	configs, err := ac.loadMCPMarketConfigs()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取MCP市场连接失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy kết nối MCP Market thất bại"})
 		return
 	}
 
@@ -85,7 +85,7 @@ func (ac *AdminController) CreateMCPMarket(c *gin.Context) {
 
 	jsonData, err := json.Marshal(marketCfg)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "序列化市场配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tuần tự hóa cấu hình market thất bại"})
 		return
 	}
 
@@ -104,7 +104,7 @@ func (ac *AdminController) CreateMCPMarket(c *gin.Context) {
 	}
 
 	if err := ac.DB.Create(&config).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建MCP市场连接失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo kết nối MCP Market thất bại"})
 		return
 	}
 
@@ -115,13 +115,13 @@ func (ac *AdminController) UpdateMCPMarket(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var existing models.Config
 	if err := ac.DB.Where("id = ? AND type = ?", id, mcpmarket.MCPMarketConfigType).First(&existing).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "MCP市场连接不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Kết nối MCP Market không tồn tại"})
 		return
 	}
 
 	existingCfg, err := parseStoredMarketConfig(existing.JsonData)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "现有市场配置损坏"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cấu hình market hiện tại đã hỏng"})
 		return
 	}
 
@@ -138,7 +138,7 @@ func (ac *AdminController) UpdateMCPMarket(c *gin.Context) {
 	}
 	jsonData, err := json.Marshal(marketCfg)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "序列化市场配置失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tuần tự hóa cấu hình market thất bại"})
 		return
 	}
 
@@ -149,7 +149,7 @@ func (ac *AdminController) UpdateMCPMarket(c *gin.Context) {
 	}
 
 	if err := ac.DB.Save(&existing).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新MCP市场连接失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật kết nối MCP Market thất bại"})
 		return
 	}
 
@@ -159,10 +159,10 @@ func (ac *AdminController) UpdateMCPMarket(c *gin.Context) {
 func (ac *AdminController) DeleteMCPMarket(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	if err := ac.DB.Where("id = ? AND type = ?", id, mcpmarket.MCPMarketConfigType).Delete(&models.Config{}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除MCP市场连接失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa kết nối MCP Market thất bại"})
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 func (ac *AdminController) TestMCPMarket(c *gin.Context) {
@@ -182,7 +182,7 @@ func (ac *AdminController) TestMCPMarket(c *gin.Context) {
 
 	raw, err := fetchMarketCatalog(ctx, marketCfg, authCfg)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("连接测试失败: %v", err)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Kiểm tra kết nối thất bại: %v", err)})
 		return
 	}
 	items := mcpmarket.ExtractServiceList(raw)
@@ -254,7 +254,7 @@ func (ac *AdminController) GetMCPMarketServiceDetail(c *gin.Context) {
 	serviceID := strings.TrimSpace(c.Param("service_id"))
 	serviceID = strings.TrimPrefix(serviceID, "/")
 	if serviceID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "service_id 不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "service_id không được để trống"})
 		return
 	}
 
@@ -300,31 +300,31 @@ func (ac *AdminController) ImportMCPMarketService(c *gin.Context) {
 		return
 	}
 	if len(detail.Endpoints) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "该服务暂无可用的 SSE/StreamableHTTP 地址，请先在上游市场激活或部署后重试"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Dịch vụ này hiện chưa có địa chỉ SSE/StreamableHTTP khả dụng, vui lòng kích hoạt trên market upstream hoặc triển khai rồi thử lại"})
 		return
 	}
 
 	current, _, err := ac.loadCurrentMCPConfig()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("读取现有MCP配置失败: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Đọc cấu hình MCP hiện tại thất bại: %v", err)})
 		return
 	}
 
 	existingAll, err := ac.listMCPMarketServices(false)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("读取已导入服务失败: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Đọc dịch vụ đã nhập thất bại: %v", err)})
 		return
 	}
 	existingEnabled := filterEnabledMarketServices(existingAll)
 
 	manualURLSet, err := collectManualURLSet(current.MCP)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("解析人工MCP配置失败: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Phân tích cấu hình MCP thủ công thất bại: %v", err)})
 		return
 	}
 	usedNames, err := collectUsedServerNames(current.MCP, existingAll)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("解析MCP服务名称失败: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Phân tích tên dịch vụ MCP thất bại: %v", err)})
 		return
 	}
 
@@ -397,17 +397,17 @@ func (ac *AdminController) ImportMCPMarketService(c *gin.Context) {
 
 	if len(upserts) == 0 {
 		if len(skippedURLs) > 0 {
-			c.JSON(http.StatusConflict, gin.H{"error": "所有可导入地址都与人工配置URL冲突，已按人工优先跳过", "skipped_urls": skippedURLs})
+			c.JSON(http.StatusConflict, gin.H{"error": "Tất cả địa chỉ có thể nhập đều xung đột với URL cấu hình thủ công, đã bỏ qua theo ưu tiên cấu hình thủ công", "skipped_urls": skippedURLs})
 			return
 		}
-		c.JSON(http.StatusBadRequest, gin.H{"error": "未解析到可导入的有效地址"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Không phân tích được địa chỉ hợp lệ để nhập"})
 		return
 	}
 
 	candidateEnabled := mergeServiceUpserts(existingEnabled, upserts)
 	_, mergeWarnings, err := mergeManualAndMarketServers(current.MCP, candidateEnabled)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("聚合MCP配置失败: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Tổng hợp cấu hình MCP thất bại: %v", err)})
 		return
 	}
 
@@ -416,7 +416,7 @@ func (ac *AdminController) ImportMCPMarketService(c *gin.Context) {
 		if row.ID == 0 {
 			if err := tx.Create(&row).Error; err != nil {
 				tx.Rollback()
-				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("写入导入服务失败: %v", err)})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Ghi dịch vụ đã nhập thất bại: %v", err)})
 				return
 			}
 			continue
@@ -436,13 +436,13 @@ func (ac *AdminController) ImportMCPMarketService(c *gin.Context) {
 		}
 		if err := tx.Model(&models.MCPMarketService{}).Where("id = ?", row.ID).Updates(updateMap).Error; err != nil {
 			tx.Rollback()
-			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("更新导入服务失败: %v", err)})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Cập nhật dịch vụ đã nhập thất bại: %v", err)})
 			return
 		}
 	}
 
 	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("持久化导入服务失败: %v", err)})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": fmt.Sprintf("Lưu bền vững dịch vụ đã nhập thất bại: %v", err)})
 		return
 	}
 

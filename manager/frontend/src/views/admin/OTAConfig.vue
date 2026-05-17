@@ -12,17 +12,17 @@
           <div class="card-head">
             <div>
               <p class="card-kicker">OTA Base</p>
-              <h3>签名与基础约束</h3>
-              <p class="card-description">OTA 下发的 MQTT 用户密码会基于签名密钥生成，请确保与 MQTT Server 配置保持一致。</p>
+              <h3>Chữ ký và ràng buộc cơ bản</h3>
+              <p class="card-description">Mật khẩu người dùng MQTT do OTA cấp sẽ được tạo dựa trên signing key; hãy đảm bảo khớp với cấu hình MQTT Server.</p>
             </div>
           </div>
         </template>
 
         <div class="field-grid">
-          <el-form-item label="签名密钥" prop="signature_key" class="field-span-full">
-            <el-input v-model="form.signature_key" placeholder="请输入 OTA 与 MQTT Server 共用的签名密钥" show-password />
+          <el-form-item label="Signing key" prop="signature_key" class="field-span-full">
+            <el-input v-model="form.signature_key" placeholder="Vui lòng nhập signing key dùng chung cho OTA và MQTT Server" show-password />
             <div class="field-help">
-              该密钥需要和 MQTT Server 配置页中的签名密钥完全一致，否则终端拿到的连接凭证将无法通过校验。
+              Key này cần khớp hoàn toàn với signing key trong trang cấu hình MQTT Server, nếu không thông tin kết nối thiết bị nhận được sẽ không qua kiểm tra.
             </div>
           </el-form-item>
         </div>
@@ -34,43 +34,43 @@
             <div class="card-head">
               <div>
                 <p class="card-kicker">Test</p>
-                <h3>测试环境下发</h3>
-                <p class="card-description">用于测试版终端或内网环境验证，推荐先确保地址可达，再决定是否同时下发 MQTT 端点。</p>
+                <h3>Cấp phát môi trường test</h3>
+                <p class="card-description">Dùng để kiểm tra thiết bị bản test hoặc môi trường nội bộ; nên đảm bảo địa chỉ truy cập được trước khi quyết định cấp kèm MQTT endpoint.</p>
               </div>
               <div class="card-actions">
-                <el-tag type="warning" effect="plain" round>测试环境</el-tag>
-                <el-button size="small" :loading="otaTestingTest" @click="testOtaEnv('test')">测试环境</el-button>
+                <el-tag type="warning" effect="plain" round>Môi trường test</el-tag>
+                <el-button size="small" :loading="otaTestingTest" @click="testOtaEnv('test')">Môi trường test</el-button>
               </div>
             </div>
           </template>
 
           <div class="section-stack">
             <section class="config-section">
-              <div class="section-title">WebSocket 下发</div>
+              <div class="section-title">Cấp WebSocket</div>
               <el-form-item label="WebSocket URL" prop="test.websocket.url">
-                <el-input v-model="form.test.websocket.url" placeholder="例如：ws://host:port/xiaozhi/v1/" />
+                <el-input v-model="form.test.websocket.url" placeholder="Ví dụ: ws://host:port/xiaozhi/v1/" />
               </el-form-item>
             </section>
 
             <section class="config-section">
-              <div class="section-title">MQTT 下发</div>
-              <el-form-item label="MQTT 启用状态">
+              <div class="section-title">Cấp MQTT</div>
+              <el-form-item label="MQTT Trạng thái bật">
                 <div class="switch-field">
                   <div>
-                    <div class="switch-title">优先下发 MQTT 端点</div>
-                    <div class="field-help">固件默认优先使用 MQTT；关闭后仍会保留你填写过的端点值，方便再次启用。</div>
+                    <div class="switch-title">Ưu tiên cấp MQTT endpoint</div>
+                    <div class="field-help">Firmware mặc định ưu tiên dùng MQTT; sau khi tắt vẫn giữ endpoint đã nhập để tiện bật lại.</div>
                   </div>
                   <el-switch v-model="form.test.mqtt.enable" />
                 </div>
               </el-form-item>
 
-              <el-form-item label="MQTT 端点" prop="test.mqtt.endpoint">
+              <el-form-item label="MQTT endpoint" prop="test.mqtt.endpoint">
                 <el-input
                   v-model="form.test.mqtt.endpoint"
                   :disabled="!form.test.mqtt.enable"
-                  placeholder="例如：127.0.0.1:1883"
+                  placeholder="Ví dụ: 127.0.0.1:1883"
                 />
-                <div class="field-help">需要先确认 MQTT Server 与 UDP Server 都已启用，终端才能优先走 MQTT。</div>
+                <div class="field-help">Cần xác nhận MQTT Server và UDP Server đều đã bật để thiết bị ưu tiên dùng MQTT.</div>
               </el-form-item>
             </section>
           </div>
@@ -81,41 +81,41 @@
             <div class="card-head">
               <div>
                 <p class="card-kicker">External</p>
-                <h3>外部环境下发</h3>
-                <p class="card-description">用于生产或公网环境，建议填写真实可访问的 WebSocket 与 MQTT 地址，不要直接复用内网地址。</p>
+                <h3>Cấp phát môi trường external</h3>
+                <p class="card-description">Dùng cho môi trường production hoặc public; nên nhập địa chỉ WebSocket và MQTT có thể truy cập thật, không dùng trực tiếp địa chỉ nội bộ.</p>
               </div>
               <div class="card-actions">
-                <el-tag type="success" effect="plain" round>生产环境</el-tag>
-                <el-button size="small" :loading="otaTestingExternal" @click="testOtaEnv('external')">测试环境</el-button>
+                <el-tag type="success" effect="plain" round>Môi trường production</el-tag>
+                <el-button size="small" :loading="otaTestingExternal" @click="testOtaEnv('external')">Môi trường test</el-button>
               </div>
             </div>
           </template>
 
           <div class="section-stack">
             <section class="config-section">
-              <div class="section-title">WebSocket 下发</div>
+              <div class="section-title">Cấp WebSocket</div>
               <el-form-item label="WebSocket URL" prop="external.websocket.url">
-                <el-input v-model="form.external.websocket.url" placeholder="例如：wss://example.com/xiaozhi/v1/" />
+                <el-input v-model="form.external.websocket.url" placeholder="Ví dụ: wss://example.com/xiaozhi/v1/" />
               </el-form-item>
             </section>
 
             <section class="config-section">
-              <div class="section-title">MQTT 下发</div>
-              <el-form-item label="MQTT 启用状态">
+              <div class="section-title">Cấp MQTT</div>
+              <el-form-item label="MQTT Trạng thái bật">
                 <div class="switch-field">
                   <div>
-                    <div class="switch-title">在生产环境下发 MQTT</div>
-                    <div class="field-help">如果生产环境更依赖 WebSocket，也可以关闭 MQTT，仅保留端点值作为备用。</div>
+                    <div class="switch-title">Cấp MQTT trong môi trường production</div>
+                    <div class="field-help">Nếu production phụ thuộc WebSocket hơn, có thể tắt MQTT và chỉ giữ endpoint làm dự phòng.</div>
                   </div>
                   <el-switch v-model="form.external.mqtt.enable" />
                 </div>
               </el-form-item>
 
-              <el-form-item label="MQTT 端点" prop="external.mqtt.endpoint">
+              <el-form-item label="MQTT endpoint" prop="external.mqtt.endpoint">
                 <el-input
                   v-model="form.external.mqtt.endpoint"
                   :disabled="!form.external.mqtt.enable"
-                  placeholder="例如：broker.example.com:1883"
+                  placeholder="Ví dụ: broker.example.com:1883"
                 />
               </el-form-item>
             </section>
@@ -125,11 +125,11 @@
 
       <div class="footer-bar">
         <p class="footer-note">
-          保存后会更新默认 OTA 下发配置；测试环境和外部环境可以分别验证 WebSocket 与 MQTT UDP 的可达性。
+          Sau khi lưu sẽ cập nhật cấu hình OTA mặc định; môi trường test và external có thể kiểm tra riêng khả năng truy cập WebSocket và MQTT UDP.
         </p>
         <div class="footer-actions">
-          <el-button plain :loading="loading" @click="loadConfig">重置为当前配置</el-button>
-          <el-button type="primary" :loading="saving" @click="saveConfig">保存配置</el-button>
+          <el-button plain :loading="loading" @click="loadConfig">Đặt lại theo cấu hình hiện tại</el-button>
+          <el-button type="primary" :loading="saving" @click="saveConfig">Lưu cấu hình</el-button>
         </div>
       </div>
     </el-form>
@@ -174,16 +174,16 @@ const form = reactive(createDefaultState())
 
 const rules = {
   signature_key: [
-    { required: true, message: '请输入签名密钥', trigger: 'blur' }
+    { required: true, message: 'Vui lòng nhập signing key', trigger: 'blur' }
   ],
   'test.websocket.url': [
-    { required: true, message: '请输入 Test 环境 WebSocket URL', trigger: 'blur' }
+    { required: true, message: 'Vui lòng nhập WebSocket URL môi trường Test', trigger: 'blur' }
   ],
   'test.mqtt.endpoint': [
     {
       validator: (_, value, callback) => {
         if (form.test.mqtt.enable && !String(value || '').trim()) {
-          callback(new Error('启用 MQTT 时端点不能为空'))
+          callback(new Error('Endpoint không được để trống khi bật MQTT'))
           return
         }
         callback()
@@ -192,13 +192,13 @@ const rules = {
     }
   ],
   'external.websocket.url': [
-    { required: true, message: '请输入 External 环境 WebSocket URL', trigger: 'blur' }
+    { required: true, message: 'Vui lòng nhập WebSocket URL môi trường External', trigger: 'blur' }
   ],
   'external.mqtt.endpoint': [
     {
       validator: (_, value, callback) => {
         if (form.external.mqtt.enable && !String(value || '').trim()) {
-          callback(new Error('启用 MQTT 时端点不能为空'))
+          callback(new Error('Endpoint không được để trống khi bật MQTT'))
           return
         }
         callback()
@@ -274,7 +274,7 @@ const loadConfig = async () => {
           }
         })
       } catch (error) {
-        ElMessage.warning('OTA 配置格式异常，已回退到默认值')
+        ElMessage.warning('Định dạng cấu hình OTA bất thường, đã fallback về mặc định')
         applyState(createDefaultState())
       }
     } else {
@@ -282,7 +282,7 @@ const loadConfig = async () => {
       applyState(createDefaultState())
     }
   } catch (error) {
-    ElMessage.error('加载 OTA 配置失败')
+    ElMessage.error('Tải cấu hình OTA thất bại')
   } finally {
     loading.value = false
   }
@@ -300,7 +300,7 @@ const saveConfig = async () => {
   saving.value = true
   try {
     const configData = {
-      name: 'OTA配置',
+      name: 'Cấu hình OTA',
       config_id: 'ota_ota_config',
       json_data: JSON.stringify(buildConfigObject()),
       enabled: true,
@@ -309,16 +309,16 @@ const saveConfig = async () => {
 
     if (configId.value) {
       await api.put(`/admin/ota-configs/${configId.value}`, configData)
-      ElMessage.success('OTA 配置已更新')
+      ElMessage.success('Đã cập nhật cấu hình OTA')
     } else {
       const response = await api.post('/admin/ota-configs', configData)
       configId.value = response.data?.data?.id || configId.value
-      ElMessage.success('OTA 配置已保存')
+      ElMessage.success('Đã lưu cấu hình OTA')
     }
 
     await loadConfig()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '保存 OTA 配置失败')
+    ElMessage.error(error.response?.data?.message || 'Lưu cấu hình OTA thất bại')
   } finally {
     saving.value = false
   }
@@ -336,16 +336,16 @@ const testOtaEnv = async (env) => {
     const res = await api.post('/admin/configs/test', body, { timeout: 30000 })
     const data = res.data?.data ?? res.data
     const otaResult = data?.ota?.ota_ota_config
-    const label = env === 'test' ? 'Test 环境' : 'External 环境'
+    const label = env === 'test' ? 'Môi trường Test' : 'Môi trường External'
 
     if (!otaResult) {
-      ElMessage.error(`${label}：未返回测试结果`)
+      ElMessage.error(`${label}：Không trả về kết quả kiểm tra`)
       return
     }
 
     const wsResult = otaResult.websocket || {}
     const wsOk = wsResult.ok || false
-    const wsMsg = wsResult.message || 'WebSocket 测试失败'
+    const wsMsg = wsResult.message || 'Kiểm tra WebSocket thất bại'
     const wsMs = wsResult.first_packet_ms
 
     const mqttResult = otaResult.mqtt_udp
@@ -355,11 +355,11 @@ const testOtaEnv = async (env) => {
 
     if (mqttEnabled && mqttResult) {
       mqttOk = mqttResult.ok || false
-      mqttMsg = mqttResult.message || 'MQTT UDP 测试失败'
+      mqttMsg = mqttResult.message || 'Kiểm tra MQTT UDP thất bại'
       mqttMs = mqttResult.first_packet_ms || 0
     } else if (mqttEnabled) {
       mqttOk = false
-      mqttMsg = 'MQTT UDP 未返回结果'
+      mqttMsg = 'MQTT UDP không trả về kết quả'
     }
 
     let message = wsOk ? `WebSocket: ${wsMsg}` : `WebSocket: ${wsMsg}`
@@ -377,7 +377,7 @@ const testOtaEnv = async (env) => {
       ElMessage.warning(`${label}：${message}`)
     }
   } catch (error) {
-    ElMessage.error(error.response?.data?.error || '测试请求失败')
+    ElMessage.error(error.response?.data?.error || 'Kiểm traYêu cầu thất bại')
   } finally {
     loadingRef.value = false
   }

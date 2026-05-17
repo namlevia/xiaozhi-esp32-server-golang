@@ -14,7 +14,7 @@ import (
 func (s *WebSocketServer) handleVisionAPI(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		log.Warnf("图片识别请求方法错误: %s", r.Method)
-		http.Error(w, "仅支持POST请求", http.StatusMethodNotAllowed)
+		http.Error(w, "Chỉ hỗ trợ yêu cầu POST", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -23,8 +23,8 @@ func (s *WebSocketServer) handleVisionAPI(w http.ResponseWriter, r *http.Request
 	clientId := r.Header.Get("Client-Id")
 	_ = clientId
 	if deviceId == "" {
-		log.Errorf("图片识别请求缺少Device-Id")
-		http.Error(w, "缺少Device-Id", http.StatusBadRequest)
+		log.Errorf("图片识别请求Thiếu Device-Id")
+		http.Error(w, "Thiếu Device-Id", http.StatusBadRequest)
 		return
 	}
 	log.Infof("图片识别请求 deviceId=%s", deviceId)
@@ -34,16 +34,16 @@ func (s *WebSocketServer) handleVisionAPI(w http.ResponseWriter, r *http.Request
 		//从header Authorization中获取Bearer token
 		authToken := r.Header.Get("Authorization")
 		if authToken == "" {
-			log.Errorf("图片识别请求缺少Authorization deviceId=%s", deviceId)
-			http.Error(w, "缺少Authorization", http.StatusBadRequest)
+			log.Errorf("图片识别请求Thiếu Authorization deviceId=%s", deviceId)
+			http.Error(w, "Thiếu Authorization", http.StatusBadRequest)
 			return
 		}
 		authToken = strings.TrimPrefix(authToken, "Bearer ")
 
 		err := chat.VisvionAuth(authToken)
 		if err != nil {
-			log.Errorf("图片识别认证失败 deviceId=%s err=%v", deviceId, err)
-			http.Error(w, "图片识别认证失败", http.StatusUnauthorized)
+			log.Errorf("Xác thực nhận diện hình ảnh thất bại deviceId=%s err=%v", deviceId, err)
+			http.Error(w, "Xác thực nhận diện hình ảnh thất bại", http.StatusUnauthorized)
 			return
 		}
 		log.Infof("图片识别认证通过 deviceId=%s", deviceId)
@@ -53,22 +53,22 @@ func (s *WebSocketServer) handleVisionAPI(w http.ResponseWriter, r *http.Request
 	question := r.FormValue("question")
 	if question == "" {
 		log.Warnf("图片识别请求缺少question deviceId=%s", deviceId)
-		http.Error(w, "缺少question参数", http.StatusBadRequest)
+		http.Error(w, "Thiếu tham số question", http.StatusBadRequest)
 		return
 	}
 
 	file, header, err := r.FormFile("file")
 	if err != nil {
 		log.Errorf("图片识别请求缺少file或读取失败 deviceId=%s err=%v", deviceId, err)
-		http.Error(w, "缺少file参数或文件读取失败", http.StatusBadRequest)
+		http.Error(w, "Thiếu tham số file hoặc đọc file thất bại", http.StatusBadRequest)
 		return
 	}
 	defer file.Close()
 
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
-		log.Errorf("图片识别文件读取失败 deviceId=%s err=%v", deviceId, err)
-		http.Error(w, "文件读取失败", http.StatusInternalServerError)
+		log.Errorf("图片识别Đọc file thất bại deviceId=%s err=%v", deviceId, err)
+		http.Error(w, "Đọc file thất bại", http.StatusInternalServerError)
 		return
 	}
 
@@ -77,8 +77,8 @@ func (s *WebSocketServer) handleVisionAPI(w http.ResponseWriter, r *http.Request
 
 	result, err := chat.HandleVllm(deviceId, fileBytes, question)
 	if err != nil {
-		log.Errorf("图片识别失败 deviceId=%s err=%v", deviceId, err)
-		http.Error(w, "图片识别失败", http.StatusInternalServerError)
+		log.Errorf("Nhận diện hình ảnh thất bại deviceId=%s err=%v", deviceId, err)
+		http.Error(w, "Nhận diện hình ảnh thất bại", http.StatusInternalServerError)
 		return
 	}
 

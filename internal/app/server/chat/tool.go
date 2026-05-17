@@ -241,8 +241,8 @@ func (e *toolCallExecutor) executeToolCall(order int, toolCall schema.ToolCall) 
 	}
 	toolObj, ok := mcp.GetToolByNameWithTransport(state.DeviceID, state.AgentID, transportType, toolName, state.DeviceConfig.MCPServiceNames)
 	if !ok || toolObj == nil {
-		log.Errorf("未找到工具: %s", toolName)
-		resultMessage.Content = fmt.Sprintf("未找到工具: %s", toolName)
+		log.Errorf("Không tìm thấy công cụ: %s", toolName)
+		resultMessage.Content = fmt.Sprintf("Không tìm thấy công cụ: %s", toolName)
 		return toolCallExecutionResult{order: order, message: resultMessage}
 	}
 
@@ -251,7 +251,7 @@ func (e *toolCallExecutor) executeToolCall(order int, toolCall schema.ToolCall) 
 	fcResult, err := toolObj.InvokableRun(e.toolCtx, toolCall.Function.Arguments)
 	if err != nil {
 		log.Errorf("工具调用失败: %v", err)
-		resultMessage.Content = fmt.Sprintf("工具 %s 调用失败: %v", toolName, err)
+		resultMessage.Content = fmt.Sprintf("Gọi công cụ %s thất bại: %v", toolName, err)
 		return toolCallExecutionResult{order: order, message: resultMessage}
 	}
 	costTs := time.Now().UnixMilli() - startTs

@@ -35,10 +35,10 @@
           </div>
         </div>
         <van-cell-group inset>
-          <van-cell title="更多功能" is-link @click="handleGoMore" />
-          <van-cell v-if="!authStore.isAdmin" title="API Token" is-link @click="handleGoApiTokens" />
-          <van-cell v-if="authStore.isAdmin" title="配置向导" is-link @click="handleGoConfigWizard" />
-          <van-cell title="退出登录" is-link @click="handleLogout" />
+          <van-cell :title="t('layout.more')" is-link @click="handleGoMore" />
+          <van-cell v-if="!authStore.isAdmin" :title="t('nav.apiToken')" is-link @click="handleGoApiTokens" />
+          <van-cell v-if="authStore.isAdmin" :title="t('nav.configWizard')" is-link @click="handleGoConfigWizard" />
+          <van-cell :title="t('nav.logout')" is-link @click="handleLogout" />
         </van-cell-group>
       </div>
     </van-popup>
@@ -48,6 +48,7 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { showConfirmDialog, showSuccessToast } from 'vant'
 import MobileNavBar from './MobileNavBar.vue'
 import MobileTabBar from './MobileTabBar.vue'
@@ -56,13 +57,18 @@ import { isMobile } from '../utils/device'
 
 const route = useRoute()
 const router = useRouter()
+const { t, te } = useI18n()
 const authStore = useAuthStore()
 
 const showUserMenu = ref(false)
 
 // 页面标题
 const pageTitle = computed(() => {
-  return route.meta?.title || '小智管理系统'
+  const titleKey = route.meta?.titleKey
+  if (titleKey && te(titleKey)) {
+    return t(titleKey)
+  }
+  return route.meta?.title || t('app.name')
 })
 
 // 是否显示返回按钮（非首页且不在标签栏页面时显示）
@@ -92,7 +98,7 @@ const showTabBar = computed(() => {
 
 // 角色文本
 const roleText = computed(() => {
-  return authStore.isAdmin ? '管理员' : '普通用户'
+  return authStore.isAdmin ? t('layout.admin') : t('layout.user')
 })
 
 // 用户图标点击
@@ -120,12 +126,14 @@ const handleGoConfigWizard = () => {
 const handleLogout = async () => {
   try {
     await showConfirmDialog({
-      title: '提示',
-      message: '确定要退出登录吗？'
+      title: t('layout.logoutConfirmTitle'),
+      message: t('layout.logoutConfirmMessage'),
+      confirmButtonText: t('common.confirm'),
+      cancelButtonText: t('common.cancel')
     })
-    
+
     authStore.logout()
-    showSuccessToast('已退出登录')
+    showSuccessToast(t('layout.loggedOut'))
     router.push('/login')
     showUserMenu.value = false
   } catch {

@@ -55,7 +55,7 @@ func (dac *DeviceActivationController) CheckDeviceActivation(c *gin.Context) {
 	if deviceId == "" /*|| clientId == ""*/ {
 		c.JSON(http.StatusOK, gin.H{
 			"activated": false,
-			"error":     "device_id参数必填",
+			"error":     "Tham số device_id là bắt buộc",
 		})
 		return
 	}
@@ -66,13 +66,13 @@ func (dac *DeviceActivationController) CheckDeviceActivation(c *gin.Context) {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, gin.H{
 				"activated": false,
-				"message":   "设备不存在",
+				"message":   "Thiết bị không tồn tại",
 			})
 			return
 		}
 		c.JSON(http.StatusOK, gin.H{
 			"activated": false,
-			"error":     "查询设备失败",
+			"error":     "Truy vấn thiết bị thất bại",
 		})
 		return
 	}
@@ -81,7 +81,7 @@ func (dac *DeviceActivationController) CheckDeviceActivation(c *gin.Context) {
 		"activated": device.Activated,
 		"message": func() string {
 			if device.Activated {
-				return "设备已激活"
+				return "Thiết bị đã được kích hoạt"
 			}
 			return "设备未激活"
 		}(),
@@ -95,7 +95,7 @@ func (dac *DeviceActivationController) GetActivationInfo(c *gin.Context) {
 	//clientId := c.Query("client_id")
 
 	if deviceId == "" /*|| clientId == ""*/ {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "device_id和client_id参数必填"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tham số device_id và client_id là bắt buộc"})
 		return
 	}
 
@@ -105,7 +105,7 @@ func (dac *DeviceActivationController) GetActivationInfo(c *gin.Context) {
 	// 使用device_id (对应device_name字段) 查找设备
 	if err := dac.DB.Where("device_name = ?", deviceId).First(&device).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// 设备不存在，创建新设备记录
+			// Thiết bị không tồn tại，创建新设备记录
 			device = models.Device{
 				DeviceName: deviceId,
 				UserID:     0, // user_id置为0
@@ -115,21 +115,21 @@ func (dac *DeviceActivationController) GetActivationInfo(c *gin.Context) {
 			}
 
 			if err := dac.DB.Create(&device).Error; err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": "创建设备记录失败"})
+				c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo bản ghi thiết bị thất bại"})
 				return
 			}
 			isNewDevice = true
 		} else {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "查询设备失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn thiết bị thất bại"})
 			return
 		}
 	}
 
-	// 如果设备已激活，直接返回状态
+	// 如果Thiết bị đã được kích hoạt，直接返回状态
 	if device.Activated {
 		c.JSON(http.StatusOK, gin.H{
 			"activated": true,
-			"message":   "设备已激活",
+			"message":   "Thiết bị đã được kích hoạt",
 		})
 		return
 	}
@@ -168,7 +168,7 @@ func (dac *DeviceActivationController) GetActivationInfo(c *gin.Context) {
 			updates["user_id"] = device.UserID
 		}
 		if err := updateDeviceColumns(dac.DB, device.ID, updates); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "更新设备信息失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật thông tin thiết bị thất bại"})
 			return
 		}
 	}
@@ -177,7 +177,7 @@ func (dac *DeviceActivationController) GetActivationInfo(c *gin.Context) {
 		"activated": false,
 		"code":      device.DeviceCode,
 		"challenge": device.Challenge,
-		"message":   "请在后台绑定激活设备，激活码:" + device.DeviceCode,
+		"message":   "Vui lòng liên kết thiết bị kích hoạt trong trang quản trị, mã kích hoạt: " + device.DeviceCode,
 	})
 }
 
@@ -207,7 +207,7 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "参数错误: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Lỗi tham số: " + err.Error()})
 		return
 	}
 
@@ -217,13 +217,13 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, gin.H{
 				"success": false,
-				"error":   "设备不存在",
+				"error":   "Thiết bị không tồn tại",
 			})
 			return
 		}
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"error":   "查询设备失败",
+			"error":   "Truy vấn thiết bị thất bại",
 		})
 		return
 	}
@@ -232,7 +232,7 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 	if device.Activated {
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
-			"message": "设备已激活",
+			"message": "Thiết bị đã được kích hoạt",
 		})
 		return
 	}
@@ -240,7 +240,7 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 	if device.UserID == 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"error":   "设备未绑定用户",
+			"error":   "Thiết bị chưa được liên kết với người dùng",
 		})
 		return
 	}
@@ -248,7 +248,7 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 	if device.Challenge != req.Challenge {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"error":   "挑战码错误",
+			"error":   "Mã thách thức không chính xác",
 		})
 		return
 	}
@@ -257,7 +257,7 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 	if !verifyHMAC(req.Challenge, device.PreSecretKey, req.Hmac) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
-			"error":   "HMAC验证失败",
+			"error":   "Xác thực HMAC thất bại",
 		})
 		return
 	}
@@ -269,14 +269,14 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 	}); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{
 			"success": false,
-			"error":   "激活设备失败",
+			"error":   "Kích hoạt thiết bị thất bại",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "设备激活成功",
+		"message": "Kích hoạt thiết bị thành công",
 		"data": gin.H{
 			"device_id": device.DeviceName,
 			"activated": device.Activated,

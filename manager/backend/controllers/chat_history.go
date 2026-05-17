@@ -52,11 +52,11 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 	var device models.Device
 	if err := c.DB.Where("device_name = ?", req.DeviceID).First(&device).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "设备不存在"})
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "Thiết bị không tồn tại"})
 			return
 		}
 		// 其他数据库错误
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "查询设备失败: " + err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn thiết bị thất bại: " + err.Error()})
 		return
 	}
 
@@ -68,7 +68,7 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 
 	// 如果 AgentID 仍然为空，跳过保存
 	if agentID == "" {
-		ctx.JSON(http.StatusOK, gin.H{"message": "跳过保存: 没有关联的 AgentID"})
+		ctx.JSON(http.StatusOK, gin.H{"message": "Bỏ qua lưu: không có AgentID liên kết"})
 		return
 	}
 
@@ -93,7 +93,7 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 		if req.AudioData != "" {
 			audioPath, err := c.saveAudioFile(req.MessageID, req.AudioData)
 			if err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存音频文件失败: " + err.Error()})
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu file audio thất bại: " + err.Error()})
 				return
 			}
 
@@ -126,13 +126,13 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 			// 手动序列化 metadata 到 MetadataJSON（因为 Updates 不会触发 BeforeSave hook）
 			metadataJSONBytes, err := json.Marshal(existingMessage.Metadata)
 			if err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "序列化 metadata 失败: " + err.Error()})
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Tuần tự hóa metadata thất bại: " + err.Error()})
 				return
 			}
 			updates["metadata"] = string(metadataJSONBytes)
 
 			if err := c.DB.Model(&existingMessage).Updates(updates).Error; err != nil {
-				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "更新消息失败"})
+				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật tin nhắn thất bại"})
 				return
 			}
 			ctx.JSON(http.StatusOK, existingMessage)
@@ -143,16 +143,16 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 		return
 	} else if err != gorm.ErrRecordNotFound {
 		// 查询出错（非"记录不存在"）
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "查询消息失败: " + err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn tin nhắn thất bại: " + err.Error()})
 		return
 	}
 
-	// 消息不存在，创建新消息
+	// Tin nhắn không tồn tại，创建新消息
 	// 处理音频数据 - 保存到文件系统（固定为wav格式，两级hash打散）
 	if req.AudioData != "" {
 		audioPath, err := c.saveAudioFile(req.MessageID, req.AudioData)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存音频文件失败: " + err.Error()})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu file audio thất bại: " + err.Error()})
 			return
 		}
 		message.AudioPath = audioPath
@@ -170,7 +170,7 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 		if message.AudioPath != "" {
 			c.deleteAudioFile(message.AudioPath)
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存消息失败: " + err.Error()})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu tin nhắn thất bại: " + err.Error()})
 		return
 	}
 
@@ -181,7 +181,7 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 func (c *ChatHistoryController) GetMessages(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa được ủy quyền"})
 		return
 	}
 
@@ -217,7 +217,7 @@ func (c *ChatHistoryController) GetMessages(ctx *gin.Context) {
 	if err := query.Order("created_at DESC").
 		Limit(pageSize).Offset(offset).
 		Find(&messages).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn thất bại"})
 		return
 	}
 
@@ -235,14 +235,14 @@ func (c *ChatHistoryController) DeleteMessage(ctx *gin.Context) {
 
 	userID, exists := ctx.Get("user_id")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa được ủy quyền"})
 		return
 	}
 
 	// 获取消息信息
 	var message models.ChatMessage
 	if err := c.DB.Where("id = ? AND user_id = ?", id, userID).First(&message).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "消息不存在"})
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Tin nhắn không tồn tại"})
 		return
 	}
 
@@ -258,18 +258,18 @@ func (c *ChatHistoryController) DeleteMessage(ctx *gin.Context) {
 	if err := c.DB.Model(&models.ChatMessage{}).
 		Where("id = ?", id).
 		Update("is_deleted", true).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "删除失败"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa thất bại"})
 		return
 	}
 
-	ctx.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	ctx.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 // GetMessagesByAgent 按AgentID获取消息汇总（支持筛选）
 func (c *ChatHistoryController) GetMessagesByAgent(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa được ủy quyền"})
 		return
 	}
 
@@ -319,7 +319,7 @@ func (c *ChatHistoryController) GetMessagesByAgent(ctx *gin.Context) {
 	if err := query.Order("created_at DESC").
 		Limit(pageSize).Offset(offset).
 		Find(&messages).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn thất bại"})
 		return
 	}
 
@@ -335,7 +335,7 @@ func (c *ChatHistoryController) GetMessagesByAgent(ctx *gin.Context) {
 func (c *ChatHistoryController) ExportMessages(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa được ủy quyền"})
 		return
 	}
 
@@ -369,7 +369,7 @@ func (c *ChatHistoryController) ExportMessages(ctx *gin.Context) {
 
 	var messages []models.ChatMessage
 	if err := query.Order("created_at ASC").Find(&messages).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "导出失败"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Xuất thất bại"})
 		return
 	}
 
@@ -434,19 +434,19 @@ func (c *ChatHistoryController) GetAudioFile(ctx *gin.Context) {
 
 	userID, exists := ctx.Get("user_id")
 	if !exists {
-		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "未授权"})
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa được ủy quyền"})
 		return
 	}
 
 	// 获取消息信息
 	var message models.ChatMessage
 	if err := c.DB.Where("id = ? AND user_id = ? AND is_deleted = ?", id, userID, false).First(&message).Error; err != nil {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "消息不存在"})
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "Tin nhắn không tồn tại"})
 		return
 	}
 
 	if message.AudioPath == "" {
-		ctx.JSON(http.StatusNotFound, gin.H{"error": "音频文件不存在"})
+		ctx.JSON(http.StatusNotFound, gin.H{"error": "File audio không tồn tại"})
 		return
 	}
 
@@ -455,9 +455,9 @@ func (c *ChatHistoryController) GetAudioFile(ctx *gin.Context) {
 	audioData, err := os.ReadFile(fullPath)
 	if err != nil {
 		if os.IsNotExist(err) {
-			ctx.JSON(http.StatusNotFound, gin.H{"error": "音频文件不存在"})
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "File audio không tồn tại"})
 		} else {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "读取音频文件失败"})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Đọc file audio thất bại"})
 		}
 		return
 	}
@@ -479,7 +479,7 @@ func (c *ChatHistoryController) GetMessagesForInit(ctx *gin.Context) {
 	limit, _ := strconv.Atoi(ctx.DefaultQuery("limit", "20"))
 
 	if deviceID == "" || agentID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "device_id 和 agent_id 不能为空"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "device_id và agent_id không được để trống"})
 		return
 	}
 
@@ -497,7 +497,7 @@ func (c *ChatHistoryController) GetMessagesForInit(ctx *gin.Context) {
 		Order("id DESC").
 		Limit(limit).
 		Find(&messages).Error; err != nil {
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "查询失败"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn thất bại"})
 		return
 	}
 
@@ -546,7 +546,7 @@ type UpdateMessageAudioRequest struct {
 func (c *ChatHistoryController) UpdateMessageAudio(ctx *gin.Context) {
 	messageID := ctx.Param("message_id")
 	if messageID == "" {
-		ctx.JSON(http.StatusBadRequest, gin.H{"error": "message_id 不能为空"})
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "message_id không được để trống"})
 		return
 	}
 
@@ -560,17 +560,17 @@ func (c *ChatHistoryController) UpdateMessageAudio(ctx *gin.Context) {
 	var message models.ChatMessage
 	if err := c.DB.Where("message_id = ?", messageID).First(&message).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// 消息不存在，跳过更新（可能是因为 SaveMessage 时没有 AgentID 而被跳过）
-			ctx.JSON(http.StatusOK, gin.H{"message": "跳过更新: 消息不存在"})
+			// Tin nhắn không tồn tại，跳过更新（可能是因为 SaveMessage 时没有 AgentID 而被跳过）
+			ctx.JSON(http.StatusOK, gin.H{"message": "Bỏ qua cập nhật: tin nhắn không tồn tại"})
 			return
 		}
-		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "查询消息失败"})
+		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn tin nhắn thất bại"})
 		return
 	}
 
 	// 如果消息没有关联的 AgentID，跳过更新
 	if message.AgentID == "" {
-		ctx.JSON(http.StatusOK, gin.H{"message": "跳过更新: 没有关联的 AgentID"})
+		ctx.JSON(http.StatusOK, gin.H{"message": "Bỏ qua cập nhật: không có AgentID liên kết"})
 		return
 	}
 
@@ -578,7 +578,7 @@ func (c *ChatHistoryController) UpdateMessageAudio(ctx *gin.Context) {
 	if req.AudioData != "" {
 		audioPath, err := c.saveAudioFile(messageID, req.AudioData)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "保存音频文件失败: " + err.Error()})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu file audio thất bại: " + err.Error()})
 			return
 		}
 
@@ -606,13 +606,13 @@ func (c *ChatHistoryController) UpdateMessageAudio(ctx *gin.Context) {
 		// 手动序列化 metadata 到 MetadataJSON（因为 Updates 不会触发 BeforeSave hook）
 		metadataJSONBytes, err := json.Marshal(message.Metadata)
 		if err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "序列化 metadata 失败: " + err.Error()})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Tuần tự hóa metadata thất bại: " + err.Error()})
 			return
 		}
 		updates["metadata"] = string(metadataJSONBytes)
 
 		if err := c.DB.Model(&message).Updates(updates).Error; err != nil {
-			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "更新消息失败"})
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật tin nhắn thất bại"})
 			return
 		}
 	}

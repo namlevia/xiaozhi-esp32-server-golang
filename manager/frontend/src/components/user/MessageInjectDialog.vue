@@ -1,7 +1,7 @@
 <template>
   <el-dialog
     v-model="visible"
-    title="语音推送"
+    :title="t('device.voicePushTitle')"
     width="620px"
     class="inject-message-dialog"
     :close-on-click-modal="false"
@@ -13,10 +13,10 @@
       :rules="rules"
       label-position="top"
     >
-      <el-form-item label="选择设备" prop="device_id">
+      <el-form-item :label="t('device.selectDevice')" prop="device_id">
         <el-select
           v-model="form.device_id"
-          placeholder="请选择要推送语音的设备"
+          :placeholder="t('device.selectDevicePlaceholder')"
           style="width: 100%"
           filterable
           :disabled="deviceSelectDisabled"
@@ -32,58 +32,58 @@
               <div class="device-option-header">
                 <span class="device-name">{{ getDeviceNickName(device) }}</span>
                 <el-tag :type="isDeviceOnline(device.last_active_at) ? 'success' : 'danger'" size="small">
-                  {{ isDeviceOnline(device.last_active_at) ? '在线' : '离线' }}
+                  {{ isDeviceOnline(device.last_active_at) ? t('device.online') : t('device.offline') }}
                 </el-tag>
               </div>
-              <div class="device-code">设备ID: {{ getDeviceIdText(device) }}</div>
-              <div v-if="device.device_code" class="device-code">激活码: {{ device.device_code }}</div>
-              <div class="device-agent">智能体: {{ device.agent_name || '未绑定' }}</div>
+              <div class="device-code">{{ t('device.deviceId') }}: {{ getDeviceIdText(device) }}</div>
+              <div v-if="device.device_code" class="device-code">{{ t('device.activationCode') }}: {{ device.device_code }}</div>
+              <div class="device-agent">{{ t('device.linkedAgent') }}: {{ device.agent_name || t('device.unbound') }}</div>
             </div>
           </el-option>
         </el-select>
       </el-form-item>
 
-      <el-form-item label="推送内容" prop="message">
+      <el-form-item :label="t('device.pushContent')" prop="message">
         <el-input
           v-model="form.message"
           type="textarea"
           :rows="4"
-          placeholder="请输入要推送播报的内容"
+          :placeholder="t('device.pushContentPlaceholder')"
           maxlength="500"
           show-word-limit
         />
       </el-form-item>
 
-      <el-form-item label="直接播报" prop="skip_llm">
+      <el-form-item :label="t('device.directPlayback')" prop="skip_llm">
         <div class="switch-field">
           <div class="switch-copy">
-            <div class="switch-title">{{ directPlayback ? '开启' : '关闭' }}</div>
+            <div class="switch-title">{{ directPlayback ? t('device.enabled') : t('device.disabled') }}</div>
             <div class="switch-desc">
-              {{ directPlayback ? '消息将直接转语音播报，不经过 LLM 推理。' : '消息将先经过 LLM 处理，再进行播报。' }}
+              {{ directPlayback ? t('device.directPlaybackOn') : t('device.directPlaybackOff') }}
             </div>
           </div>
           <el-switch
             v-model="directPlayback"
             inline-prompt
-            active-text="开启"
-            inactive-text="关闭"
+            :active-text="t('device.enabled')"
+            :inactive-text="t('device.disabled')"
           />
         </div>
       </el-form-item>
 
-      <el-form-item label="是否转空闲" prop="auto_listen">
+      <el-form-item :label="t('device.returnToIdle')" prop="auto_listen">
         <div class="switch-field">
           <div class="switch-copy">
-            <div class="switch-title">{{ returnToIdleAfterPlayback ? '开启' : '关闭' }}</div>
+            <div class="switch-title">{{ returnToIdleAfterPlayback ? t('device.enabled') : t('device.disabled') }}</div>
             <div class="switch-desc">
-              {{ returnToIdleAfterPlayback ? '播报完成后回到空闲，适合广播通知和单向播报。' : '播报完成后继续监听，可直接进入下一轮对话。' }}
+              {{ returnToIdleAfterPlayback ? t('device.returnToIdleOn') : t('device.returnToIdleOff') }}
             </div>
           </div>
           <el-switch
             v-model="returnToIdleAfterPlayback"
             inline-prompt
-            active-text="开启"
-            inactive-text="关闭"
+            :active-text="t('device.enabled')"
+            :inactive-text="t('device.disabled')"
           />
         </div>
       </el-form-item>
@@ -91,9 +91,9 @@
 
     <template #footer>
       <div class="dialog-footer">
-        <el-button @click="handleClose">取消</el-button>
+        <el-button @click="handleClose">{{ t('common.cancel') }}</el-button>
         <el-button type="primary" :loading="submitting" @click="handleSubmit">
-          {{ submitting ? '推送中...' : '语音推送' }}
+          {{ submitting ? t('device.pushing') : t('device.voicePush') }}
         </el-button>
       </div>
     </template>
@@ -103,6 +103,7 @@
 <script setup>
 import { computed, reactive, ref, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useI18n } from 'vue-i18n'
 import api from '../../utils/api'
 
 const props = defineProps({
@@ -125,6 +126,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue', 'success'])
+const { t } = useI18n()
 
 const formRef = ref()
 const submitting = ref(false)
@@ -158,11 +160,11 @@ const form = reactive({
 
 const rules = {
   device_id: [
-    { required: true, message: '请选择设备', trigger: 'change' }
+    { required: true, message: t('device.selectDevice'), trigger: 'change' }
   ],
   message: [
-    { required: true, message: '请输入推送内容', trigger: 'blur' },
-    { min: 1, max: 500, message: '推送内容需在 1-500 个字符之间', trigger: 'blur' }
+    { required: true, message: t('device.pushContentRequired'), trigger: 'blur' },
+    { min: 1, max: 500, message: t('device.pushContentLength'), trigger: 'blur' }
   ]
 }
 
@@ -175,7 +177,7 @@ const isDeviceOnline = (lastActiveAt) => {
 const getDeviceNickName = (device) => {
   const nickName = String(device?.nick_name || '').trim()
   if (nickName) return nickName
-  return String(device?.device_name || '').trim() || '未命名设备'
+  return String(device?.device_name || '').trim() || t('device.unnamed')
 }
 
 const getDeviceIdText = (device) => String(device?.device_name || '').trim() || '-'
@@ -224,12 +226,12 @@ const handleSubmit = async () => {
       auto_listen: form.auto_listen
     })
     if (response.data?.success) {
-      ElMessage.success('语音推送成功')
+      ElMessage.success(t('device.voicePushSuccess'))
       emit('success', response.data?.data || null)
       closeDialog()
     }
   } catch (error) {
-    ElMessage.error(error.response?.data?.error || '语音推送失败')
+    ElMessage.error(error.response?.data?.error || t('device.voicePushFailed'))
   } finally {
     submitting.value = false
   }

@@ -1,10 +1,10 @@
-const defaultOption = { label: '默认', value: 'default' }
-const enableOption = { label: '开启', value: 'enabled' }
-const disableOption = { label: '关闭', value: 'disabled' }
+const defaultOption = { label: 'Mặc định', value: 'default' }
+const enableOption = { label: 'Bật', value: 'enabled' }
+const disableOption = { label: 'Tắt', value: 'disabled' }
 const clearHistoryOptions = [
-  { label: '默认', value: 'default' },
-  { label: '清除', value: true },
-  { label: '保留', value: false }
+  { label: 'Mặc định', value: 'default' },
+  { label: 'Xóa', value: true },
+  { label: 'Giữ', value: false }
 ]
 
 function withDefault(options) {
@@ -21,35 +21,35 @@ function createModel(value, thinking, extra = {}) {
 }
 
 const openAIReasoningStandard = withDefault([
-  { label: '极低', value: 'minimal' },
-  { label: '低', value: 'low' },
-  { label: '中', value: 'medium' },
-  { label: '高', value: 'high' }
+  { label: 'Rất thấp', value: 'minimal' },
+  { label: 'Thấp', value: 'low' },
+  { label: 'Trung bình', value: 'medium' },
+  { label: 'Cao', value: 'high' }
 ])
 
 const openAIReasoningCodex = withDefault([
-  { label: '关闭', value: 'none' },
-  { label: '低', value: 'low' },
-  { label: '中', value: 'medium' },
-  { label: '高', value: 'high' }
+  { label: 'Tắt', value: 'none' },
+  { label: 'Thấp', value: 'low' },
+  { label: 'Trung bình', value: 'medium' },
+  { label: 'Cao', value: 'high' }
 ])
 
 const openAIReasoningCodexMax = withDefault([
-  { label: '关闭', value: 'none' },
-  { label: '低', value: 'low' },
-  { label: '中', value: 'medium' },
-  { label: '高', value: 'high' },
-  { label: '极高', value: 'xhigh' }
+  { label: 'Tắt', value: 'none' },
+  { label: 'Thấp', value: 'low' },
+  { label: 'Trung bình', value: 'medium' },
+  { label: 'Cao', value: 'high' },
+  { label: 'Rất cao', value: 'xhigh' }
 ])
 
 const openAIReasoningLegacy = withDefault([
-  { label: '低', value: 'low' },
-  { label: '中', value: 'medium' },
-  { label: '高', value: 'high' }
+  { label: 'Thấp', value: 'low' },
+  { label: 'Trung bình', value: 'medium' },
+  { label: 'Cao', value: 'high' }
 ])
 
 const openAIReasoningHighOnly = withDefault([
-  { label: '高', value: 'high' }
+  { label: 'Cao', value: 'high' }
 ])
 
 const booleanThinkingOptions = withDefault([
@@ -58,31 +58,31 @@ const booleanThinkingOptions = withDefault([
 ])
 
 const doubaoReasoningOptions = withDefault([
-  { label: '关闭', value: 'minimal' },
-  { label: '低', value: 'low' },
-  { label: '中', value: 'medium' },
-  { label: '高', value: 'high' }
+  { label: 'Tắt', value: 'minimal' },
+  { label: 'Thấp', value: 'low' },
+  { label: 'Trung bình', value: 'medium' },
+  { label: 'Cao', value: 'high' }
 ])
 
 const anthropicAdaptiveOptions = [
-  { label: '低', value: 'low' },
-  { label: '中', value: 'medium' },
-  { label: '高', value: 'high' },
-  { label: '极高', value: 'max' }
+  { label: 'Thấp', value: 'low' },
+  { label: 'Trung bình', value: 'medium' },
+  { label: 'Cao', value: 'high' },
+  { label: 'Rất cao', value: 'max' }
 ]
 
 const openAIReasoningLatest = withDefault([
-  { label: '关闭', value: 'none' },
-  { label: '低', value: 'low' },
-  { label: '中', value: 'medium' },
-  { label: '高', value: 'high' },
-  { label: '极高', value: 'xhigh' }
+  { label: 'Tắt', value: 'none' },
+  { label: 'Thấp', value: 'low' },
+  { label: 'Trung bình', value: 'medium' },
+  { label: 'Cao', value: 'high' },
+  { label: 'Rất cao', value: 'xhigh' }
 ])
 
 const openAIReasoningLatestPro = withDefault([
-  { label: '中', value: 'medium' },
-  { label: '高', value: 'high' },
-  { label: '极高', value: 'xhigh' }
+  { label: 'Trung bình', value: 'medium' },
+  { label: 'Cao', value: 'high' },
+  { label: 'Rất cao', value: 'xhigh' }
 ])
 
 const openAIReasoningRequest = {
@@ -92,18 +92,18 @@ const openAIReasoningRequest = {
 }
 
 const anthropicManualThinking = {
-  label: '深度思考',
-  options: withDefault([{ label: '手动思考', value: 'enabled' }]),
+  label: 'Suy luận sâu',
+  options: withDefault([{ label: 'Suy luận thủ công', value: 'enabled' }]),
   showBudgetFor: ['enabled'],
   budgetMin: 1024,
   budgetRequiredFor: ['enabled']
 }
 
 const anthropicAdaptiveThinking = {
-  label: '深度思考',
+  label: 'Suy luận sâu',
   options: withDefault([
-    { label: '手动思考', value: 'enabled' },
-    { label: '自适应思考', value: 'adaptive' }
+    { label: 'Suy luận thủ công', value: 'enabled' },
+    { label: 'Suy luận thích ứng', value: 'adaptive' }
   ]),
   showBudgetFor: ['enabled'],
   budgetMin: 1024,
@@ -113,14 +113,14 @@ const anthropicAdaptiveThinking = {
 }
 
 const zhipuThinkingConfig = {
-  label: '深度思考',
+  label: 'Suy luận sâu',
   options: booleanThinkingOptions,
   showClearThinkingFor: ['enabled'],
   clearThinkingOptions: clearHistoryOptions
 }
 
 const aliyunThinkingConfig = {
-  label: '深度思考',
+  label: 'Suy luận sâu',
   options: booleanThinkingOptions,
   showBudgetFor: ['enabled'],
   budgetMin: 1,
@@ -128,7 +128,7 @@ const aliyunThinkingConfig = {
 }
 
 const siliconflowThinkingConfig = {
-  label: '深度思考',
+  label: 'Suy luận sâu',
   options: booleanThinkingOptions,
   showBudgetFor: ['enabled'],
   budgetMin: 128,
@@ -157,75 +157,75 @@ const editableBaseURLProviders = new Set(['openai', 'ollama', 'azure', 'dify', '
 const catalog = {
   openai: {
     quickUrl: 'https://api.openai.com/v1',
-    modelPlaceholder: '请选择或输入模型名称',
-    modelHint: '默认优先使用官方稳定别名；如需锁定行为，可手动输入精确快照模型 ID。',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
+    modelHint: 'Mặc định ưu tiên dùng alias ổn định chính thức; nếu cần khóa hành vi, có thể nhập thủ công model snapshot ID chính xác.',
     models: [
-      createModel('gpt-5.4', { label: '思考强度', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.4-pro', { label: '思考强度', options: openAIReasoningLatestPro }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.4-mini', { label: '思考强度', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.4-nano', { label: '思考强度', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.2', { label: '思考强度', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.2-pro', { label: '思考强度', options: openAIReasoningLatestPro }, { request: openAIReasoningRequest }),
-      createModel('gpt-5-chat-latest', false, { hint: 'ChatGPT 专用别名，适合兼容旧工作流；新接入优先选择主线 GPT-5.* 模型。' }),
-      createModel('gpt-5-pro', { label: '思考强度', options: openAIReasoningHighOnly }, { request: openAIReasoningRequest }),
-      createModel('gpt-5', { label: '思考强度', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
-      createModel('gpt-5-mini', { label: '思考强度', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
-      createModel('gpt-5-nano', { label: '思考强度', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.3-codex', { label: '思考强度', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.2-codex', { label: '思考强度', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
-      createModel('gpt-5-codex', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.1', { label: '思考强度', options: openAIReasoningCodex }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.1-codex', { label: '思考强度', options: openAIReasoningCodex }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.1-codex-mini', { label: '思考强度', options: openAIReasoningCodex }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.1-codex-max', { label: '思考强度', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
-      createModel('o3', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
-      createModel('o4-mini', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
-      createModel('o3-mini', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
-      createModel('o1', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest })
+      createModel('gpt-5.4', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.4-pro', { label: 'Cường độ suy luận', options: openAIReasoningLatestPro }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.4-mini', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.4-nano', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.2', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.2-pro', { label: 'Cường độ suy luận', options: openAIReasoningLatestPro }, { request: openAIReasoningRequest }),
+      createModel('gpt-5-chat-latest', false, { hint: 'Alias riêng cho ChatGPT, phù hợp tương thích workflow cũ; tích hợp mới nên ưu tiên dòng GPT-5.* chính.' }),
+      createModel('gpt-5-pro', { label: 'Cường độ suy luận', options: openAIReasoningHighOnly }, { request: openAIReasoningRequest }),
+      createModel('gpt-5', { label: 'Cường độ suy luận', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
+      createModel('gpt-5-mini', { label: 'Cường độ suy luận', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
+      createModel('gpt-5-nano', { label: 'Cường độ suy luận', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.3-codex', { label: 'Cường độ suy luận', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.2-codex', { label: 'Cường độ suy luận', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
+      createModel('gpt-5-codex', { label: 'Cường độ suy luận', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.1', { label: 'Cường độ suy luận', options: openAIReasoningCodex }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.1-codex', { label: 'Cường độ suy luận', options: openAIReasoningCodex }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.1-codex-mini', { label: 'Cường độ suy luận', options: openAIReasoningCodex }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.1-codex-max', { label: 'Cường độ suy luận', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
+      createModel('o3', { label: 'Cường độ suy luận', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
+      createModel('o4-mini', { label: 'Cường độ suy luận', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
+      createModel('o3-mini', { label: 'Cường độ suy luận', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
+      createModel('o1', { label: 'Cường độ suy luận', options: openAIReasoningLegacy }, { request: openAIReasoningRequest })
     ],
     fallbackThinking: {
-      label: '思考强度',
+      label: 'Cường độ suy luận',
       options: openAIReasoningCodex,
-      hint: '自定义模型未命中文档内列表，已回退到通用 reasoning_effort 配置；是否生效取决于实际模型。'
+      hint: 'Model tùy chỉnh không nằm trong danh sách đã biết, đã fallback về cấu hình reasoning_effort chung; hiệu lực phụ thuộc model thực tế.'
     }
   },
   ollama: {
     quickUrl: 'http://127.0.0.1:11434/v1',
-    modelPlaceholder: '请选择或输入模型名称',
-    modelHint: 'Ollama 使用本地或私有模型服务，模型列表和地址都允许自定义。',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
+    modelHint: 'Ollama 使用本地或私有Model服务，Model列表和地址都允许自定义。',
     models: [],
     fallbackThinking: null
   },
   azure: {
     quickUrl: 'https://your-resource-name.openai.azure.com/openai/v1/',
-    modelPlaceholder: '请选择官方模型名或输入自定义部署名',
-    modelHint: 'Azure 这里填写的是 deployment name；列表中的名称主要用于参考其底层模型能力。',
+    modelPlaceholder: '请选择官方Model名或输入自定义部署名',
+    modelHint: 'Azure 这里填写的是 deployment name；列表Trung bình的名称主要用于参考其底层Model能力。',
     models: [
-      createModel('gpt-5.4', { label: '思考强度', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.4-pro', { label: '思考强度', options: openAIReasoningLatestPro }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.2', { label: '思考强度', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.2-chat', false, { hint: 'Azure 文档中的 Chat 型号通常通过 deployment 名称接入；是否开放取决于区域和配额。' }),
-      createModel('gpt-5.3-codex', { label: '思考强度', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.2-codex', { label: '思考强度', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
-      createModel('gpt-5-mini', { label: '思考强度', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
-      createModel('gpt-5-nano', { label: '思考强度', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
-      createModel('gpt-5-chat', { label: '思考强度', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
-      createModel('gpt-5-pro', { label: '思考强度', options: openAIReasoningHighOnly }, { request: openAIReasoningRequest }),
-      createModel('o4-mini', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
-      createModel('o3', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
-      createModel('o3-mini', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
-      createModel('o1', { label: '思考强度', options: openAIReasoningLegacy }, { request: openAIReasoningRequest })
+      createModel('gpt-5.4', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.4-pro', { label: 'Cường độ suy luận', options: openAIReasoningLatestPro }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.2', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.2-chat', false, { hint: 'Azure 文档Trung bình的 Chat 型号通常Đạt deployment 名称接入；是否开放取决于区域和配额。' }),
+      createModel('gpt-5.3-codex', { label: 'Cường độ suy luận', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
+      createModel('gpt-5.2-codex', { label: 'Cường độ suy luận', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
+      createModel('gpt-5-mini', { label: 'Cường độ suy luận', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
+      createModel('gpt-5-nano', { label: 'Cường độ suy luận', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
+      createModel('gpt-5-chat', { label: 'Cường độ suy luận', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
+      createModel('gpt-5-pro', { label: 'Cường độ suy luận', options: openAIReasoningHighOnly }, { request: openAIReasoningRequest }),
+      createModel('o4-mini', { label: 'Cường độ suy luận', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
+      createModel('o3', { label: 'Cường độ suy luận', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
+      createModel('o3-mini', { label: 'Cường độ suy luận', options: openAIReasoningLegacy }, { request: openAIReasoningRequest }),
+      createModel('o1', { label: 'Cường độ suy luận', options: openAIReasoningLegacy }, { request: openAIReasoningRequest })
     ],
     fallbackThinking: {
-      label: '思考强度',
+      label: 'Cường độ suy luận',
       options: openAIReasoningCodex,
-      hint: 'Azure 自定义 deployment 未命中文档模型时，会回退到通用 reasoning_effort 配置；具体兼容性以部署模型为准。'
+      hint: 'Azure 自定义 deployment 未命Tiếng Trung档Model时，会回退 đến 通用 reasoning_effort 配置；具体兼容性以部署Model为准。'
     }
   },
   anthropic: {
     quickUrl: 'https://api.anthropic.com/v1/',
-    modelPlaceholder: '请选择或输入模型名称',
-    modelHint: '默认优先使用官方稳定别名；若需要固定版本或回归测试，可改填带日期的精确模型 ID。',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
+    modelHint: 'Mặc định优先使用官方稳定别名；若需要固定版本或回归Kiểm tra，可改填带日期的精确Model ID。',
     models: [
       createModel('claude-opus-4-6', anthropicAdaptiveThinking),
       createModel('claude-sonnet-4-6', anthropicAdaptiveThinking),
@@ -237,13 +237,13 @@ const catalog = {
     ],
     fallbackThinking: {
       ...anthropicAdaptiveThinking,
-      hint: '自定义模型未命中文档内列表。若使用手动思考，需要显式填写 budget_tokens；Adaptive 请仅在文档确认支持的模型上使用。'
+      hint: '自定义Model未命Tiếng Trung档内列表。若使用Suy luận thủ công，需要显式填写 budget_tokens；Adaptive 请仅在文档确认支持的Model上使用。'
     }
   },
   zhipu: {
     quickUrl: 'https://open.bigmodel.cn/api/paas/v4',
-    modelPlaceholder: '请选择或输入模型名称',
-    modelHint: '智谱文档支持通过 thinking.type 和 clear_thinking 控制思考模式。',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
+    modelHint: '智谱文档支持Đạt thinking.type 和 clear_thinking 控制Suy luậnChế độ。',
     models: [
       createModel('glm-5', zhipuThinkingConfig),
       createModel('glm-4.7', zhipuThinkingConfig),
@@ -258,13 +258,13 @@ const catalog = {
     ],
     fallbackThinking: {
       ...zhipuThinkingConfig,
-      hint: '自定义模型未命中文档内列表，已回退到通用 thinking.type / clear_thinking 配置。'
+      hint: '自定义Model未命Tiếng Trung档内列表，已回退 đến 通用 thinking.type / clear_thinking 配置。'
     }
   },
   aliyun: {
     quickUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
-    modelPlaceholder: '请选择或输入模型名称',
-    modelHint: '默认优先使用官方稳定别名；如果你要锁定具体版本，再手动填写带日期或小版本后缀的模型 ID。',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
+    modelHint: 'Mặc định优先使用官方稳定别名；如果你要锁定具体版本，再手动填写带日期或小版本后缀的Model ID。',
     models: [
       createModel('qwen-plus-latest', aliyunThinkingConfig),
       createModel('qwen-turbo-latest', aliyunThinkingConfig),
@@ -283,29 +283,29 @@ const catalog = {
     ],
     fallbackThinking: {
       ...aliyunThinkingConfig,
-      hint: '自定义模型未命中文档内列表。若模型支持 thinking_budget，可按文档填写；留空时不会传该字段。'
+      hint: '自定义Model未命Tiếng Trung档内列表。若Model支持 thinking_budget，可按文档填写；留空时不会传该字段。'
     }
   },
   doubao: {
     quickUrl: 'https://ark.cn-beijing.volces.com/api/v3',
-    modelPlaceholder: '请选择或输入模型 ID（通常带版本后缀）',
-    modelHint: '豆包优先填写官方真实 Model ID。当前未确认有稳定别名可通用替代，建议以控制台或模型列表中的 Model ID 为准。',
+    modelPlaceholder: '请选择或输入Model ID（通常带版本后缀）',
+    modelHint: '豆包优先填写官方真实 Model ID。当前未确认有稳定别名可通用替代，建议以控制台或Model列表Trung bình的 Model ID 为准。',
     models: [
-      createModel('doubao-seed-2-0-pro-260215', { label: '思考强度', options: doubaoReasoningOptions }, { label: 'Doubao Seed 2.0 Pro (doubao-seed-2-0-pro-260215)' }),
-      createModel('doubao-seed-2-0-lite-260215', { label: '思考强度', options: doubaoReasoningOptions }, { label: 'Doubao Seed 2.0 Lite (doubao-seed-2-0-lite-260215)' }),
-      createModel('doubao-seed-2-0-mini-260215', { label: '思考强度', options: doubaoReasoningOptions }, { label: 'Doubao Seed 2.0 Mini (doubao-seed-2-0-mini-260215)' }),
-      createModel('doubao-seed-1-6-251015', { label: '思考强度', options: doubaoReasoningOptions }, { label: 'Doubao Seed 1.6 (doubao-seed-1-6-251015)' })
+      createModel('doubao-seed-2-0-pro-260215', { label: 'Cường độ suy luận', options: doubaoReasoningOptions }, { label: 'Doubao Seed 2.0 Pro (doubao-seed-2-0-pro-260215)' }),
+      createModel('doubao-seed-2-0-lite-260215', { label: 'Cường độ suy luận', options: doubaoReasoningOptions }, { label: 'Doubao Seed 2.0 Lite (doubao-seed-2-0-lite-260215)' }),
+      createModel('doubao-seed-2-0-mini-260215', { label: 'Cường độ suy luận', options: doubaoReasoningOptions }, { label: 'Doubao Seed 2.0 Mini (doubao-seed-2-0-mini-260215)' }),
+      createModel('doubao-seed-1-6-251015', { label: 'Cường độ suy luận', options: doubaoReasoningOptions }, { label: 'Doubao Seed 1.6 (doubao-seed-1-6-251015)' })
     ],
     fallbackThinking: {
-      label: '思考强度',
+      label: 'Cường độ suy luận',
       options: doubaoReasoningOptions,
-      hint: '自定义模型未命中文档内列表，已回退到通用 reasoning_effort 配置；是否生效取决于实际模型。'
+      hint: 'Model tùy chỉnh không nằm trong danh sách đã biết, đã fallback về cấu hình reasoning_effort chung; hiệu lực phụ thuộc model thực tế.'
     }
   },
   siliconflow: {
     quickUrl: 'https://api.siliconflow.cn/v1',
-    modelPlaceholder: '请选择或输入模型名称',
-    modelHint: 'SiliconFlow 文档直接列出了 enable_thinking 支持模型；仅对文档列出的模型展示预算配置。',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
+    modelHint: 'SiliconFlow 文档直接列出了 enable_thinking 支持Model；仅对文档列出的Model展示预算配置。',
     models: [
       createModel('Pro/zai-org/GLM-5', siliconflowThinkingConfig),
       createModel('Pro/zai-org/GLM-4.7', siliconflowThinkingConfig),
@@ -329,25 +329,25 @@ const catalog = {
     ],
     fallbackThinking: {
       ...siliconflowThinkingConfig,
-      hint: '自定义模型未命中文档内列表。若模型支持 enable_thinking / thinking_budget，可按文档填写；留空时不会传 thinking_budget。'
+      hint: '自定义Model未命Tiếng Trung档内列表。若Model支持 enable_thinking / thinking_budget，可按文档填写；留空时不会传 thinking_budget。'
     }
   },
   deepseek: {
     quickUrl: 'https://api.deepseek.com/v1',
-    modelPlaceholder: '请选择或输入模型名称',
-    modelHint: '官方 DeepSeek 通过选择不同模型切换思考模式：deepseek-chat 为非思考，deepseek-reasoner 为思考。',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
+    modelHint: '官方 DeepSeek Đạt选择不同Model切换Suy luậnChế độ：deepseek-chat 为非Suy luận，deepseek-reasoner 为Suy luận。',
     models: [
       createModel('deepseek-chat', false, {
-        hint: 'deepseek-chat 是非思考模型，不需要额外 thinking 参数。'
+        hint: 'deepseek-chat 是非Suy luậnModel，不需要额外 thinking 参数。'
       }),
       createModel('deepseek-reasoner', false, {
-        hint: 'deepseek-reasoner 已内置思考模式，不需要额外 thinking 参数。'
+        hint: 'deepseek-reasoner 已内置Suy luậnChế độ，不需要额外 thinking 参数。'
       })
     ],
     fallbackThinking: {
-      label: '深度思考',
+      label: 'Suy luận sâu',
       options: booleanThinkingOptions,
-      hint: '官方 DeepSeek 推荐通过模型名切换思考模式。自定义代理若额外支持 thinking.type，可在这里启用兼容开关。'
+      hint: '官方 DeepSeek 推荐ĐạtModel名切换Suy luậnChế độ。自定义代理若额外支持 thinking.type，可在这里Bật兼容开关。'
     }
   }
 }
@@ -404,13 +404,13 @@ export function getProviderModelFieldLabel(provider) {
     return '部署名称'
   }
   if (provider === 'doubao') {
-    return '模型 ID'
+    return 'Model ID'
   }
-  return '模型名称'
+  return 'Tên model'
 }
 
 export function getProviderModelPlaceholder(provider) {
-  return catalog[provider]?.modelPlaceholder || '请选择或输入模型名称'
+  return catalog[provider]?.modelPlaceholder || 'Vui lòng chọn hoặc nhập tên model'
 }
 
 export function resolveProviderModel(provider, modelName) {
@@ -453,7 +453,7 @@ export function getProviderThinkingConfig(provider, modelName) {
 
   return {
     visible: true,
-    label: source.label || '深度思考',
+    label: source.label || 'Suy luận sâu',
     options: cloneOptions(source.options),
     showBudgetFor: [...(source.showBudgetFor || [])],
     budgetMin: source.budgetMin || 1,

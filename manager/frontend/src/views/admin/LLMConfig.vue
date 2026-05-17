@@ -8,24 +8,24 @@
         @click="testAllConfigs"
         :disabled="!getEnabledConfigs().length"
       >
-        测试全部
+        Kiểm tra tất cả
       </el-button>
       <el-button type="primary" @click="openCreateDialog">
         <el-icon><Plus /></el-icon>
-        添加配置
+        Thêm cấu hình
       </el-button>
     </div>
 
     <el-table :data="configs" style="width: 100%" v-loading="loading">
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="name" label="配置名称" />
-      <el-table-column prop="config_id" label="配置ID" width="150" />
-      <el-table-column prop="provider" label="类型">
+      <el-table-column prop="name" label="Tên cấu hình" />
+      <el-table-column prop="config_id" label="ID cấu hình" width="150" />
+      <el-table-column prop="provider" label="Loại">
         <template #default="scope">
           {{ getProviderLabel(scope.row.provider) }}
         </template>
       </el-table-column>
-      <el-table-column label="思考" width="100" align="center">
+      <el-table-column label="Suy luận" width="100" align="center">
         <template #default="scope">
           <el-tag
             v-if="getThinkingLabel(scope.row)"
@@ -39,7 +39,7 @@
           <span v-else class="test-result test-none">-</span>
         </template>
       </el-table-column>
-      <el-table-column prop="enabled" label="启用状态" width="80" align="center">
+      <el-table-column prop="enabled" label="Trạng thái bật" width="80" align="center">
         <template #default="scope">
           <el-switch 
             v-model="scope.row.enabled" 
@@ -47,7 +47,7 @@
           />
         </template>
       </el-table-column>
-      <el-table-column prop="is_default" label="默认配置" width="80" align="center">
+      <el-table-column prop="is_default" label="Cấu hình mặc định" width="80" align="center">
         <template #default="scope">
           <el-switch 
             v-model="scope.row.is_default" 
@@ -56,62 +56,62 @@
           />
         </template>
       </el-table-column>
-      <el-table-column label="耗时" width="100" align="center">
+      <el-table-column label="Thời gian" width="100" align="center">
         <template #default="scope">
           <template v-if="testResults[scope.row.config_id]">
             <el-tooltip v-if="testResults[scope.row.config_id].ok" :content="formatTestResultTip(testResults[scope.row.config_id])" placement="top">
               <span class="test-result test-ok">{{ formatTestResultLabel(testResults[scope.row.config_id]) }}</span>
             </el-tooltip>
             <el-tooltip v-else :content="testResults[scope.row.config_id].message" placement="top" :show-after="200">
-              <span class="test-result test-err">错误</span>
+              <span class="test-result test-err">Lỗi</span>
             </el-tooltip>
           </template>
           <span v-else class="test-result test-none">-</span>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="创建时间" width="180">
+      <el-table-column prop="created_at" label="Thời gian tạo" width="180">
         <template #default="scope">
           {{ formatDate(scope.row.created_at) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="260">
+      <el-table-column label="Thao tác" width="260">
         <template #default="scope">
-          <el-button size="small" @click="editConfig(scope.row)">编辑</el-button>
+          <el-button size="small" @click="editConfig(scope.row)">Sửa</el-button>
           <el-button
             size="small"
             type="warning"
             :loading="testingId === scope.row.config_id"
             @click="testConfig(scope.row, 'llm')"
           >
-            测试
+            Kiểm tra
           </el-button>
           <el-button
             size="small"
             type="danger"
             @click="deleteConfig(scope.row.id)"
           >
-            删除
+            Xóa
           </el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- 添加/编辑配置弹窗 -->
+    <!-- Hộp thoại thêm/chỉnh sửa cấu hình -->
     <el-dialog
       v-model="showDialog"
-      :title="editingConfig ? '编辑LLM配置' : '添加LLM配置'"
+      :title="editingConfig ? 'Chỉnh sửa cấu hình LLM' : 'Thêm cấu hình LLM'"
       width="600px"
       @close="handleDialogClose"
     >
       <LLMConfigForm ref="formRef" :model="form" :rules="rules" />
       
       <template #footer>
-        <el-button @click="handleDialogClose">取消</el-button>
+        <el-button @click="handleDialogClose">Hủy</el-button>
         <el-button type="warning" plain @click="testCurrentConfig" :loading="testingCurrent">
-          测试
+          Kiểm tra
         </el-button>
         <el-button type="primary" @click="handleSave" :loading="saving">
-          保存
+          Lưu
         </el-button>
       </template>
     </el-dialog>
@@ -161,19 +161,19 @@ const form = reactive({
 })
 
 const rules = {
-  name: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
-  config_id: [{ required: true, message: '请输入配置ID', trigger: 'blur' }],
-  provider: [{ required: true, message: '请选择提供商', trigger: 'change' }],
+  name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
+  config_id: [{ required: true, message: 'Vui lòng nhập ID cấu hình', trigger: 'blur' }],
+  provider: [{ required: true, message: 'Vui lòng chọn nhà cung cấp', trigger: 'change' }],
   model_name: [{
     required: true,
-    message: '请输入模型名称',
+    message: 'Vui lòng nhập tên model',
     trigger: 'change'
   }, {
     validator: (_, value, callback) => {
       const provider = resolveLLMProvider(form.provider, form.type)
       const providerType = getProviderFixedType(provider)
       if ((providerType === 'openai' || providerType === 'ollama') && !value) {
-        callback(new Error('请输入模型名称'))
+        callback(new Error('Vui lòng nhập tên model'))
         return
       }
       callback()
@@ -184,7 +184,7 @@ const rules = {
     validator: (_, value, callback) => {
       const provider = resolveLLMProvider(form.provider, form.type)
       if (getProviderFixedType(provider) !== 'ollama' && !value) {
-        callback(new Error('请输入API密钥'))
+        callback(new Error('Vui lòng nhập API key'))
         return
       }
       callback()
@@ -195,7 +195,7 @@ const rules = {
     validator: (_, value, callback) => {
       const provider = resolveLLMProvider(form.provider, form.type)
       if (isProviderBaseURLEditable(provider) && !value) {
-        callback(new Error('请输入基础URL'))
+        callback(new Error('Vui lòng nhập Base URL'))
         return
       }
       callback()
@@ -207,7 +207,7 @@ const rules = {
       const provider = resolveLLMProvider(form.provider, form.type)
       const providerType = getProviderFixedType(provider)
       if ((providerType === 'openai' || providerType === 'ollama') && (!value || Number(value) < 1 || Number(value) > 100000)) {
-        callback(new Error('max_tokens必须在1-100000之间'))
+        callback(new Error('max_tokens phải nằm trong khoảng 1-100000'))
         return
       }
       callback()
@@ -218,15 +218,15 @@ const rules = {
     validator: (_, value, callback) => {
       const provider = resolveLLMProvider(form.provider, form.type)
       if (getProviderFixedType(provider) === 'coze' && !value) {
-        callback(new Error('请输入Coze Bot ID'))
+        callback(new Error('Vui lòng nhập Coze Bot ID'))
         return
       }
       callback()
     },
     trigger: 'blur'
   }],
-  temperature: [{ type: 'number', min: 0, max: 2, message: '温度必须在0-2之间', trigger: 'blur' }],
-  top_p: [{ type: 'number', min: 0, max: 1, message: 'Top P必须在0-1之间', trigger: 'blur' }]
+  temperature: [{ type: 'number', min: 0, max: 2, message: 'Temperature phải nằm trong khoảng 0-2', trigger: 'blur' }],
+  top_p: [{ type: 'number', min: 0, max: 1, message: 'Top P phải nằm trong khoảng 0-1', trigger: 'blur' }]
 }
 
 const loadConfigs = async () => {
@@ -241,7 +241,7 @@ const loadConfigs = async () => {
       }
     })
   } catch (error) {
-    ElMessage.error('加载配置失败')
+    ElMessage.error('Tải cấu hình thất bại')
   } finally {
     loading.value = false
   }
@@ -255,7 +255,7 @@ const editConfig = (config) => {
   form.is_default = config.is_default
   form.enabled = config.enabled
   
-  // 解析配置JSON并填充到对应字段
+  // Parse JSON cấu hình và điền vào các trường tương ứng
   try {
     const configObj = JSON.parse(config.json_data || '{}')
     const detectedProvider = resolveLLMProvider(config.provider, configObj.type)
@@ -276,7 +276,7 @@ const editConfig = (config) => {
     form.user_prefix = configObj.user_prefix || ''
     form.connector_id = configObj.connector_id || '1024'
   } catch (error) {
-    console.error('解析配置JSON失败:', error)
+    console.error('Parse JSON cấu hình thất bại:', error)
   }
   
   showDialog.value = true
@@ -300,30 +300,30 @@ const handleSave = async () => {
     if (valid) {
       saving.value = true
       try {
-        // 检查是否是首次添加配置
+        // 检查是否是首次Thêm cấu hình
         const isFirstConfig = !editingConfig.value && configs.value.length === 0
         
         const configData = {
           name: form.name,
           config_id: form.config_id,
           provider: form.provider,
-          is_default: isFirstConfig || form.is_default, // 首次添加自动设为默认
+          is_default: isFirstConfig || form.is_default, // 首次添加Tự động设为Mặc định
           enabled: form.enabled !== undefined ? form.enabled : true,
           json_data: formRef.value.getJsonData()
         }
         
         if (editingConfig.value) {
           await api.put(`/admin/llm-configs/${editingConfig.value.id}`, configData)
-          ElMessage.success('配置更新成功')
+          ElMessage.success('Cập nhật cấu hình thành công')
         } else {
           await api.post('/admin/llm-configs', configData)
-          ElMessage.success('配置创建成功')
+          ElMessage.success('Tạo cấu hình thành công')
         }
         
         showDialog.value = false
         loadConfigs()
       } catch (error) {
-        ElMessage.error('保存失败: ' + (error.response?.data?.message || error.message))
+        ElMessage.error('Lưu thất bại: ' + (error.response?.data?.message || error.message))
       } finally {
         saving.value = false
       }
@@ -334,18 +334,18 @@ const handleSave = async () => {
 const toggleEnable = async (config) => {
   try {
     await api.post(`/admin/configs/${config.id}/toggle`)
-    ElMessage.success(`${config.enabled ? '启用' : '禁用'}成功`)
+    ElMessage.success(`${config.enabled ? 'Bật' : 'Tắt'}thành công`)
   } catch (error) {
-    // 恢复开关状态
+    // Khôi phục trạng thái switch
     config.enabled = !config.enabled
-    ElMessage.error('操作失败')
+    ElMessage.error('Thao tác thất bại')
   }
 }
 
 const toggleDefault = async (config) => {
   try {
     if (!config.enabled) {
-      ElMessage.warning('请先启用该配置才能设为默认')
+      ElMessage.warning('Vui lòng bật cấu hình trước khi đặt làm mặc định')
       config.is_default = false
       return
     }
@@ -360,14 +360,14 @@ const toggleDefault = async (config) => {
     }
     
     await api.put(`/admin/llm-configs/${config.id}`, configData)
-    ElMessage.success(config.is_default ? '设为默认成功' : '取消默认成功')
+    ElMessage.success(config.is_default ? 'Đặt làm mặc định thành công' : 'HủyMặc địnhthành công')
     
-    // 刷新列表以更新其他配置的默认状态
+    // Làm mới列表以更新其他配置的Mặc định状态
     loadConfigs()
   } catch (error) {
-    // 恢复开关状态
+    // Khôi phục trạng thái switch
     config.is_default = !config.is_default
-    ElMessage.error('操作失败')
+    ElMessage.error('Thao tác thất bại')
   }
 }
 
@@ -376,26 +376,26 @@ const getEnabledConfigs = () => {
 }
 
 function formatTestResultLabel(r) {
-  if (!r?.ok) return '错误'
-  return r.first_packet_ms != null ? `${r.first_packet_ms}ms` : '通过'
+  if (!r?.ok) return 'Lỗi'
+  return r.first_packet_ms != null ? `${r.first_packet_ms}ms` : 'Đạt'
 }
 function formatTestResultTip(r) {
   if (!r?.ok) return ''
   const parts = []
-  if (r.first_packet_ms != null) parts.push(`首包 ${r.first_packet_ms}ms`)
-  if (r.reasoning_content_returned) parts.push('检测到上游返回思考内容')
-  return parts.length ? parts.join('，') : '通过'
+  if (r.first_packet_ms != null) parts.push(`First packet ${r.first_packet_ms}ms`)
+  if (r.reasoning_content_returned) parts.push('Phát hiện upstream trả về nội dung suy luận')
+  return parts.length ? parts.join('，') : 'Đạt'
 }
 function formatTestMessage(result) {
   const base = result.message || ''
   const suffix = []
   if (result.first_packet_ms != null) suffix.push(`${result.first_packet_ms}ms`)
-  if (result.reasoning_content_returned) suffix.push('检测到上游返回思考内容')
+  if (result.reasoning_content_returned) suffix.push('Phát hiện upstream trả về nội dung suy luận')
   return suffix.length ? `${base} ${suffix.join(' · ')}` : base
 }
 
 function formatDraftTestLabel(name, configId) {
-  return name?.trim() || configId?.trim() || '当前配置'
+  return name?.trim() || configId?.trim() || 'Cấu hình hiện tại'
 }
 
 function getThinkingLabel(row) {
@@ -439,7 +439,7 @@ const testConfig = async (row, type) => {
       ElMessage.warning(`${row.name || row.config_id}：${result.message}`)
     }
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || '测试请求失败')
+    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
   } finally {
     testingId.value = null
   }
@@ -448,7 +448,7 @@ const testConfig = async (row, type) => {
 const testAllConfigs = async () => {
   const list = getEnabledConfigs()
   if (!list.length) {
-    ElMessage.warning('没有已启用的配置')
+    ElMessage.warning('Không có cấu hình nào đang bật')
     return
   }
   testingAll.value = true
@@ -461,12 +461,12 @@ const testAllConfigs = async () => {
         testResults.value = { ...testResults.value, [row.config_id]: result }
         if (result.ok) okCount++
       } catch (_) {
-        testResults.value = { ...testResults.value, [row.config_id]: { ok: false, message: '请求失败' } }
+        testResults.value = { ...testResults.value, [row.config_id]: { ok: false, message: 'Yêu cầu thất bại' } }
       }
     }
-    ElMessage.success(`全部测试完成：${okCount}/${list.length} 通过`)
+    ElMessage.success(`Đã hoàn tất kiểm tra tất cả: ${okCount}/${list.length} Đạt`)
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || '测试请求失败')
+    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
   } finally {
     testingAll.value = false
   }
@@ -481,7 +481,7 @@ const testCurrentConfig = async () => {
   }
   const configId = form.config_id?.trim()
   if (!configId) {
-    ElMessage.warning('请填写配置ID')
+    ElMessage.warning('Vui lòng nhập ID cấu hình')
     return
   }
   const payload = {
@@ -496,12 +496,12 @@ const testCurrentConfig = async () => {
     const result = await testWithData('llm', { provider: configId, [configId]: payload })
     const label = formatDraftTestLabel(form.name, configId)
     if (result.ok) {
-      ElMessage.success(`${label}：${formatTestMessage(result) || '测试通过'}`)
+      ElMessage.success(`${label}：${formatTestMessage(result) || 'Kiểm traĐạt'}`)
     } else {
-      ElMessage.warning(`${label}：${result.message || '测试未通过'}`)
+      ElMessage.warning(`${label}：${result.message || 'Kiểm tra chưa đạt'}`)
     }
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || '测试请求失败')
+    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
   } finally {
     testingCurrent.value = false
   }
@@ -509,18 +509,18 @@ const testCurrentConfig = async () => {
 
 const deleteConfig = async (id) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个配置吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm('Bạn có chắc muốn xóa cấu hình này không?', 'Gợi ý', {
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy',
       type: 'warning'
     })
     
     await api.delete(`/admin/llm-configs/${id}`)
-    ElMessage.success('删除成功')
+    ElMessage.success('Xóathành công')
     loadConfigs()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      ElMessage.error('Xóa thất bại')
     }
   }
 }

@@ -9,15 +9,15 @@
           size="large"
         />
         <div class="header-context">
-          <span class="context-label">当前智能体</span>
-          <strong class="context-value">{{ agentName || '未命名智能体' }}</strong>
-          <p class="context-meta" v-if="total > 0">共 {{ total }} 条消息</p>
+          <span class="context-label">Trợ lý hiện tại</span>
+          <strong class="context-value">{{ agentName || 'Trợ lý chưa đặt tên' }}</strong>
+          <p class="context-meta" v-if="total > 0">Tổng cộng {{ total }} tin nhắn</p>
         </div>
       </div>
       <div class="header-right">
         <el-button @click="handleExport" :loading="exporting">
           <el-icon><Download /></el-icon>
-          导出记录
+          Xuất bản ghi
         </el-button>
       </div>
     </div>
@@ -25,16 +25,16 @@
     <!-- 筛选面板 -->
     <el-card class="filter-card" shadow="never">
       <el-form :model="filters" inline>
-        <el-form-item label="角色">
-          <el-select v-model="filters.role" placeholder="全部" clearable style="width: 120px">
-            <el-option label="全部" value="" />
-            <el-option label="用户" value="user" />
-            <el-option label="机器人" value="assistant" />
+        <el-form-item label="Vai trò">
+          <el-select v-model="filters.role" placeholder="Tất cả" clearable style="width: 120px">
+            <el-option label="Tất cả" value="" />
+            <el-option label="Người dùng" value="user" />
+            <el-option label="Trợ lý" value="assistant" />
           </el-select>
         </el-form-item>
-        <el-form-item label="设备">
-          <el-select v-model="filters.device_id" placeholder="全部" clearable style="width: 150px">
-            <el-option label="全部" value="" />
+        <el-form-item label="Thiết bị">
+          <el-select v-model="filters.device_id" placeholder="Tất cả" clearable style="width: 150px">
+            <el-option label="Tất cả" value="" />
             <el-option 
               v-for="device in devices" 
               :key="device.id" 
@@ -43,22 +43,22 @@
             />
           </el-select>
         </el-form-item>
-        <el-form-item label="开始日期">
+        <el-form-item label="Ngày bắt đầu">
           <el-date-picker
             v-model="filters.start_date"
             type="date"
-            placeholder="选择日期"
+            placeholder="Chọn ngày"
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             style="width: 150px"
             clearable
           />
         </el-form-item>
-        <el-form-item label="结束日期">
+        <el-form-item label="Ngày kết thúc">
           <el-date-picker
             v-model="filters.end_date"
             type="date"
-            placeholder="选择日期"
+            placeholder="Chọn ngày"
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             style="width: 150px"
@@ -66,8 +66,8 @@
           />
         </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="handleSearch">查询</el-button>
-          <el-button @click="handleReset">重置</el-button>
+          <el-button type="primary" @click="handleSearch">Tìm kiếm</el-button>
+          <el-button @click="handleReset">Đặt lại</el-button>
         </el-form-item>
       </el-form>
     </el-card>
@@ -75,7 +75,7 @@
     <!-- 消息列表 - 微信风格 -->
     <el-card class="messages-card" shadow="never" v-loading="loading">
       <div v-if="messages.length === 0" class="empty-state">
-        <el-empty description="暂无聊天记录" />
+        <el-empty description="Chưa có lịch sử trò chuyện" />
       </div>
       <div v-else class="chat-container">
         <div class="chat-messages" ref="chatMessagesRef">
@@ -119,7 +119,7 @@
                         <el-icon class="message-more"><MoreFilled /></el-icon>
                         <template #dropdown>
                           <el-dropdown-menu>
-                            <el-dropdown-item :command="{action: 'delete', id: message.id}">删除</el-dropdown-item>
+                            <el-dropdown-item :command="{action: 'delete', id: message.id}">Xóa</el-dropdown-item>
                           </el-dropdown-menu>
                         </template>
                       </el-dropdown>
@@ -155,7 +155,7 @@
                         <el-icon class="message-more"><MoreFilled /></el-icon>
                         <template #dropdown>
                           <el-dropdown-menu>
-                            <el-dropdown-item :command="{action: 'delete', id: message.id}">删除</el-dropdown-item>
+                            <el-dropdown-item :command="{action: 'delete', id: message.id}">Xóa</el-dropdown-item>
                           </el-dropdown-menu>
                         </template>
                       </el-dropdown>
@@ -235,16 +235,16 @@ const audioBlobUrls = ref({}) // 存储音频 Blob URL
 // 加载智能体信息
 const loadAgent = async () => {
   if (!agentId.value) {
-    ElMessage.error('智能体ID无效')
+    ElMessage.error('ID trợ lý không hợp lệ')
     router.back()
     return
   }
   try {
     const response = await api.get(`/user/agents/${agentId.value}`)
-    agentName.value = response.data.data?.name || '智能体'
+    agentName.value = response.data.data?.name || 'Trợ lý'
   } catch (error) {
-    console.error('加载智能体信息失败:', error)
-    ElMessage.error('加载智能体信息失败')
+    console.error('Tải thông tin trợ lý thất bại:', error)
+    ElMessage.error('Tải thông tin trợ lý thất bại')
   }
 }
 
@@ -254,7 +254,7 @@ const loadDevices = async () => {
     const response = await api.get(`/user/agents/${agentId.value}/devices`)
     devices.value = response.data.data || []
   } catch (error) {
-    console.error('加载设备列表失败:', error)
+    console.error('Tải danh sách thiết bị thất bại:', error)
   }
 }
 
@@ -287,8 +287,8 @@ const loadMessages = async () => {
     await nextTick()
     scrollToBottom()
   } catch (error) {
-    ElMessage.error('加载消息列表失败: ' + (error.response?.data?.error || error.message))
-    console.error('加载消息列表失败:', error)
+    ElMessage.error('Tải danh sách tin nhắn thất bại: ' + (error.response?.data?.error || error.message))
+    console.error('Tải danh sách tin nhắn thất bại:', error)
     messages.value = []
     total.value = 0
   } finally {
@@ -296,13 +296,13 @@ const loadMessages = async () => {
   }
 }
 
-// 查询
+// Tìm kiếm
 const handleSearch = () => {
   pagination.page = 1
   loadMessages()
 }
 
-// 重置筛选
+// Đặt lại筛选
 const handleReset = () => {
   filters.role = ''
   filters.device_id = ''
@@ -324,30 +324,30 @@ const handleSizeChange = (size) => {
   loadMessages()
 }
 
-// 删除消息
+// Xóa消息
 const handleDelete = async (messageId) => {
   try {
-    await ElMessageBox.confirm('确定要删除这条消息吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm('Bạn có chắc muốn xóa tin nhắn này không?', 'Thông báo', {
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy',
       type: 'warning'
     })
     
     deletingId.value = messageId
     await api.delete(`/user/history/messages/${messageId}`)
-    ElMessage.success('删除成功')
+    ElMessage.success('Xóa thành công')
     loadMessages()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
-      console.error('删除消息失败:', error)
+      ElMessage.error('Xóa thất bại')
+      console.error('Xóa tin nhắn thất bại:', error)
     }
   } finally {
     deletingId.value = null
   }
 }
 
-// 导出记录
+// Xuất bản ghi
 const handleExport = async () => {
   exporting.value = true
   try {
@@ -374,10 +374,10 @@ const handleExport = async () => {
     link.remove()
     window.URL.revokeObjectURL(url)
     
-    ElMessage.success('导出成功')
+    ElMessage.success('Xuất thành công')
   } catch (error) {
-    ElMessage.error('导出失败')
-    console.error('导出失败:', error)
+    ElMessage.error('Xuất thất bại')
+    console.error('Xuất thất bại:', error)
   } finally {
     exporting.value = false
   }
@@ -415,7 +415,7 @@ const formatTimeShort = (dateString) => {
   const yesterday = new Date(today)
   yesterday.setDate(yesterday.getDate() - 1)
   if (msgDate.getTime() === yesterday.getTime()) {
-    return '昨天 ' + date.toLocaleTimeString('zh-CN', {
+    return 'Hôm qua ' + date.toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit'
     })
@@ -423,7 +423,7 @@ const formatTimeShort = (dateString) => {
   
   // 如果是今年，显示月日和时间
   if (date.getFullYear() === now.getFullYear()) {
-    return `${date.getMonth() + 1}月${date.getDate()}日 ${date.toLocaleTimeString('zh-CN', {
+    return `${date.getDate()}/${date.getMonth() + 1} ${date.toLocaleTimeString('vi-VN', {
       hour: '2-digit',
       minute: '2-digit'
     })}`
@@ -484,7 +484,7 @@ const getAudioUrl = async (messageId) => {
     return blobUrl
   } catch (error) {
     // 静默处理，只记录日志，不显示错误提示
-    console.warn('加载音频失败:', messageId, error)
+    console.warn('Tải audio thất bại:', messageId, error)
     return null
   }
 }
@@ -495,7 +495,7 @@ const preloadAudioMessages = async () => {
   const audioMessages = messages.value.filter(msg => msg.audio_path)
   // 并发预加载，但限制并发数
   const promises = audioMessages.slice(0, 10).map(msg => getAudioUrl(msg.id).catch(err => {
-    console.warn('预加载音频失败:', msg.id, err)
+    console.warn('Tải sẵn audio thất bại:', msg.id, err)
     return null
   }))
   await Promise.all(promises)
@@ -509,7 +509,7 @@ const handleAudioEnded = (messageId) => {
 // 音频加载错误处理
 const handleAudioError = async (messageId) => {
   // 静默处理，只记录日志，不显示错误提示
-  console.warn('音频加载失败:', messageId)
+  console.warn('Tải audio thất bại:', messageId)
   // 尝试重新加载
   try {
     const url = await getAudioUrl(messageId)
@@ -521,7 +521,7 @@ const handleAudioError = async (messageId) => {
     }
   } catch (error) {
     // 静默处理，只记录日志
-    console.warn('音频重新加载失败:', messageId, error)
+    console.warn('Tải lại audio thất bại:', messageId, error)
   }
 }
 
@@ -535,7 +535,7 @@ const toggleAudio = async (messageId) => {
     const url = await getAudioUrl(messageId)
     if (!url) {
       // 静默处理，只记录日志，不显示错误提示
-      console.warn('音频加载失败，无法播放:', messageId)
+      console.warn('Tải audio thất bại, không thể phát:', messageId)
       return
     }
     // 等待音频元素加载
@@ -565,7 +565,7 @@ const toggleAudio = async (messageId) => {
       playingAudioId.value = messageId
     } catch (error) {
       // 静默处理，只记录日志，不显示错误提示
-      console.warn('播放音频失败:', messageId, error)
+      console.warn('Phát audio thất bại:', messageId, error)
     }
   }
 }
@@ -573,7 +573,7 @@ const toggleAudio = async (messageId) => {
 
 onMounted(async () => {
   if (!agentId.value) {
-    ElMessage.error('智能体ID无效')
+    ElMessage.error('ID trợ lý không hợp lệ')
     router.push('/user/agents')
     return
   }
@@ -584,7 +584,7 @@ onMounted(async () => {
       loadMessages()
     ])
   } catch (error) {
-    console.error('初始化失败:', error)
+    console.error('Khởi tạo thất bại:', error)
   }
 })
 

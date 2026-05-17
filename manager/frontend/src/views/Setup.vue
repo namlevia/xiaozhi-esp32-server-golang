@@ -2,31 +2,31 @@
   <div class="setup-container">
     <div class="setup-shell">
       <section class="setup-intro">
-        <p class="setup-eyebrow">FIRST RUN EXPERIENCE</p>
-        <h1>用更轻的方式完成系统初始化。</h1>
-        <p>先创建管理员账户，再进入统一的控制台和配置向导。这一页也同步切换到新的明亮 Apple 风风格。</p>
+        <p class="setup-eyebrow">{{ t('setup.eyebrow') }}</p>
+        <h1>{{ t('setup.title') }}</h1>
+        <p>{{ t('setup.description') }}</p>
       </section>
 
       <div class="setup-card">
         <div class="setup-header">
-          <p class="setup-card-eyebrow">SYSTEM SETUP</p>
-          <h1>系统初始化</h1>
-          <p>欢迎使用小智管理系统，请完成初始设置</p>
+          <p class="setup-card-eyebrow">{{ t('setup.cardEyebrow') }}</p>
+          <h1>{{ t('setup.heading') }}</h1>
+          <p>{{ t('setup.welcome') }}</p>
         </div>
 
         <div v-if="!initialized" class="setup-status">
           <div class="loading-spinner" v-if="checking">
             <div class="spinner"></div>
-            <p>正在检查系统状态...</p>
+            <p>{{ t('setup.checking') }}</p>
           </div>
 
           <div v-else-if="needsSetup" class="setup-form">
-            <h2>创建管理员账户</h2>
-            <p>请设置管理员账户信息，用于系统管理</p>
+            <h2>{{ t('setup.createAdmin') }}</h2>
+            <p>{{ t('setup.createAdminHint') }}</p>
 
             <form @submit.prevent="initializeSystem">
               <div class="form-group">
-                <label for="username">管理员用户名</label>
+                <label for="username">{{ t('setup.adminUsername') }}</label>
                 <input
                   id="username"
                   v-model="form.admin_username"
@@ -34,23 +34,23 @@
                   required
                   minlength="3"
                   maxlength="50"
-                  placeholder="请输入管理员用户名"
+                  :placeholder="t('setup.adminUsernamePlaceholder')"
                 />
               </div>
 
               <div class="form-group">
-                <label for="email">管理员邮箱</label>
+                <label for="email">{{ t('setup.adminEmail') }}</label>
                 <input
                   id="email"
                   v-model="form.admin_email"
                   type="email"
                   required
-                  placeholder="请输入管理员邮箱"
+                  :placeholder="t('setup.adminEmailPlaceholder')"
                 />
               </div>
 
               <div class="form-group">
-                <label for="password">管理员密码</label>
+                <label for="password">{{ t('setup.adminPassword') }}</label>
                 <input
                   id="password"
                   v-model="form.admin_password"
@@ -58,18 +58,18 @@
                   required
                   minlength="6"
                   maxlength="100"
-                  placeholder="请输入管理员密码（至少6位）"
+                  :placeholder="t('setup.adminPasswordPlaceholder')"
                 />
               </div>
 
               <div class="form-group">
-                <label for="confirmPassword">确认密码</label>
+                <label for="confirmPassword">{{ t('auth.confirmPassword') }}</label>
                 <input
                   id="confirmPassword"
                   v-model="confirmPassword"
                   type="password"
                   required
-                  placeholder="请再次输入密码"
+                  :placeholder="t('setup.confirmPasswordPlaceholder')"
                 />
               </div>
 
@@ -78,8 +78,8 @@
               </div>
 
               <button type="submit" :disabled="initializing" class="setup-btn">
-                <span v-if="initializing">正在初始化...</span>
-                <span v-else>开始初始化</span>
+                <span v-if="initializing">{{ t('setup.initializing') }}</span>
+                <span v-else>{{ t('setup.startInitialize') }}</span>
               </button>
             </form>
           </div>
@@ -88,9 +88,9 @@
             <div class="success-icon">
               <span class="success-badge">OK</span>
             </div>
-            <h2>系统已初始化</h2>
-            <p>系统已完成初始化，请使用管理员账户登录</p>
-            <router-link to="/login" class="login-btn">前往登录</router-link>
+            <h2>{{ t('setup.alreadyInitialized') }}</h2>
+            <p>{{ t('setup.alreadyInitializedHint') }}</p>
+            <router-link to="/login" class="login-btn">{{ t('setup.goLogin') }}</router-link>
           </div>
         </div>
 
@@ -98,13 +98,13 @@
           <div class="success-icon">
             <span class="success-badge">OK</span>
           </div>
-          <h2>初始化成功！</h2>
-          <p>系统已成功初始化，管理员账户已创建</p>
+          <h2>{{ t('setup.initializeSuccess') }}</h2>
+          <p>{{ t('setup.initializeSuccessHint') }}</p>
           <div class="admin-info">
-            <p><strong>用户名：</strong>{{ adminInfo.username }}</p>
-            <p><strong>邮箱：</strong>{{ adminInfo.email }}</p>
+            <p><strong>{{ t('setup.username') }}</strong>{{ adminInfo.username }}</p>
+            <p><strong>{{ t('setup.email') }}</strong>{{ adminInfo.email }}</p>
           </div>
-          <router-link to="/login" class="login-btn">前往登录</router-link>
+          <router-link to="/login" class="login-btn">{{ t('setup.goLogin') }}</router-link>
         </div>
       </div>
     </div>
@@ -114,12 +114,14 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import api from '@/utils/api'
 
 export default {
   name: 'Setup',
   setup() {
     const router = useRouter()
+    const { t } = useI18n()
     const checking = ref(true)
     const needsSetup = ref(false)
     const initialized = ref(false)
@@ -147,8 +149,8 @@ export default {
           router.push('/login')
         }
       } catch (error) {
-        console.error('检查系统状态失败:', error)
-        errorMessage.value = '检查系统状态失败，请刷新页面重试'
+        console.error(`${t('setup.systemStatusCheckFailed')}:`, error)
+        errorMessage.value = t('setup.statusCheckRetry')
       } finally {
         checking.value = false
       }
@@ -157,7 +159,7 @@ export default {
     const initializeSystem = async () => {
       // 验证密码确认
       if (form.value.admin_password !== confirmPassword.value) {
-        errorMessage.value = '两次输入的密码不一致'
+        errorMessage.value = t('setup.passwordMismatch')
         return
       }
 
@@ -170,11 +172,11 @@ export default {
         adminInfo.value = response.data.admin
         initialized.value = true
       } catch (error) {
-        console.error('系统初始化失败:', error)
+        console.error(`${t('setup.initializeFailed')}:`, error)
         if (error.response?.data?.error) {
           errorMessage.value = error.response.data.error
         } else {
-          errorMessage.value = '系统初始化失败，请重试'
+          errorMessage.value = t('setup.initializeFailed')
         }
       } finally {
         initializing.value = false
@@ -194,6 +196,7 @@ export default {
       form,
       confirmPassword,
       adminInfo,
+      t,
       initializeSystem
     }
   }

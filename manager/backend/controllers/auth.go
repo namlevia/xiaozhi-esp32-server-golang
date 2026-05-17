@@ -66,7 +66,7 @@ func (ac *AuthController) GetCaptchaStatus(c *gin.Context) {
 func (ac *AuthController) GetSimpleCaptcha(c *gin.Context) {
 	captchaID, prompt, err := authCaptchaStore.NewChallenge()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成人机验证失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo xác minh người-máy thất bại"})
 		return
 	}
 
@@ -85,7 +85,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 	}
 
 	if isLoginCaptchaEnabledFromDB(ac.DB) && !authCaptchaStore.Verify(req.CaptchaID, req.CaptchaAnswer) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "人机验证失败，请换一题重试"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Xác minh người-máy thất bại, vui lòng thử câu khác"})
 		return
 	}
 
@@ -106,8 +106,8 @@ func (ac *AuthController) Login(c *gin.Context) {
 				log.Printf("[Login] ✅ 密码验证成功 - 用户: %s", req.Username)
 				token, err := middleware.GenerateToken(user.ID, user.Username, user.Role)
 				if err != nil {
-					log.Printf("[Login] ❌ 生成token失败: %v", err)
-					c.JSON(http.StatusInternalServerError, gin.H{"error": "生成token失败"})
+					log.Printf("[Login] ❌ Tạo token thất bại: %v", err)
+					c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo token thất bại"})
 					return
 				}
 
@@ -127,7 +127,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 				log.Printf("[Login] 调试信息 - 输入密码: '%s', 哈希: '%s'", req.Password, user.Password)
 			}
 		} else {
-			log.Printf("[Login] ❌ 用户不存在 - 用户名: %s, 数据库错误: %v", req.Username, err)
+			log.Printf("[Login] ❌ Người dùng không tồn tại - 用户名: %s, 数据库错误: %v", req.Username, err)
 		}
 	} else {
 		log.Printf("[Login] ❌ 数据库连接不可用")
@@ -137,7 +137,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 	if req.Username == "admin" && req.Password == "admin123" {
 		token, err := middleware.GenerateToken(1, "admin", "admin")
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "生成token失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo token thất bại"})
 			return
 		}
 
@@ -153,7 +153,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
+	c.JSON(http.StatusUnauthorized, gin.H{"error": "Tên đăng nhập hoặc mật khẩu không đúng"})
 }
 
 // 用户注册
@@ -165,21 +165,21 @@ func (ac *AuthController) Register(c *gin.Context) {
 	}
 
 	if !authCaptchaStore.Verify(req.CaptchaID, req.CaptchaAnswer) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "人机验证失败，请换一题重试"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Xác minh người-máy thất bại, vui lòng thử câu khác"})
 		return
 	}
 
 	// 检查用户名是否已存在
 	var existingUser models.User
 	if err := ac.DB.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "用户名已存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên đăng nhập đã tồn tại"})
 		return
 	}
 
 	// 加密密码
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Mã hóa mật khẩu thất bại"})
 		return
 	}
 
@@ -191,12 +191,12 @@ func (ac *AuthController) Register(c *gin.Context) {
 	}
 
 	if err := ac.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建用户失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo người dùng thất bại"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "注册成功",
+		"message": "Đăng ký thành công",
 		"user": gin.H{
 			"id":       user.ID,
 			"username": user.Username,
@@ -213,7 +213,7 @@ func (ac *AuthController) GetProfile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
 		log.Printf("[GetProfile] ❌ 无法获取用户ID，认证中间件可能未正确设置")
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
@@ -222,7 +222,7 @@ func (ac *AuthController) GetProfile(c *gin.Context) {
 	var user models.User
 	if err := ac.DB.First(&user, userID).Error; err != nil {
 		log.Printf("[GetProfile] ❌ 数据库查询用户失败: %v, 用户ID: %v", err, userID)
-		c.JSON(http.StatusNotFound, gin.H{"error": "用户不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Người dùng không tồn tại"})
 		return
 	}
 

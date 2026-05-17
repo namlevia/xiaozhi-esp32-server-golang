@@ -13,25 +13,25 @@
             <div class="card-head">
               <div>
                 <p class="card-kicker">UDP Server</p>
-                <h3>服务监听</h3>
-                <p class="card-description">配置主程序内置 UDP Server 的监听地址，供设备侧发现并建立连接。</p>
+                <h3>Lắng nghe dịch vụ</h3>
+                <p class="card-description">Cấu hình địa chỉ lắng nghe của UDP Server tích hợp để thiết bị phát hiện và thiết lập kết nối.</p>
               </div>
               <el-tag :type="listenReady ? 'success' : 'warning'" effect="plain" round>
-                {{ listenReady ? '监听参数完整' : '待补充' }}
+                {{ listenReady ? 'Đã đủ tham số lắng nghe' : 'Cần bổ sung' }}
               </el-tag>
             </div>
           </template>
 
           <div class="field-grid">
-            <el-form-item label="配置名称" prop="name">
-              <el-input v-model="form.name" placeholder="例如：默认 UDP 配置" />
+            <el-form-item label="Tên cấu hình" prop="name">
+              <el-input v-model="form.name" placeholder="Ví dụ: Cấu hình UDP mặc định" />
             </el-form-item>
 
-            <el-form-item label="监听主机" prop="listen_host">
-              <el-input v-model="form.listen_host" placeholder="例如：0.0.0.0" />
+            <el-form-item label="Host lắng nghe" prop="listen_host">
+              <el-input v-model="form.listen_host" placeholder="Ví dụ: 0.0.0.0" />
             </el-form-item>
 
-            <el-form-item label="监听端口" prop="listen_port">
+            <el-form-item label="Cổng lắng nghe" prop="listen_port">
               <el-input-number v-model="form.listen_port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
             </el-form-item>
           </div>
@@ -42,24 +42,24 @@
             <div class="card-head">
               <div>
                 <p class="card-kicker">Announce Address</p>
-                <h3>终端下发地址</h3>
-                <p class="card-description">这里填写会通过 hello 协议下发给终端的可访问地址，需要设备真实可达。</p>
+                <h3>Địa chỉ gửi xuống thiết bị</h3>
+                <p class="card-description">Địa chỉ có thể truy cập này sẽ được gửi xuống thiết bị qua giao thức hello và thiết bị phải truy cập được.</p>
               </div>
               <el-tag :type="externalReady ? 'success' : 'warning'" effect="plain" round>
-                {{ externalReady ? '下发地址完整' : '待补充' }}
+                {{ externalReady ? 'Đã đủ địa chỉ gửi xuống' : 'Cần bổ sung' }}
               </el-tag>
             </div>
           </template>
 
           <div class="field-stack">
-            <el-form-item label="外部主机" prop="external_host">
-              <el-input v-model="form.external_host" placeholder="例如：公网 IP 或域名" />
+            <el-form-item label="Host bên ngoài" prop="external_host">
+              <el-input v-model="form.external_host" placeholder="Ví dụ: IP công khai hoặc tên miền" />
             </el-form-item>
 
-            <el-form-item label="外部端口" prop="external_port">
+            <el-form-item label="Cổng bên ngoài" prop="external_port">
               <el-input-number v-model="form.external_port" :min="1" :max="65535" controls-position="right" style="width: 100%" />
               <div class="field-help">
-                终端拿到的是这里的主机和端口，而不是监听主机本身。
+                Thiết bị sẽ nhận host và cổng tại đây, không phải chính host lắng nghe.
               </div>
             </el-form-item>
           </div>
@@ -68,11 +68,11 @@
 
       <div class="footer-bar">
         <p class="footer-note">
-          保存后会更新默认 UDP 配置，供终端发现流程和后续连接使用。
+          Sau khi lưu, cấu hình UDP mặc định sẽ được cập nhật cho quy trình phát hiện thiết bị và các kết nối sau đó.
         </p>
         <div class="footer-actions">
-          <el-button plain :loading="loading" @click="loadConfig">重置为当前配置</el-button>
-          <el-button type="primary" :loading="saving" @click="handleSave">保存配置</el-button>
+          <el-button plain :loading="loading" @click="loadConfig">Đặt lại theo cấu hình hiện tại</el-button>
+          <el-button type="primary" :loading="saving" @click="handleSave">Lưu cấu hình</el-button>
         </div>
       </div>
     </el-form>
@@ -90,7 +90,7 @@ const configId = ref(null)
 const formRef = ref(null)
 
 const createDefaultFormState = () => ({
-  name: 'UDP配置',
+  name: 'Cấu hình UDP',
   is_default: true,
   external_host: '192.168.0.208',
   external_port: 8990,
@@ -101,16 +101,16 @@ const createDefaultFormState = () => ({
 const form = reactive(createDefaultFormState())
 
 const rules = {
-  name: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
-  external_host: [{ required: true, message: '请输入外部主机地址', trigger: 'blur' }],
+  name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
+  external_host: [{ required: true, message: 'Vui lòng nhập địa chỉ host bên ngoài', trigger: 'blur' }],
   external_port: [
-    { required: true, message: '请输入外部端口号', trigger: 'blur' },
-    { type: 'number', min: 1, max: 65535, message: '端口号必须在 1-65535 之间', trigger: 'blur' }
+    { required: true, message: 'Vui lòng nhập cổng bên ngoài', trigger: 'blur' },
+    { type: 'number', min: 1, max: 65535, message: 'Số cổng phải nằm trong khoảng 1-65535', trigger: 'blur' }
   ],
-  listen_host: [{ required: true, message: '请输入监听主机地址', trigger: 'blur' }],
+  listen_host: [{ required: true, message: 'Vui lòng nhập địa chỉ host lắng nghe', trigger: 'blur' }],
   listen_port: [
-    { required: true, message: '请输入监听端口号', trigger: 'blur' },
-    { type: 'number', min: 1, max: 65535, message: '端口号必须在 1-65535 之间', trigger: 'blur' }
+    { required: true, message: 'Vui lòng nhập cổng lắng nghe', trigger: 'blur' },
+    { type: 'number', min: 1, max: 65535, message: 'Số cổng phải nằm trong khoảng 1-65535', trigger: 'blur' }
   ]
 }
 
@@ -140,11 +140,11 @@ const loadConfig = async () => {
       try {
         configData = JSON.parse(config.json_data || '{}')
       } catch (error) {
-        ElMessage.warning('UDP 配置格式异常，已回退到默认值')
+        ElMessage.warning('Định dạng cấu hình UDP bất thường, đã khôi phục giá trị mặc định')
         configData = {}
       }
 
-      form.name = config.name || 'UDP配置'
+      form.name = config.name || 'Cấu hình UDP'
       form.is_default = config.is_default ?? true
       form.external_host = String(configData.external_host || '192.168.0.208')
       form.external_port = Number(configData.external_port) > 0 ? Number(configData.external_port) : 8990
@@ -155,7 +155,7 @@ const loadConfig = async () => {
       resetForm()
     }
   } catch (error) {
-    ElMessage.error('加载 UDP 配置失败')
+    ElMessage.error('Tải cấu hình UDP thất bại')
   } finally {
     loading.value = false
   }
@@ -186,16 +186,16 @@ const handleSave = async () => {
 
     if (configId.value) {
       await api.put(`/admin/udp-configs/${configId.value}`, payload)
-      ElMessage.success('UDP 配置已更新')
+      ElMessage.success('Đã cập nhật cấu hình UDP')
     } else {
       const response = await api.post('/admin/udp-configs', payload)
       configId.value = response.data?.data?.id || configId.value
-      ElMessage.success('UDP 配置已保存')
+      ElMessage.success('Đã lưu cấu hình UDP')
     }
 
     await loadConfig()
   } catch (error) {
-    ElMessage.error(error.response?.data?.message || '保存 UDP 配置失败')
+    ElMessage.error(error.response?.data?.message || 'Lưu cấu hình UDP thất bại')
   } finally {
     saving.value = false
   }

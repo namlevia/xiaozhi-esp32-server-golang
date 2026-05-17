@@ -1,46 +1,46 @@
 <template>
   <div class="config-wizard">
     <el-steps :active="currentStep" finish-status="success" align-center class="wizard-steps">
-      <el-step title="OTA" description="服务地址" />
-      <el-step title="VAD" description="语音活动检测" />
-      <el-step title="ASR" description="语音识别" />
-      <el-step title="LLM" description="大语言模型" />
-      <el-step title="TTS" description="语音合成" />
+      <el-step title="OTA" description="Địa chỉ dịch vụ" />
+      <el-step title="VAD" description="Phát hiện hoạt động giọng nói" />
+      <el-step title="ASR" description="Nhận diện giọng nói" />
+      <el-step title="LLM" description="Mô hình ngôn ngữ lớn" />
+      <el-step title="TTS" description="Tổng hợp giọng nói" />
     </el-steps>
 
     <el-card class="step-card" shadow="hover">
       <!-- Step 1: OTA -->
       <template v-if="currentStep === 0">
-        <div class="step-title">OTA 配置</div>
-        <p class="step-hint">填写本服务对外访问的域名或 IP，将自动生成 OTA 地址和 WebSocket 地址（最后一步会展示）。</p>
+        <div class="step-title">Cấu hình OTA</div>
+        <p class="step-hint">Nhập tên miền hoặc IP dùng để truy cập dịch vụ từ bên ngoài; hệ thống sẽ tự tạo địa chỉ OTA và WebSocket ở bước cuối.</p>
         <el-form :model="otaForm" label-width="140px" class="wizard-form">
-          <el-form-item label="域名或 IP" prop="host">
-            <el-input v-model="otaForm.host" placeholder="如 192.168.1.100 或 manager.example.com" clearable />
+          <el-form-item label="Tên miền hoặc IP" prop="host">
+            <el-input v-model="otaForm.host" placeholder="Ví dụ 192.168.1.100 hoặc manager.example.com" clearable />
           </el-form-item>
-          <el-form-item label="端口" prop="port">
+          <el-form-item label="Cổng" prop="port">
             <el-input-number v-model="otaForm.port" :min="1" :max="65535" style="width: 100%" />
           </el-form-item>
-          <el-form-item label="协议" prop="protocol">
+          <el-form-item label="Giao thức" prop="protocol">
             <el-radio-group v-model="otaForm.protocol">
               <el-radio value="http">HTTP</el-radio>
               <el-radio value="https">HTTPS</el-radio>
             </el-radio-group>
           </el-form-item>
-          <el-form-item label="签名密钥" prop="signature_key">
-            <el-input v-model="otaForm.signature_key" placeholder="与 MQTT Server 认证共用" clearable />
+          <el-form-item label="Khóa chữ ký" prop="signature_key">
+            <el-input v-model="otaForm.signature_key" placeholder="Dùng chung với xác thực MQTT Server" clearable />
           </el-form-item>
-          <el-form-item label="启用 MQTT/UDP" prop="enableMqttUdp">
-            <el-switch v-model="otaForm.enableMqttUdp" active-text="启用" inactive-text="不启用" />
-            <span class="form-hint">启用后将自动配置 MQTT Server、MQTT 客户端与 UDP，终端可通过 MQTT 连接。</span>
+          <el-form-item label="Bật MQTT/UDP" prop="enableMqttUdp">
+            <el-switch v-model="otaForm.enableMqttUdp" active-text="Bật" inactive-text="Tắt" />
+            <span class="form-hint">BậtSau khi bật, hệ thống sẽ tự cấu hình MQTT Server, MQTT client và UDP; thiết bị đầu cuối có thể kết nối qua MQTT.</span>
           </el-form-item>
           <template v-if="otaForm.enableMqttUdp">
-            <el-form-item label="MQTT Server 端口" prop="mqttServerPort" required>
-              <el-input-number v-model="otaForm.mqttServerPort" :min="1" :max="65535" style="width: 100%" placeholder="1883 常用，8883 将启用 TLS" />
-              <span class="form-hint">IP 复用上方域名；8883 时自动启用 TLS，默认开启认证。</span>
+            <el-form-item label="Cổng MQTT Server" prop="mqttServerPort" required>
+              <el-input-number v-model="otaForm.mqttServerPort" :min="1" :max="65535" style="width: 100%" placeholder="1883 là cổng phổ biến, 8883 sẽ bật TLS" />
+              <span class="form-hint">IP dùng lại giá trị tên miền/IP phía trên; cổng 8883 sẽ tự bật TLS và mặc định bật xác thực.</span>
             </el-form-item>
-            <el-form-item label="UDP 端口" prop="udpPort" required>
-              <el-input-number v-model="otaForm.udpPort" :min="1" :max="65535" style="width: 100%" placeholder="如 8990" />
-              <span class="form-hint">外网 IP 复用上方域名，外网端口与监听端口均为本端口；监听主机 0.0.0.0。</span>
+            <el-form-item label="Cổng UDP" prop="udpPort" required>
+              <el-input-number v-model="otaForm.udpPort" :min="1" :max="65535" style="width: 100%" placeholder="Ví dụ 8990" />
+              <span class="form-hint">IP public dùng lại giá trị tên miền/IP phía trên, cổng public và cổng lắng nghe đều là cổng này; host lắng nghe là 0.0.0.0.</span>
             </el-form-item>
           </template>
         </el-form>
@@ -48,25 +48,25 @@
 
       <!-- Step 2: VAD -->
       <template v-if="currentStep === 1">
-        <div class="step-title">VAD 配置</div>
+        <div class="step-title">Cấu hình VAD</div>
         <VADConfigForm ref="vadFormRef" :model="vadForm" :rules="vadFormRules" class="wizard-form" />
       </template>
 
       <!-- Step 3: ASR -->
       <template v-if="currentStep === 2">
-        <div class="step-title">ASR 配置</div>
+        <div class="step-title">Cấu hình ASR</div>
         <ASRConfigForm ref="asrFormRef" :model="asrForm" :rules="asrFormRules" class="wizard-form" />
       </template>
 
       <!-- Step 4: LLM -->
       <template v-if="currentStep === 3">
-        <div class="step-title">LLM 配置</div>
+        <div class="step-title">Cấu hình LLM</div>
         <LLMConfigForm ref="llmFormRef" :model="llmForm" :rules="llmFormRules" class="wizard-form" />
       </template>
 
       <!-- Step 5: TTS -->
       <template v-if="currentStep === 4">
-        <div class="step-title">TTS 配置</div>
+        <div class="step-title">Cấu hình TTS</div>
         <TTSConfigForm
           ref="ttsFormRef"
           :model="ttsForm"
@@ -80,56 +80,56 @@
 
       <!-- 完成页：展示 OTA 地址与 WebSocket 地址 -->
       <template v-if="currentStep === 5">
-        <div class="step-title">配置完成</div>
-        <p class="step-hint">以下是根据您在 OTA 步骤填写的域名/IP 生成的地址，请下发至设备或固件使用。</p>
+        <div class="step-title">Hoàn tất cấu hình</div>
+        <p class="step-hint">Dưới đây là các địa chỉ được tạo từ tên miền/IP bạn nhập ở bước OTA; hãy cấp phát cho thiết bị hoặc firmware sử dụng.</p>
         <div class="result-box">
           <div class="result-item">
-            <span class="result-label">OTA 地址（API 根地址）：</span>
+            <span class="result-label">Địa chỉ OTA (API gốc):</span>
             <el-input :model-value="finalOtaUrl" readonly>
               <template #append>
-                <el-button @click="copyToClipboard(finalOtaUrl)" :icon="CopyDocument">复制</el-button>
+                <el-button @click="copyToClipboard(finalOtaUrl)" :icon="CopyDocument">Sao chép</el-button>
               </template>
             </el-input>
           </div>
           <div class="result-item">
-            <span class="result-label">WebSocket 地址：</span>
+            <span class="result-label">Địa chỉ WebSocket:</span>
             <el-input :model-value="finalWsUrl" readonly>
               <template #append>
-                <el-button @click="copyToClipboard(finalWsUrl)" :icon="CopyDocument">复制</el-button>
+                <el-button @click="copyToClipboard(finalWsUrl)" :icon="CopyDocument">Sao chép</el-button>
               </template>
             </el-input>
           </div>
           <div v-if="otaForm.enableMqttUdp && finalMqttEndpoint" class="result-item">
-            <span class="result-label">MQTT 端点（供终端连接）：</span>
+            <span class="result-label">Điểm cuối MQTT (cho thiết bị đầu cuối kết nối):</span>
             <el-input :model-value="finalMqttEndpoint" readonly>
               <template #append>
-                <el-button @click="copyToClipboard(finalMqttEndpoint)" :icon="CopyDocument">复制</el-button>
+                <el-button @click="copyToClipboard(finalMqttEndpoint)" :icon="CopyDocument">Sao chép</el-button>
               </template>
             </el-input>
           </div>
           <div v-if="otaForm.enableMqttUdp && finalUdpEndpoint" class="result-item">
-            <span class="result-label">UDP 信息（供终端连接）：</span>
+            <span class="result-label">Thông tin UDP (cho thiết bị đầu cuối kết nối):</span>
             <el-input :model-value="finalUdpEndpoint" readonly>
               <template #append>
-                <el-button @click="copyToClipboard(finalUdpEndpoint)" :icon="CopyDocument">复制</el-button>
+                <el-button @click="copyToClipboard(finalUdpEndpoint)" :icon="CopyDocument">Sao chép</el-button>
               </template>
             </el-input>
           </div>
         </div>
         <div class="ota-test-section">
           <el-button type="warning" :loading="otaTestLoading" @click="runOtaTest">
-            OTA 测试
+            Kiểm tra OTA
           </el-button>
           <div v-if="otaTestResult !== null" class="ota-test-result">
-            <span class="result-label">OTA 接口返回：</span>
+            <span class="result-label">Phản hồi API OTA:</span>
             <pre class="ota-test-json">{{ otaTestResult }}</pre>
           </div>
         </div>
       </template>
 
       <div class="step-actions">
-        <el-button v-if="currentStep > 0 && currentStep < 5" @click="prevStep">上一步</el-button>
-        <el-button v-if="currentStep < 5" type="info" plain @click="skipStep">跳过</el-button>
+        <el-button v-if="currentStep > 0 && currentStep < 5" @click="prevStep">Bước trước</el-button>
+        <el-button v-if="currentStep < 5" type="info" plain @click="skipStep">Bỏ qua</el-button>
         <el-button
           v-if="currentStep >= 1 && currentStep <= 4"
           type="warning"
@@ -137,16 +137,16 @@
           :loading="testingStep"
           @click="testCurrentStepConfig"
         >
-          测试当前配置
+          Kiểm tra cấu hình hiện tại
         </el-button>
         <template v-if="currentStep < 5">
           <el-button type="primary" :loading="saving" @click="saveAndNext">
-            {{ currentStep === 4 ? '保存并完成' : '保存并下一步' }}
+            {{ currentStep === 4 ? 'Lưu và hoàn tất' : 'Lưu và sang bước tiếp theo' }}
           </el-button>
         </template>
         <template v-else>
-          <el-button type="primary" @click="$router.push('/dashboard')">返回首页</el-button>
-          <el-button @click="currentStep = 0">重新配置</el-button>
+          <el-button type="primary" @click="$router.push('/dashboard')">Về trang chủ</el-button>
+          <el-button @click="currentStep = 0">Cấu hình lại</el-button>
         </template>
       </div>
     </el-card>
@@ -189,7 +189,7 @@ const otaForm = reactive({
 })
 
 const vadForm = reactive({
-  name: '默认VAD',
+  name: 'Mặc địnhVAD',
   config_id: 'ten_vad_default',
   provider: 'ten_vad',
   webrtc_vad: {
@@ -217,13 +217,13 @@ const vadForm = reactive({
 })
 const vadFormRef = ref()
 const vadFormRules = {
-  name: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
-  config_id: [{ required: true, message: '请输入配置ID', trigger: 'blur' }],
-  provider: [{ required: true, message: '请选择提供商', trigger: 'change' }],
-  'ten_vad.hop_size': [{ required: true, message: '请输入帧移大小', trigger: 'blur' }],
-  'ten_vad.threshold': [{ required: true, message: '请输入VAD检测阈值', trigger: 'blur' }],
-  'ten_vad.pool_size': [{ required: true, message: '请输入连接池大小', trigger: 'blur' }],
-  'ten_vad.acquire_timeout_ms': [{ required: true, message: '请输入获取超时时间', trigger: 'blur' }]
+  name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
+  config_id: [{ required: true, message: 'Vui lòng nhập ID cấu hình', trigger: 'blur' }],
+  provider: [{ required: true, message: 'Vui lòng chọn nhà cung cấp', trigger: 'change' }],
+  'ten_vad.hop_size': [{ required: true, message: 'Vui lòng nhập kích thước frame shift', trigger: 'blur' }],
+  'ten_vad.threshold': [{ required: true, message: 'Vui lòng nhập ngưỡng phát hiện VAD', trigger: 'blur' }],
+  'ten_vad.pool_size': [{ required: true, message: 'Vui lòng nhập kích thước pool', trigger: 'blur' }],
+  'ten_vad.acquire_timeout_ms': [{ required: true, message: 'Vui lòng nhập thời gian acquire_timeout', trigger: 'blur' }]
 }
 
 const asrForm = reactive({
@@ -292,59 +292,59 @@ const asrForm = reactive({
 const asrFormRef = ref()
 const validateAliyunPcm = (rule, value, callback) => {
   if (value !== 'pcm') {
-    callback(new Error('格式必须为pcm'))
+    callback(new Error('Định dạng phải là pcm'))
     return
   }
   callback()
 }
 const validateAliyun16000 = (rule, value, callback) => {
   if (Number(value) !== 16000) {
-    callback(new Error('采样率必须为16000'))
+    callback(new Error('Tần số lấy mẫu phải là 16000'))
     return
   }
   callback()
 }
 const asrFormRules = {
-  name: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
-  config_id: [{ required: true, message: '请输入配置ID', trigger: 'blur' }],
-  provider: [{ required: true, message: '请选择提供商', trigger: 'change' }],
-  'funasr.host': [{ required: true, message: '请输入主机地址', trigger: 'blur' }],
-  'funasr.port': [{ required: true, message: '请输入端口', trigger: 'blur' }],
-  'aliyun_funasr.ws_url': [{ required: true, message: '请输入WS URL', trigger: 'blur' }],
-  'aliyun_funasr.model': [{ required: true, message: '请输入模型名称', trigger: 'blur' }],
+  name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
+  config_id: [{ required: true, message: 'Vui lòng nhập ID cấu hình', trigger: 'blur' }],
+  provider: [{ required: true, message: 'Vui lòng chọn nhà cung cấp', trigger: 'change' }],
+  'funasr.host': [{ required: true, message: 'Vui lòng nhập địa chỉ host', trigger: 'blur' }],
+  'funasr.port': [{ required: true, message: 'Vui lòng nhập cổng', trigger: 'blur' }],
+  'aliyun_funasr.ws_url': [{ required: true, message: 'Vui lòng nhập WS URL', trigger: 'blur' }],
+  'aliyun_funasr.model': [{ required: true, message: 'Vui lòng nhập tên model', trigger: 'blur' }],
   'aliyun_funasr.format': [
-    { required: true, message: '请选择音频格式', trigger: 'change' },
+    { required: true, message: 'Vui lòng chọn định dạng audio', trigger: 'change' },
     { validator: validateAliyunPcm, trigger: 'change' }
   ],
   'aliyun_funasr.sample_rate': [
-    { required: true, message: '请选择采样率', trigger: 'change' },
+    { required: true, message: 'Vui lòng chọn tần số lấy mẫu', trigger: 'change' },
     { validator: validateAliyun16000, trigger: 'change' }
   ],
-  'aliyun_funasr.timeout': [{ required: true, message: '请输入超时时间', trigger: 'blur' }],
-  'doubao.appid': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-  'doubao.access_token': [{ required: true, message: '请输入访问令牌', trigger: 'blur' }],
-  'doubao.ws_url': [{ required: true, message: '请输入WebSocket URL', trigger: 'blur' }],
-  'doubao.resource_id': [{ required: true, message: '请选择资源规格', trigger: 'change' }],
-  'aliyun_qwen3.ws_url': [{ required: true, message: '请输入WS URL', trigger: 'blur' }],
-  'aliyun_qwen3.model': [{ required: true, message: '请输入模型名称', trigger: 'blur' }],
-  'aliyun_qwen3.format': [{ required: true, message: '请选择音频格式', trigger: 'change' }],
-  'aliyun_qwen3.sample_rate': [{ required: true, message: '请选择采样率', trigger: 'change' }],
-  'aliyun_qwen3.language': [{ required: true, message: '请输入语言', trigger: 'blur' }],
-  'aliyun_qwen3.timeout': [{ required: true, message: '请输入超时时间', trigger: 'blur' }],
-  'xunfei.appid': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-  'xunfei.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
-  'xunfei.api_secret': [{ required: true, message: '请输入API Secret', trigger: 'blur' }],
-  'xunfei.host': [{ required: true, message: '请输入Host', trigger: 'blur' }],
-  'xunfei.path': [{ required: true, message: '请输入Path', trigger: 'blur' }],
-  'xunfei.domain': [{ required: true, message: '请输入业务领域', trigger: 'blur' }],
-  'xunfei.language': [{ required: true, message: '请输入语言', trigger: 'blur' }],
-  'xunfei.accent': [{ required: true, message: '请输入方言', trigger: 'blur' }],
-  'xunfei.sample_rate': [{ required: true, message: '请选择采样率', trigger: 'change' }],
-  'xunfei.timeout': [{ required: true, message: '请输入超时时间', trigger: 'blur' }]
+  'aliyun_funasr.timeout': [{ required: true, message: 'Vui lòng nhập thời gian timeout', trigger: 'blur' }],
+  'doubao.appid': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+  'doubao.access_token': [{ required: true, message: 'Vui lòng nhập access token', trigger: 'blur' }],
+  'doubao.ws_url': [{ required: true, message: 'Vui lòng nhập WebSocket URL', trigger: 'blur' }],
+  'doubao.resource_id': [{ required: true, message: 'Vui lòng chọn cấu hình tài nguyên', trigger: 'change' }],
+  'aliyun_qwen3.ws_url': [{ required: true, message: 'Vui lòng nhập WS URL', trigger: 'blur' }],
+  'aliyun_qwen3.model': [{ required: true, message: 'Vui lòng nhập tên model', trigger: 'blur' }],
+  'aliyun_qwen3.format': [{ required: true, message: 'Vui lòng chọn định dạng audio', trigger: 'change' }],
+  'aliyun_qwen3.sample_rate': [{ required: true, message: 'Vui lòng chọn tần số lấy mẫu', trigger: 'change' }],
+  'aliyun_qwen3.language': [{ required: true, message: 'Vui lòng nhập ngôn ngữ', trigger: 'blur' }],
+  'aliyun_qwen3.timeout': [{ required: true, message: 'Vui lòng nhập thời gian timeout', trigger: 'blur' }],
+  'xunfei.appid': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+  'xunfei.api_key': [{ required: true, message: 'Vui lòng nhập API key', trigger: 'blur' }],
+  'xunfei.api_secret': [{ required: true, message: 'Vui lòng nhập API Secret', trigger: 'blur' }],
+  'xunfei.host': [{ required: true, message: 'Vui lòng nhập Host', trigger: 'blur' }],
+  'xunfei.path': [{ required: true, message: 'Vui lòng nhập Path', trigger: 'blur' }],
+  'xunfei.domain': [{ required: true, message: 'Vui lòng nhập domain nghiệp vụ', trigger: 'blur' }],
+  'xunfei.language': [{ required: true, message: 'Vui lòng nhập ngôn ngữ', trigger: 'blur' }],
+  'xunfei.accent': [{ required: true, message: 'Vui lòng nhập phương ngữ', trigger: 'blur' }],
+  'xunfei.sample_rate': [{ required: true, message: 'Vui lòng chọn tần số lấy mẫu', trigger: 'change' }],
+  'xunfei.timeout': [{ required: true, message: 'Vui lòng nhập thời gian timeout', trigger: 'blur' }]
 }
 
 const llmForm = reactive({
-  name: '默认LLM',
+  name: 'Mặc địnhLLM',
   config_id: 'openai_default',
   provider: 'openai',
   type: 'openai',
@@ -369,18 +369,18 @@ function getResolvedLLMProvider(provider, type) {
 }
 
 const llmFormRules = {
-  name: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
-  config_id: [{ required: true, message: '请输入配置ID', trigger: 'blur' }],
-  provider: [{ required: true, message: '请选择提供商', trigger: 'change' }],
+  name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
+  config_id: [{ required: true, message: 'Vui lòng nhập ID cấu hình', trigger: 'blur' }],
+  provider: [{ required: true, message: 'Vui lòng chọn nhà cung cấp', trigger: 'change' }],
   model_name: [{
     required: true,
-    message: '请输入模型名称',
+    message: 'Vui lòng nhập tên model',
     trigger: 'change'
   }, {
     validator: (_, value, callback) => {
       const providerType = getResolvedLLMType(llmForm.provider, llmForm.type)
       if ((providerType === 'openai' || providerType === 'ollama') && !value) {
-        callback(new Error('请输入模型名称'))
+        callback(new Error('Vui lòng nhập tên model'))
         return
       }
       callback()
@@ -390,7 +390,7 @@ const llmFormRules = {
   api_key: [{
     validator: (_, value, callback) => {
       if (getResolvedLLMType(llmForm.provider, llmForm.type) !== 'ollama' && !value) {
-        callback(new Error('请输入API密钥'))
+        callback(new Error('Vui lòng nhập API key'))
         return
       }
       callback()
@@ -400,7 +400,7 @@ const llmFormRules = {
   base_url: [{
     validator: (_, value, callback) => {
       if (getResolvedLLMType(llmForm.provider, llmForm.type) !== 'coze' && !value) {
-        callback(new Error('请输入基础URL'))
+        callback(new Error('Vui lòng nhập base URL'))
         return
       }
       callback()
@@ -411,7 +411,7 @@ const llmFormRules = {
     validator: (_, value, callback) => {
       const providerType = getResolvedLLMType(llmForm.provider, llmForm.type)
       if ((providerType === 'openai' || providerType === 'ollama') && (!value || Number(value) < 1 || Number(value) > 100000)) {
-        callback(new Error('max_tokens必须在1-100000之间'))
+        callback(new Error('max_tokens phải nằm trong khoảng 1-100000'))
         return
       }
       callback()
@@ -421,7 +421,7 @@ const llmFormRules = {
 }
 
 const ttsForm = reactive({
-  name: '默认TTS',
+  name: 'Mặc địnhTTS',
   config_id: 'minimax_default',
   provider: 'minimax',
   double_stream: false,
@@ -538,35 +538,35 @@ const ttsFormRef = ref()
 const voiceOptions = ref([])
 const voiceLoading = ref(false)
 const ttsFormRules = {
-  name: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
-  config_id: [{ required: true, message: '请输入配置ID', trigger: 'blur' }],
-  provider: [{ required: true, message: '请选择提供商', trigger: 'change' }],
-  'doubao_ws.appid': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-  'doubao_ws.access_token': [{ required: true, message: '请输入访问令牌', trigger: 'blur' }],
-  'doubao_ws.model': [{ required: true, message: '请选择模型', trigger: 'change' }],
-  'doubao_ws.ws_url': [{ required: true, message: '请输入WebSocket URL', trigger: 'blur' }],
-  'xunfei.app_id': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-  'xunfei.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
-  'xunfei.api_secret': [{ required: true, message: '请输入API Secret', trigger: 'blur' }],
-  'xunfei.ws_url': [{ required: true, message: '请输入WebSocket URL', trigger: 'blur' }],
-  'xunfei.voice': [{ required: true, message: '请输入音色', trigger: 'blur' }],
-  'xunfei_super_tts.app_id': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-  'xunfei_super_tts.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
-  'xunfei_super_tts.api_secret': [{ required: true, message: '请输入API Secret', trigger: 'blur' }],
-  'xunfei_super_tts.ws_url': [{ required: true, message: '请输入WebSocket URL', trigger: 'blur' }],
-  'xunfei_super_tts.voice': [{ required: true, message: '请输入音色', trigger: 'blur' }],
-  'minimax.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
-  'qwen_tts.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }]
+  name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
+  config_id: [{ required: true, message: 'Vui lòng nhập ID cấu hình', trigger: 'blur' }],
+  provider: [{ required: true, message: 'Vui lòng chọn nhà cung cấp', trigger: 'change' }],
+  'doubao_ws.appid': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+  'doubao_ws.access_token': [{ required: true, message: 'Vui lòng nhập access token', trigger: 'blur' }],
+  'doubao_ws.model': [{ required: true, message: 'Vui lòng chọn model', trigger: 'change' }],
+  'doubao_ws.ws_url': [{ required: true, message: 'Vui lòng nhập WebSocket URL', trigger: 'blur' }],
+  'xunfei.app_id': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+  'xunfei.api_key': [{ required: true, message: 'Vui lòng nhập API key', trigger: 'blur' }],
+  'xunfei.api_secret': [{ required: true, message: 'Vui lòng nhập API Secret', trigger: 'blur' }],
+  'xunfei.ws_url': [{ required: true, message: 'Vui lòng nhập WebSocket URL', trigger: 'blur' }],
+  'xunfei.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
+  'xunfei_super_tts.app_id': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+  'xunfei_super_tts.api_key': [{ required: true, message: 'Vui lòng nhập API key', trigger: 'blur' }],
+  'xunfei_super_tts.api_secret': [{ required: true, message: 'Vui lòng nhập API Secret', trigger: 'blur' }],
+  'xunfei_super_tts.ws_url': [{ required: true, message: 'Vui lòng nhập WebSocket URL', trigger: 'blur' }],
+  'xunfei_super_tts.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
+  'minimax.api_key': [{ required: true, message: 'Vui lòng nhập API key', trigger: 'blur' }],
+  'qwen_tts.api_key': [{ required: true, message: 'Vui lòng nhập API key', trigger: 'blur' }]
 }
 
 const finalOtaUrl = computed(() => {
-  if (!otaForm.host?.trim()) return '请先在 OTA 步骤填写域名或 IP'
+  if (!otaForm.host?.trim()) return 'Vui lòng nhập tên miền hoặc IP ở bước OTA trước'
   const proto = otaForm.protocol === 'https' ? 'https' : 'http'
   return `${proto}://${otaForm.host.trim()}:${otaForm.port}`
 })
 
 const finalWsUrl = computed(() => {
-  if (!otaForm.host?.trim()) return '请先在 OTA 步骤填写域名或 IP'
+  if (!otaForm.host?.trim()) return 'Vui lòng nhập tên miền hoặc IP ở bước OTA trước'
   const proto = otaForm.protocol === 'https' ? 'wss' : 'ws'
   return `${proto}://${otaForm.host.trim()}:${otaForm.port}/xiaozhi/v1/`
 })
@@ -609,7 +609,7 @@ async function saveMqttServerConfig() {
     }
   }
   const payload = {
-    name: 'MQTT Server配置',
+    name: 'Cấu hình MQTT Server',
     config_id: 'mqtt_server_mqtt_server_config',
     provider: 'mqtt_server',
     json_data: JSON.stringify(configData),
@@ -631,14 +631,14 @@ async function saveMqttConfig() {
   const port = Number(otaForm.mqttServerPort) || 1883
   const useTls = port === 8883
 
-  // 先获取现有配置，只更新 enable 字段，保留其他配置不变
+  // 先获取现有配置，只更新 enable 字段，Giữ其他配置不变
   const resGet = await api.get('/admin/mqtt-configs')
   const list = resGet.data?.data || []
   const existing = list.find(c => c.is_default) || list[0]
 
   let configData
   if (existing?.id) {
-    // 解析现有配置，保留其他字段
+    // 解析现有配置，Giữ其他字段
     const existingData = JSON.parse(existing.json_data || '{}')
     existingData.enable = true
     // 同时更新与 mqtt_server 相关的字段
@@ -663,7 +663,7 @@ async function saveMqttConfig() {
   }
 
   const payload = {
-    name: 'MQTT配置',
+    name: 'Cấu hình MQTT',
     config_id: 'mqtt_wizard_default',
     is_default: true,
     json_data: JSON.stringify(configData)
@@ -686,7 +686,7 @@ async function saveUdpConfig() {
     external_port: port
   }
   const payload = {
-    name: 'UDP配置',
+    name: 'Cấu hình UDP',
     config_id: 'udp_wizard_default',
     is_default: true,
     json_data: JSON.stringify(configData)
@@ -704,23 +704,23 @@ async function saveUdpConfig() {
 async function saveOta() {
   const wsUrl = buildWsUrl()
   if (!wsUrl) {
-    ElMessage.warning('请填写域名或 IP')
+    ElMessage.warning('Vui lòng nhập tên miền hoặc IP')
     return false
   }
   if (otaForm.enableMqttUdp) {
     const host = otaForm.host?.trim()
     if (!host) {
-      ElMessage.warning('请填写域名或 IP')
+      ElMessage.warning('Vui lòng nhập tên miền hoặc IP')
       return false
     }
     const mqttPort = Number(otaForm.mqttServerPort)
     const udpPort = Number(otaForm.udpPort)
     if (!mqttPort || mqttPort < 1 || mqttPort > 65535) {
-      ElMessage.warning('请输入有效的 MQTT Server 端口（1-65535）')
+      ElMessage.warning('Vui lòng nhập cổng MQTT Server hợp lệ (1-65535)')
       return false
     }
     if (!udpPort || udpPort < 1 || udpPort > 65535) {
-      ElMessage.warning('请输入有效的 UDP 端口（1-65535）')
+      ElMessage.warning('Vui lòng nhập cổng UDP hợp lệ (1-65535)')
       return false
     }
     try {
@@ -728,13 +728,13 @@ async function saveOta() {
       await saveMqttConfig()
       await saveUdpConfig()
     } catch (e) {
-      ElMessage.error('MQTT/UDP 配置保存失败: ' + (e.response?.data?.message || e.message))
+      ElMessage.error('Lưu cấu hình MQTT/UDP thất bại: ' + (e.response?.data?.message || e.message))
       return false
     }
   }
   const mqttEndpoint = otaForm.enableMqttUdp ? finalMqttEndpoint.value : ''
   const payload = {
-    name: 'OTA配置',
+    name: 'Cấu hình OTA',
     config_id: 'ota_ota_config',
     provider: 'default',
     json_data: JSON.stringify({
@@ -758,10 +758,10 @@ async function saveOta() {
       const res = await api.post('/admin/ota-configs', payload)
       otaConfigId.value = res.data?.data?.id ?? null
     }
-    ElMessage.success(otaForm.enableMqttUdp ? 'OTA 及 MQTT/UDP 配置已保存' : 'OTA 配置已保存')
+    ElMessage.success(otaForm.enableMqttUdp ? 'Đã lưu cấu hình OTA và MQTT/UDP' : 'Đã lưu cấu hình OTA')
     return true
   } catch (e) {
-    ElMessage.error('OTA 保存失败: ' + (e.response?.data?.message || e.message))
+    ElMessage.error('Lưu cấu hình OTA thất bại: ' + (e.response?.data?.message || e.message))
     return false
   }
 }
@@ -788,10 +788,10 @@ async function saveVad() {
       const res = await api.post('/admin/vad-configs', payload)
       vadConfigId.value = res.data?.data?.id ?? null
     }
-    ElMessage.success('VAD 配置已保存')
+    ElMessage.success('Đã lưu cấu hình VAD')
     return true
   } catch (e) {
-    ElMessage.error('VAD 保存失败: ' + (e.response?.data?.message || e.message))
+    ElMessage.error('Lưu cấu hình VAD thất bại: ' + (e.response?.data?.message || e.message))
     return false
   }
 }
@@ -818,10 +818,10 @@ async function saveAsr() {
       const res = await api.post('/admin/asr-configs', payload)
       asrConfigId.value = res.data?.data?.id ?? null
     }
-    ElMessage.success('ASR 配置已保存')
+    ElMessage.success('Đã lưu cấu hình ASR')
     return true
   } catch (e) {
-    ElMessage.error('ASR 保存失败: ' + (e.response?.data?.message || e.message))
+    ElMessage.error('Lưu cấu hình ASR thất bại: ' + (e.response?.data?.message || e.message))
     return false
   }
 }
@@ -848,10 +848,10 @@ async function saveLlm() {
       const res = await api.post('/admin/llm-configs', payload)
       llmConfigId.value = res.data?.data?.id ?? null
     }
-    ElMessage.success('LLM 配置已保存')
+    ElMessage.success('Đã lưu cấu hình LLM')
     return true
   } catch (e) {
-    ElMessage.error('LLM 保存失败: ' + (e.response?.data?.message || e.message))
+    ElMessage.error('Lưu cấu hình LLM thất bại: ' + (e.response?.data?.message || e.message))
     return false
   }
 }
@@ -878,10 +878,10 @@ async function saveTts() {
       const res = await api.post('/admin/tts-configs', payload)
       ttsConfigId.value = res.data?.data?.id ?? null
     }
-    ElMessage.success('TTS 配置已保存')
+    ElMessage.success('Đã lưu cấu hình TTS')
     return true
   } catch (e) {
-    ElMessage.error('TTS 保存失败: ' + (e.response?.data?.message || e.message))
+    ElMessage.error('Lưu cấu hình TTS thất bại: ' + (e.response?.data?.message || e.message))
     return false
   }
 }
@@ -1032,12 +1032,12 @@ function formatTestMessage(result) {
   const base = result.message || ''
   const suffix = []
   if (result.first_packet_ms != null) suffix.push(`${result.first_packet_ms}ms`)
-  if (result.reasoning_content_returned) suffix.push('检测到上游返回思考内容')
+  if (result.reasoning_content_returned) suffix.push('Phát hiện upstream trả về nội dung suy luận')
   return suffix.length ? `${base} ${suffix.join(' · ')}` : base
 }
 
 function formatDraftTestLabel(name, configId) {
-  return name?.trim() || configId?.trim() || '当前配置'
+  return name?.trim() || configId?.trim() || 'Cấu hình hiện tại'
 }
 
 async function testCurrentStepConfig() {
@@ -1061,10 +1061,10 @@ async function testCurrentStepConfig() {
     try {
       const result = await testWithData('vad', { [configId]: payload })
       const label = formatDraftTestLabel(vadForm.name, configId)
-      if (result.ok) ElMessage.success(`${label}：${formatTestMessage(result) || '测试通过'}`)
-      else ElMessage.warning(`${label}：${result.message || '测试未通过'}`)
+      if (result.ok) ElMessage.success(`${label}：${formatTestMessage(result) || 'Kiểm tra đạt'}`)
+      else ElMessage.warning(`${label}：${result.message || 'Kiểm tra chưa đạt'}`)
     } catch (err) {
-      ElMessage.warning(err.response?.data?.error || '测试请求失败')
+      ElMessage.warning(err.response?.data?.error || 'Yêu cầu kiểm tra thất bại')
     } finally {
       testingStep.value = false
     }
@@ -1089,10 +1089,10 @@ async function testCurrentStepConfig() {
     try {
       const result = await testWithData('asr', { [configId]: payload })
       const label = formatDraftTestLabel(asrForm.name, configId)
-      if (result.ok) ElMessage.success(`${label}：${formatTestMessage(result) || '测试通过'}`)
-      else ElMessage.warning(`${label}：${result.message || '测试未通过'}`)
+      if (result.ok) ElMessage.success(`${label}：${formatTestMessage(result) || 'Kiểm tra đạt'}`)
+      else ElMessage.warning(`${label}：${result.message || 'Kiểm tra chưa đạt'}`)
     } catch (err) {
-      ElMessage.warning(err.response?.data?.error || '测试请求失败')
+      ElMessage.warning(err.response?.data?.error || 'Yêu cầu kiểm tra thất bại')
     } finally {
       testingStep.value = false
     }
@@ -1117,10 +1117,10 @@ async function testCurrentStepConfig() {
     try {
       const result = await testWithData('llm', { provider: configId, [configId]: payload })
       const label = formatDraftTestLabel(llmForm.name, configId)
-      if (result.ok) ElMessage.success(`${label}：${formatTestMessage(result) || '测试通过'}`)
-      else ElMessage.warning(`${label}：${result.message || '测试未通过'}`)
+      if (result.ok) ElMessage.success(`${label}：${formatTestMessage(result) || 'Kiểm tra đạt'}`)
+      else ElMessage.warning(`${label}：${result.message || 'Kiểm tra chưa đạt'}`)
     } catch (err) {
-      ElMessage.warning(err.response?.data?.error || '测试请求失败')
+      ElMessage.warning(err.response?.data?.error || 'Yêu cầu kiểm tra thất bại')
     } finally {
       testingStep.value = false
     }
@@ -1145,10 +1145,10 @@ async function testCurrentStepConfig() {
     try {
       const result = await testWithData('tts', { [configId]: payload })
       const label = formatDraftTestLabel(ttsForm.name, configId)
-      if (result.ok) ElMessage.success(`${label}：${formatTestMessage(result) || '测试通过'}`)
-      else ElMessage.warning(`${label}：${result.message || '测试未通过'}`)
+      if (result.ok) ElMessage.success(`${label}：${formatTestMessage(result) || 'Kiểm tra đạt'}`)
+      else ElMessage.warning(`${label}：${result.message || 'Kiểm tra chưa đạt'}`)
     } catch (err) {
-      ElMessage.warning(err.response?.data?.error || '测试请求失败')
+      ElMessage.warning(err.response?.data?.error || 'Yêu cầu kiểm tra thất bại')
     } finally {
       testingStep.value = false
     }
@@ -1158,9 +1158,9 @@ async function testCurrentStepConfig() {
 async function copyToClipboard(text) {
   try {
     await navigator.clipboard.writeText(text)
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success('Đã sao chép vào clipboard')
   } catch {
-    ElMessage.error('复制失败')
+    ElMessage.error('Sao chép thất bại')
   }
 }
 
@@ -1215,20 +1215,20 @@ async function runOtaTest() {
 
         // OTA 响应内容（如果有）
         if (v.ota_response !== undefined && v.ota_response !== '') {
-          displayText += `\n--- OTA 响应 ---\n${formatOtaResponseDisplay(v.ota_response)}`
+          displayText += `\n--- Phản hồi OTA ---\n${formatOtaResponseDisplay(v.ota_response)}`
         }
 
-        otaTestResult.value = displayText.trim() || '未获取到详细信息'
+        otaTestResult.value = displayText.trim() || 'Chưa lấy được thông tin chi tiết'
 
         // 根据整体结果显示消息
         const overallOk = v.ok
         if (overallOk) {
-          ElMessage.success(v.message || 'OTA 测试通过')
+          ElMessage.success(v.message || 'OTA Kiểm tra đạt')
         } else {
-          ElMessage.warning(v.message || 'OTA 测试未通过')
+          ElMessage.warning(v.message || 'OTA Kiểm tra chưa đạt')
         }
       } else {
-        otaTestResult.value = '未获取到 OTA 测试结果'
+        otaTestResult.value = 'Chưa lấy được kết quả kiểm tra OTA'
       }
     } else {
       otaTestResult.value = typeof data === 'string' ? data : JSON.stringify(data || {}, null, 2)
@@ -1236,9 +1236,9 @@ async function runOtaTest() {
   } catch (e) {
     const errorMsg = (e.response?.data && typeof e.response.data === 'object')
       ? JSON.stringify(e.response.data, null, 2)
-      : (e.response?.data?.message || e.message || '请求失败')
+      : (e.response?.data?.message || e.message || 'Yêu cầu thất bại')
     otaTestResult.value = errorMsg
-    ElMessage.error('OTA 测试请求失败')
+    ElMessage.error('OTA Yêu cầu kiểm tra thất bại')
   } finally {
     otaTestLoading.value = false
   }
@@ -1272,7 +1272,7 @@ async function loadOtaIfExists() {
   } catch (_) {}
 }
 
-// 加载 TTS 音色列表（与 TTS 配置页一致）
+// 加载 TTS 音色列表（与 Cấu hình TTS页一致）
 async function loadTtsVoiceOptions(provider) {
   if (!provider) {
     voiceOptions.value = []
@@ -1288,7 +1288,7 @@ async function loadTtsVoiceOptions(provider) {
     const response = await api.get('/user/voice-options', { params: { provider } })
     voiceOptions.value = response.data.data || []
   } catch (error) {
-    console.error('加载音色列表失败:', error)
+    console.error('Tải danh sách giọng thất bại:', error)
     voiceOptions.value = []
   } finally {
     voiceLoading.value = false

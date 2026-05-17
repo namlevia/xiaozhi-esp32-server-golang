@@ -156,7 +156,7 @@ func (s *WebSocketServer) internalHandleChat(w http.ResponseWriter, r *http.Requ
 	deviceID, clientID := extractDeviceAndClientID(r)
 	if deviceID == "" {
 		log.Warn("缺少 device-id，请从 Header 或 URL 参数传入")
-		http.Error(w, "缺少 device-id（支持 Header 或 URL 参数）", http.StatusBadRequest)
+		http.Error(w, "Thiếu device-id (hỗ trợ Header hoặc tham số URL)", http.StatusBadRequest)
 		return
 	}
 	if clientID == "" {
@@ -167,15 +167,15 @@ func (s *WebSocketServer) internalHandleChat(w http.ResponseWriter, r *http.Requ
 	if isAuth {
 		token := r.Header.Get("Authorization")
 		if token == "" {
-			log.Warn("缺少 Authorization 请求头")
-			http.Error(w, "缺少 Authorization 请求头", http.StatusUnauthorized)
+			log.Warn("Thiếu header Authorization")
+			http.Error(w, "Thiếu header Authorization", http.StatusUnauthorized)
 			return
 		}
 
 		// 验证令牌
 		if !s.authManager.ValidateToken(token) {
-			log.Warnf("无效的令牌: %s", token)
-			http.Error(w, "无效的令牌", http.StatusUnauthorized)
+			log.Warnf("Token không hợp lệ: %s", token)
+			http.Error(w, "Token không hợp lệ", http.StatusUnauthorized)
 			return
 		}
 	}*/

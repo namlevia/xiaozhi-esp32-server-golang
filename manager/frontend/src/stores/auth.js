@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import api from '../utils/api'
+import { t } from '../locales'
 
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token'))
@@ -25,7 +26,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       return { 
         success: false, 
-        message: error.response?.data?.error || '登录失败' 
+        message: error.response?.data?.error || t('auth.loginFailed') 
       }
     }
   }
@@ -37,7 +38,7 @@ export const useAuthStore = defineStore('auth', () => {
     } catch (error) {
       return { 
         success: false, 
-        message: error.response?.data?.error || '注册失败' 
+        message: error.response?.data?.error || t('auth.registerFailed') 
       }
     }
   }

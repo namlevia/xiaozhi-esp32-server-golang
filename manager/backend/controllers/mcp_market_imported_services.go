@@ -72,14 +72,14 @@ func (ac *AdminController) GetMCPMarketImportedServices(c *gin.Context) {
 
 	var total int64
 	if err := db.Count(&total).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询导入服务总数失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn tổng số dịch vụ đã nhập thất bại"})
 		return
 	}
 
 	var rows []models.MCPMarketService
 	offset := (page - 1) * pageSize
 	if err := db.Order("updated_at DESC, id DESC").Limit(pageSize).Offset(offset).Find(&rows).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询导入服务列表失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn danh sách dịch vụ đã nhập thất bại"})
 		return
 	}
 
@@ -111,15 +111,15 @@ func (ac *AdminController) CreateMCPMarketImportedService(c *gin.Context) {
 
 	var existing models.MCPMarketService
 	if err := ac.DB.Where("url_hash = ?", model.URLHash).First(&existing).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "已存在相同 URL 的导入服务"})
+		c.JSON(http.StatusConflict, gin.H{"error": "Đã tồn tại dịch vụ nhập với cùng URL"})
 		return
 	} else if err != nil && err != gorm.ErrRecordNotFound {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询导入服务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn dịch vụ đã nhập thất bại"})
 		return
 	}
 
 	if err := ac.DB.Create(&model).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建导入服务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo dịch vụ đã nhập thất bại"})
 		return
 	}
 
@@ -132,7 +132,7 @@ func (ac *AdminController) UpdateMCPMarketImportedService(c *gin.Context) {
 
 	var existing models.MCPMarketService
 	if err := ac.DB.First(&existing, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "导入服务不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Dịch vụ đã nhập không tồn tại"})
 		return
 	}
 
@@ -150,10 +150,10 @@ func (ac *AdminController) UpdateMCPMarketImportedService(c *gin.Context) {
 
 	var dup models.MCPMarketService
 	if err := ac.DB.Where("id != ? AND url_hash = ?", existing.ID, updated.URLHash).First(&dup).Error; err == nil {
-		c.JSON(http.StatusConflict, gin.H{"error": "已存在相同 URL 的导入服务"})
+		c.JSON(http.StatusConflict, gin.H{"error": "Đã tồn tại dịch vụ nhập với cùng URL"})
 		return
 	} else if err != nil && err != gorm.ErrRecordNotFound {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询导入服务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn dịch vụ đã nhập thất bại"})
 		return
 	}
 
@@ -171,12 +171,12 @@ func (ac *AdminController) UpdateMCPMarketImportedService(c *gin.Context) {
 		"service_name":       updated.ServiceName,
 	}
 	if err := ac.DB.Model(&existing).Updates(updateMap).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新导入服务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật dịch vụ đã nhập thất bại"})
 		return
 	}
 
 	if err := ac.DB.First(&existing, id).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取更新后的导入服务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đọc dịch vụ đã nhập sau cập nhật thất bại"})
 		return
 	}
 
@@ -188,17 +188,17 @@ func (ac *AdminController) DeleteMCPMarketImportedService(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var existing models.MCPMarketService
 	if err := ac.DB.First(&existing, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "导入服务不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Dịch vụ đã nhập không tồn tại"})
 		return
 	}
 
 	if err := ac.DB.Delete(&existing).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除导入服务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa dịch vụ đã nhập thất bại"})
 		return
 	}
 
 	ac.notifySystemConfigChanged()
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 func (ac *AdminController) GetMCPMarketImportedServiceTools(c *gin.Context) {
@@ -206,7 +206,7 @@ func (ac *AdminController) GetMCPMarketImportedServiceTools(c *gin.Context) {
 
 	var existing models.MCPMarketService
 	if err := ac.DB.First(&existing, id).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "导入服务不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Dịch vụ đã nhập không tồn tại"})
 		return
 	}
 

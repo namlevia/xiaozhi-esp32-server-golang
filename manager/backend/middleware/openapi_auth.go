@@ -24,7 +24,7 @@ func hashToken(raw string) string {
 func OpenAPIAuth(db *gorm.DB) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		if db == nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "数据库不可用，无法校验OpenAPI令牌"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Cơ sở dữ liệu không khả dụng, không thể xác thực OpenAPI token"})
 			c.Abort()
 			return
 		}
@@ -50,7 +50,7 @@ func OpenAPIAuth(db *gorm.DB) gin.HandlerFunc {
 		}
 
 		if rawToken == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "缺少认证信息（JWT或API Token）"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực (JWT hoặc API Token)"})
 			c.Abort()
 			return
 		}
@@ -63,14 +63,14 @@ func OpenAPIAuth(db *gorm.DB) gin.HandlerFunc {
 			Where("expires_at IS NULL OR expires_at > ?", now).
 			First(&apiToken).Error
 		if err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "无效或已过期的API Token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "API Token không hợp lệ hoặc đã hết hạn"})
 			c.Abort()
 			return
 		}
 
 		var user models.User
 		if err := db.First(&user, apiToken.UserID).Error; err != nil {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "API Token所属用户不存在"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Người dùng sở hữu API Token không tồn tại"})
 			c.Abort()
 			return
 		}

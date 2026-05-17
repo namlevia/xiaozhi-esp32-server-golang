@@ -58,7 +58,7 @@ func NewSpeakerGroupController(db *gorm.DB, cfg *config.Config) *SpeakerGroupCon
 func (sgc *SpeakerGroupController) CreateSpeakerGroup(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
@@ -72,7 +72,7 @@ func (sgc *SpeakerGroupController) CreateSpeakerGroup(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Lỗi tham số yêu cầu: " + err.Error()})
 		return
 	}
 
@@ -80,20 +80,20 @@ func (sgc *SpeakerGroupController) CreateSpeakerGroup(c *gin.Context) {
 	var agent models.Agent
 	if err := sgc.DB.Where("id = ? AND user_id = ?", req.AgentID, userID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "智能体不存在或无权限访问"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Trợ lý không tồn tại hoặc bạn không có quyền truy cập"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询智能体失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn trợ lý thất bại"})
 		return
 	}
 
 	// 检查同一用户下是否已存在相同名称的声纹组
 	var existingGroup models.SpeakerGroup
 	if err := sgc.DB.Where("user_id = ? AND name = ?", userID, req.Name).First(&existingGroup).Error; err == nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "该声纹组名称已存在，请使用其他名称"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên nhóm người nói này đã tồn tại, vui lòng dùng tên khác"})
 		return
 	} else if err != gorm.ErrRecordNotFound {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
@@ -111,7 +111,7 @@ func (sgc *SpeakerGroupController) CreateSpeakerGroup(c *gin.Context) {
 	}
 
 	if err := sgc.DB.Create(&speakerGroup).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建声纹组失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo nhóm người nói thất bại: " + err.Error()})
 		return
 	}
 
@@ -133,7 +133,7 @@ func (sgc *SpeakerGroupController) CreateSpeakerGroup(c *gin.Context) {
 func (sgc *SpeakerGroupController) GetSpeakerGroups(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
@@ -169,7 +169,7 @@ func (sgc *SpeakerGroupController) GetSpeakerGroups(c *gin.Context) {
 	// 获取数据
 	var speakerGroups []models.SpeakerGroup
 	if err := query.Offset(offset).Limit(pageSize).Order("created_at DESC").Find(&speakerGroups).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
@@ -217,14 +217,14 @@ func (sgc *SpeakerGroupController) GetSpeakerGroups(c *gin.Context) {
 func (sgc *SpeakerGroupController) GetSpeakerGroup(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
 	id := c.Param("id")
 	speakerGroupID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的声纹组ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID nhóm người nói không hợp lệ"})
 		return
 	}
 
@@ -232,10 +232,10 @@ func (sgc *SpeakerGroupController) GetSpeakerGroup(c *gin.Context) {
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", speakerGroupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "声纹组不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Nhóm người nói không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
@@ -282,14 +282,14 @@ func (sgc *SpeakerGroupController) GetSpeakerGroup(c *gin.Context) {
 func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
 	id := c.Param("id")
 	speakerGroupID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的声纹组ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID nhóm người nói không hợp lệ"})
 		return
 	}
 
@@ -303,7 +303,7 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Lỗi tham số yêu cầu: " + err.Error()})
 		return
 	}
 
@@ -311,10 +311,10 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", speakerGroupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "声纹组不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Nhóm người nói không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
@@ -323,10 +323,10 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 		var agent models.Agent
 		if err := sgc.DB.Where("id = ? AND user_id = ?", *req.AgentID, userID).First(&agent).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
-				c.JSON(http.StatusBadRequest, gin.H{"error": "智能体不存在或无权限访问"})
+				c.JSON(http.StatusBadRequest, gin.H{"error": "Trợ lý không tồn tại hoặc bạn không có quyền truy cập"})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "查询智能体失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn trợ lý thất bại"})
 			return
 		}
 		speakerGroup.AgentID = *req.AgentID
@@ -337,10 +337,10 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 		// 检查同一用户下是否已存在相同名称的声纹组（排除当前声纹组）
 		var existingGroup models.SpeakerGroup
 		if err := sgc.DB.Where("user_id = ? AND name = ? AND id != ?", userID, req.Name, speakerGroupID).First(&existingGroup).Error; err == nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "该声纹组名称已存在，请使用其他名称"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tên nhóm người nói này đã tồn tại, vui lòng dùng tên khác"})
 			return
 		} else if err != gorm.ErrRecordNotFound {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "查询声纹组失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 			return
 		}
 		speakerGroup.Name = req.Name
@@ -353,7 +353,7 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 	speakerGroup.Voice = req.Voice
 
 	if err := sgc.DB.Save(&speakerGroup).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật nhóm người nói thất bại"})
 		return
 	}
 
@@ -367,14 +367,14 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 func (sgc *SpeakerGroupController) DeleteSpeakerGroup(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
 	id := c.Param("id")
 	speakerGroupID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的声纹组ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID nhóm người nói không hợp lệ"})
 		return
 	}
 
@@ -382,10 +382,10 @@ func (sgc *SpeakerGroupController) DeleteSpeakerGroup(c *gin.Context) {
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", speakerGroupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "声纹组不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Nhóm người nói không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
@@ -396,7 +396,7 @@ func (sgc *SpeakerGroupController) DeleteSpeakerGroup(c *gin.Context) {
 	// 调用 asr_server 删除接口（通过 speaker_id，即声纹组的主键 ID，一次性删除所有样本）
 	err = sgc.callDeleteAPI(fmt.Sprintf("%d", speakerGroup.ID), speakerGroup.AgentID, userID)
 	if err != nil {
-		log.Printf("asr_server 删除声纹组失败 (speaker_id: %d): %v", speakerGroup.ID, err)
+		log.Printf("asr_server Xóa nhóm người nói thất bại (speaker_id: %d): %v", speakerGroup.ID, err)
 		// 继续执行本地删除，不中断流程
 	}
 
@@ -411,13 +411,13 @@ func (sgc *SpeakerGroupController) DeleteSpeakerGroup(c *gin.Context) {
 
 	// 删除声纹组
 	if err := sgc.DB.Delete(&speakerGroup).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa nhóm người nói thất bại"})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "声纹组删除成功",
+		"message": "Xóa nhóm người nói thành công",
 	})
 }
 
@@ -425,14 +425,14 @@ func (sgc *SpeakerGroupController) DeleteSpeakerGroup(c *gin.Context) {
 func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
 	groupIDStr := c.Param("id") // 改为使用 :id 参数
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的声纹组ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID nhóm người nói không hợp lệ"})
 		return
 	}
 
@@ -440,10 +440,10 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", groupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "声纹组不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Nhóm người nói không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
@@ -459,15 +459,15 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		if err := sgc.DB.Where("message_id = ? AND user_id = ? AND role = ? AND is_deleted = ?",
 			messageID, userID, "user", false).First(&chatMessage).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
-				c.JSON(http.StatusNotFound, gin.H{"error": "历史聊天记录不存在或不是用户消息"})
+				c.JSON(http.StatusNotFound, gin.H{"error": "Bản ghi lịch sử trò chuyện không tồn tại hoặc không phải tin nhắn của người dùng"})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "查询历史聊天记录失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn lịch sử trò chuyện thất bại"})
 			return
 		}
 
 		if chatMessage.AudioPath == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "该消息没有音频数据"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tin nhắn này không có dữ liệu audio"})
 			return
 		}
 
@@ -481,24 +481,24 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		audioData, err := os.ReadFile(fullPath)
 		if err != nil {
 			if os.IsNotExist(err) {
-				c.JSON(http.StatusNotFound, gin.H{"error": "音频文件不存在"})
+				c.JSON(http.StatusNotFound, gin.H{"error": "File audio không tồn tại"})
 				return
 			}
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "读取音频文件失败: " + err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Đọc file audio thất bại: " + err.Error()})
 			return
 		}
 
 		// 创建临时文件用于 multipart
 		tempFile, err := os.CreateTemp("", "audio_*.wav")
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "创建临时文件失败: " + err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo file tạm thất bại: " + err.Error()})
 			return
 		}
 		defer os.Remove(tempFile.Name()) // 清理临时文件
 		defer tempFile.Close()
 
 		if _, err := tempFile.Write(audioData); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "写入临时文件失败: " + err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Ghi file tạm thất bại: " + err.Error()})
 			return
 		}
 		tempFile.Seek(0, 0)
@@ -515,7 +515,7 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		// 从上传的文件中获取音频
 		file, header, err = c.Request.FormFile("audio")
 		if err != nil {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "音频文件缺失: " + err.Error()})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Thiếu file audio: " + err.Error()})
 			return
 		}
 		defer file.Close()
@@ -534,7 +534,7 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		file,
 	)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存音频文件失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu file audio thất bại: " + err.Error()})
 		return
 	}
 
@@ -552,7 +552,7 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 	if err != nil {
 		// 如果注册失败，删除已保存的文件
 		sgc.AudioStorage.DeleteAudioFile(filePath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "注册声纹失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đăng ký dấu giọng nói thất bại: " + err.Error()})
 		return
 	}
 
@@ -571,7 +571,7 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		// 如果数据库保存失败，删除文件和 asr_server 中的记录
 		sgc.AudioStorage.DeleteAudioFile(filePath)
 		sgc.callDeleteAPI(sampleUUID, speakerGroup.AgentID, userID, sampleUUID)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存样本记录失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu bản ghi mẫu thất bại"})
 		return
 	}
 
@@ -595,14 +595,14 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 func (sgc *SpeakerGroupController) GetSamples(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
 	groupIDStr := c.Param("id") // 改为使用 :id 参数
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的声纹组ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID nhóm người nói không hợp lệ"})
 		return
 	}
 
@@ -610,17 +610,17 @@ func (sgc *SpeakerGroupController) GetSamples(c *gin.Context) {
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", groupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "声纹组不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Nhóm người nói không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
 	// 查询样本列表
 	var samples []models.SpeakerSample
 	if err := sgc.DB.Where("speaker_group_id = ?", groupID).Order("created_at DESC").Find(&samples).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询样本失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn mẫu thất bại"})
 		return
 	}
 
@@ -648,7 +648,7 @@ func (sgc *SpeakerGroupController) GetSamples(c *gin.Context) {
 func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
@@ -657,13 +657,13 @@ func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的声纹组ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID nhóm người nói không hợp lệ"})
 		return
 	}
 
 	sampleID, err := strconv.ParseUint(sampleIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的样本ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID mẫu không hợp lệ"})
 		return
 	}
 
@@ -671,17 +671,17 @@ func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 	var sample models.SpeakerSample
 	if err := sgc.DB.Where("id = ? AND speaker_group_id = ? AND user_id = ?", sampleID, groupID, userID).First(&sample).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "样本不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Mẫu không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询样本失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn mẫu thất bại"})
 		return
 	}
 
 	// 查询声纹组以获取 AgentID
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ?", groupID).First(&speakerGroup).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
@@ -693,7 +693,7 @@ func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 
 	// 删除数据库记录
 	if err := sgc.DB.Delete(&sample).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除样本失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa mẫu thất bại"})
 		return
 	}
 
@@ -702,7 +702,7 @@ func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 
 	c.JSON(http.StatusOK, gin.H{
 		"success": true,
-		"message": "样本删除成功",
+		"message": "Xóa mẫu thành công",
 	})
 }
 
@@ -710,14 +710,14 @@ func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 func (sgc *SpeakerGroupController) VerifySpeakerGroup(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
 	id := c.Param("id")
 	speakerGroupID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的声纹组ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID nhóm người nói không hợp lệ"})
 		return
 	}
 
@@ -725,17 +725,17 @@ func (sgc *SpeakerGroupController) VerifySpeakerGroup(c *gin.Context) {
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", speakerGroupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "声纹组不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Nhóm người nói không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询声纹组失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
 	// 获取上传的音频文件
 	file, header, err := c.Request.FormFile("audio")
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "音频文件缺失: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Thiếu file audio: " + err.Error()})
 		return
 	}
 	defer file.Close()
@@ -743,7 +743,7 @@ func (sgc *SpeakerGroupController) VerifySpeakerGroup(c *gin.Context) {
 	// 调用 asr_server 验证接口
 	result, err := sgc.callVerifyAPI(fmt.Sprintf("%d", speakerGroup.ID), speakerGroup.AgentID, file, header, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "验证失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xác minh thất bại: " + err.Error()})
 		return
 	}
 
@@ -843,7 +843,7 @@ func (sgc *SpeakerGroupController) callVerifyAPI(speakerID string, agentID uint,
 func (sgc *SpeakerGroupController) GetSampleFile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
@@ -852,13 +852,13 @@ func (sgc *SpeakerGroupController) GetSampleFile(c *gin.Context) {
 
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的声纹组ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID nhóm người nói không hợp lệ"})
 		return
 	}
 
 	sampleID, err := strconv.ParseUint(sampleIDStr, 10, 32)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的样本ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID mẫu không hợp lệ"})
 		return
 	}
 
@@ -866,23 +866,23 @@ func (sgc *SpeakerGroupController) GetSampleFile(c *gin.Context) {
 	var sample models.SpeakerSample
 	if err := sgc.DB.Where("id = ? AND speaker_group_id = ? AND user_id = ?", sampleID, groupID, userID).First(&sample).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			c.JSON(http.StatusNotFound, gin.H{"error": "样本不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Mẫu không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询样本失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn mẫu thất bại"})
 		return
 	}
 
 	// 检查文件是否存在
 	if !sgc.AudioStorage.FileExists(sample.FilePath) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "音频文件不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "File audio không tồn tại"})
 		return
 	}
 
 	// 打开文件
 	file, err := sgc.AudioStorage.GetAudioFile(sample.FilePath)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取文件失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đọc file thất bại"})
 		return
 	}
 	defer file.Close()
@@ -890,7 +890,7 @@ func (sgc *SpeakerGroupController) GetSampleFile(c *gin.Context) {
 	// 获取文件信息
 	fileInfo, err := file.Stat()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取文件信息失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy thông tin file thất bại"})
 		return
 	}
 

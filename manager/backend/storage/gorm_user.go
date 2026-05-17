@@ -57,13 +57,13 @@ func (s *GormUserStorage) GetUserByEmail(ctx context.Context, email string) (*mo
 func (s *GormUserStorage) GetUsers(ctx context.Context, offset, limit int) ([]*models.User, int64, error) {
 	var users []*models.User
 	var total int64
-	
+
 	// 获取总数
 	err := s.db.WithContext(ctx).Model(&models.User{}).Count(&total).Error
 	if err != nil {
 		return nil, 0, err
 	}
-	
+
 	// 获取分页数据
 	err = s.db.WithContext(ctx).Offset(offset).Limit(limit).Find(&users).Error
 	return users, total, err

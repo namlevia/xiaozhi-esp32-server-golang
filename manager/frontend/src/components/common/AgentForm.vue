@@ -7,10 +7,10 @@
     :label-width="labelWidth"
     class="shared-agent-form"
   >
-    <el-form-item v-if="isAdmin" label="所属用户" prop="user_id">
+    <el-form-item v-if="isAdmin" :label="t('agent.ownerUser')" prop="user_id">
       <el-select
         v-model="form.user_id"
-        placeholder="请选择所属用户"
+        :placeholder="t('device.selectUser')"
         filterable
         style="width: 100%"
         :loading="loading.users"
@@ -25,26 +25,26 @@
     </el-form-item>
 
     <div class="agent-form-grid">
-      <el-form-item label="智能体名称" prop="name">
-        <el-input v-model="form.name" placeholder="请输入管理侧显示的智能体名称" maxlength="50" show-word-limit />
+      <el-form-item :label="t('agent.name')" prop="name">
+        <el-input v-model="form.name" :placeholder="t('agent.namePlaceholder')" maxlength="50" show-word-limit />
       </el-form-item>
-      <el-form-item label="智能体昵称" prop="nickname">
-        <el-input v-model="form.nickname" placeholder="给大模型使用，例如：小辉" maxlength="50" show-word-limit />
+      <el-form-item :label="t('agent.nickname')" prop="nickname">
+        <el-input v-model="form.nickname" :placeholder="t('agent.nicknamePlaceholder')" maxlength="50" show-word-limit />
       </el-form-item>
     </div>
 
-    <el-form-item label="角色介绍" prop="custom_prompt">
+    <el-form-item :label="t('agent.roleIntro')" prop="custom_prompt">
       <el-input
         v-model="form.custom_prompt"
         type="textarea"
         :rows="4"
-        placeholder="请输入角色介绍 / 系统提示词"
+        :placeholder="t('agent.promptPlaceholder')"
         maxlength="10000"
         show-word-limit
       />
     </el-form-item>
 
-    <el-form-item label="关联知识库" prop="knowledge_base_ids">
+    <el-form-item :label="t('agent.knowledgeBases')" prop="knowledge_base_ids">
       <el-select
         v-model="form.knowledge_base_ids"
         multiple
@@ -52,7 +52,7 @@
         collapse-tags
         collapse-tags-tooltip
         clearable
-        placeholder="请选择要关联的知识库"
+        :placeholder="t('agent.selectKnowledgeBases')"
         style="width: 100%"
         :loading="loading.knowledgeBases"
         :disabled="isAdmin && !form.user_id"
@@ -60,17 +60,17 @@
         <el-option
           v-for="kb in knowledgeBases"
           :key="kb.id"
-          :label="kb.name || `知识库 #${kb.id}`"
+          :label="kb.name || `Knowledge Base #${kb.id}`"
           :value="kb.id"
         />
       </el-select>
     </el-form-item>
 
     <div class="agent-form-grid">
-      <el-form-item label="语言模型" prop="llm_config_id">
+      <el-form-item :label="t('agent.llm')" prop="llm_config_id">
         <el-select
           v-model="form.llm_config_id"
-          placeholder="请选择语言模型"
+          :placeholder="t('agent.selectLlm')"
           style="width: 100%"
           clearable
           filterable
@@ -79,7 +79,7 @@
           <el-option
             v-for="config in llmConfigs"
             :key="config.config_id"
-            :label="config.is_default ? `${config.name} (默认)` : config.name"
+            :label="config.is_default ? `${config.name} (${t('agent.default')})` : config.name"
             :value="config.config_id"
           >
             <div class="config-option">
@@ -90,10 +90,10 @@
         </el-select>
       </el-form-item>
 
-      <el-form-item label="TTS配置" prop="tts_config_id">
+      <el-form-item :label="t('agent.ttsConfig')" prop="tts_config_id">
         <el-select
           v-model="form.tts_config_id"
-          placeholder="请选择TTS配置"
+          :placeholder="t('agent.selectTts')"
           style="width: 100%"
           clearable
           filterable
@@ -102,7 +102,7 @@
           <el-option
             v-for="config in ttsConfigs"
             :key="config.config_id"
-            :label="config.is_default ? `${config.name} (默认)` : config.name"
+            :label="config.is_default ? `${config.name} (${t('agent.default')})` : config.name"
             :value="config.config_id"
           >
             <div class="config-option">
@@ -114,10 +114,10 @@
       </el-form-item>
     </div>
 
-    <el-form-item v-if="form.tts_config_id" label="TTS音色" prop="voice">
+    <el-form-item v-if="form.tts_config_id" :label="t('agent.ttsVoice')" prop="voice">
       <el-select
         v-model="form.voice"
-        placeholder="请选择或输入精确音色值"
+        :placeholder="t('agent.selectVoice')"
         style="width: 100%"
         filterable
         allow-create
@@ -156,29 +156,29 @@
     </div>
 
     <div class="agent-form-grid agent-form-grid-three">
-      <el-form-item label="语音识别速度" prop="asr_speed">
+      <el-form-item :label="t('agent.asrSpeed')" prop="asr_speed">
         <el-select v-model="form.asr_speed" style="width: 100%">
-          <el-option label="正常" value="normal" />
-          <el-option label="耐心" value="patient" />
-          <el-option label="快速" value="fast" />
+          <el-option  :label="t('agent.normal')" value="normal" />
+          <el-option  :label="t('agent.patient')" value="patient" />
+          <el-option  :label="t('agent.fast')" value="fast" />
         </el-select>
       </el-form-item>
-      <el-form-item label="记忆模式" prop="memory_mode">
+      <el-form-item :label="t('agent.memoryMode')" prop="memory_mode">
         <el-select v-model="form.memory_mode" style="width: 100%">
-          <el-option label="无记忆" value="none" />
-          <el-option label="短记忆" value="short" />
-          <el-option label="长记忆" value="long" />
+          <el-option  :label="t('agent.noMemory')" value="none" />
+          <el-option  :label="t('agent.shortMemory')" value="short" />
+          <el-option  :label="t('agent.longMemory')" value="long" />
         </el-select>
       </el-form-item>
-      <el-form-item label="声纹聊天限制" prop="speaker_chat_mode">
+      <el-form-item :label="t('agent.speakerChatMode')" prop="speaker_chat_mode">
         <el-select v-model="form.speaker_chat_mode" style="width: 100%">
-          <el-option label="关闭" value="off" />
-          <el-option label="仅命中声纹时允许聊天" value="identified_only" />
+          <el-option  :label="t('agent.off')" value="off" />
+          <el-option  :label="t('agent.identifiedOnly')" value="identified_only" />
         </el-select>
       </el-form-item>
     </div>
 
-    <el-form-item label="MCP服务">
+    <el-form-item :label="t('agent.mcpServices')">
       <el-select
         v-model="selectedMcpServices"
         multiple
@@ -187,7 +187,7 @@
         collapse-tags-tooltip
         clearable
         style="width: 100%"
-        placeholder="留空则使用全部已启用服务"
+        :placeholder="t('agent.mcpServicesPlaceholder')"
         :loading="loading.mcpServices"
       >
         <el-option
@@ -201,11 +201,11 @@
 
     <div class="openclaw-panel">
       <div class="openclaw-switch-row">
-        <span>允许进入 OpenClaw 模式</span>
+        <span>{{ t('agent.openClawAllowed') }}</span>
         <el-switch v-model="form.openclaw_allowed" />
       </div>
       <div class="agent-form-grid">
-        <el-form-item label="OpenClaw进入关键词">
+        <el-form-item :label="t('agent.openClawEnterKeywords')">
           <el-select
             v-model="form.openclaw_enter_keywords"
             multiple
@@ -214,10 +214,10 @@
             default-first-option
             clearable
             style="width: 100%"
-            placeholder="输入后回车，可添加多个关键词"
+            :placeholder="t('agent.keywordPlaceholder')"
           />
         </el-form-item>
-        <el-form-item label="OpenClaw退出关键词">
+        <el-form-item :label="t('agent.openClawExitKeywords')">
           <el-select
             v-model="form.openclaw_exit_keywords"
             multiple
@@ -226,7 +226,7 @@
             default-first-option
             clearable
             style="width: 100%"
-            placeholder="输入后回车，可添加多个关键词"
+            :placeholder="t('agent.keywordPlaceholder')"
           />
         </el-form-item>
       </div>
@@ -237,6 +237,7 @@
 
 <script setup>
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   buildAgentPayload,
   useAgentFormOptions
@@ -266,6 +267,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:modelValue'])
+const { t } = useI18n()
 
 const form = computed({
   get: () => props.modelValue,
@@ -295,18 +297,18 @@ const {
 })
 
 const rules = computed(() => ({
-  user_id: props.isAdmin ? [{ required: true, message: '请选择所属用户', trigger: 'change' }] : [],
+  user_id: props.isAdmin ? [{ required: true, message: t('device.selectUser'), trigger: 'change' }] : [],
   name: [
-    { required: true, message: '请输入智能体名称', trigger: 'blur' },
-    { min: 1, max: 50, message: '长度不能超过 50 个字符', trigger: 'blur' }
+    { required: true, message: t('agent.nameRequired'), trigger: 'blur' },
+    { min: 1, max: 50, message: t('device.nicknameMax'), trigger: 'blur' }
   ],
   nickname: [
-    { required: true, message: '请输入智能体昵称', trigger: 'blur' },
-    { min: 1, max: 50, message: '长度不能超过 50 个字符', trigger: 'blur' }
+    { required: true, message: t('agent.nameRequired'), trigger: 'blur' },
+    { min: 1, max: 50, message: t('device.nicknameMax'), trigger: 'blur' }
   ],
-  asr_speed: [{ required: true, message: '请选择语音识别速度', trigger: 'change' }],
-  memory_mode: [{ required: true, message: '请选择记忆模式', trigger: 'change' }],
-  speaker_chat_mode: [{ required: true, message: '请选择声纹聊天限制', trigger: 'change' }]
+  asr_speed: [{ required: true, message: t('agent.asrSpeed'), trigger: 'change' }],
+  memory_mode: [{ required: true, message: t('agent.memoryMode'), trigger: 'change' }],
+  speaker_chat_mode: [{ required: true, message: t('agent.speakerChatMode'), trigger: 'change' }]
 }))
 
 const formRef = ref(null)
@@ -340,7 +342,7 @@ const selectedMcpServices = computed({
 })
 
 const userLabel = (user) => {
-  const name = user?.username || user?.name || `用户 #${user?.id}`
+  const name = user?.username || user?.name || `User #${user?.id}`
   return `${name} (ID: ${user?.id})`
 }
 

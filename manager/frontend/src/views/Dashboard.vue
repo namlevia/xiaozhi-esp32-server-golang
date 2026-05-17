@@ -6,10 +6,10 @@
           <span class="metric-icon users">
             <el-icon><User /></el-icon>
           </span>
-          <span class="metric-trend">{{ authStore.isAdmin ? '全局用户' : '关联账户' }}</span>
+          <span class="metric-trend">{{ authStore.isAdmin ? t('dashboard.globalUsers') : t('dashboard.linkedAccount') }}</span>
         </div>
         <strong>{{ authStore.isAdmin ? stats.totalUsers : 1 }}</strong>
-        <p>{{ authStore.isAdmin ? '总用户数' : '当前登录账户' }}</p>
+        <p>{{ authStore.isAdmin ? t('dashboard.totalUsers') : t('dashboard.currentAccount') }}</p>
       </article>
 
       <article class="metric-card">
@@ -17,10 +17,10 @@
           <span class="metric-icon devices">
             <el-icon><Monitor /></el-icon>
           </span>
-          <span class="metric-trend">在线 {{ stats.onlineDevices }}</span>
+          <span class="metric-trend">{{ t('dashboard.online', { count: stats.onlineDevices }) }}</span>
         </div>
         <strong>{{ stats.totalDevices }}</strong>
-        <p>{{ authStore.isAdmin ? '设备总数' : '我的设备' }}</p>
+        <p>{{ authStore.isAdmin ? t('dashboard.totalDevices') : t('dashboard.myDevices') }}</p>
       </article>
 
       <article class="metric-card">
@@ -28,10 +28,10 @@
           <span class="metric-icon agents">
             <el-icon><Cpu /></el-icon>
           </span>
-          <span class="metric-trend">活跃中</span>
+          <span class="metric-trend">{{ t('dashboard.active') }}</span>
         </div>
         <strong>{{ stats.totalAgents }}</strong>
-        <p>{{ authStore.isAdmin ? '智能体数量' : '我的智能体' }}</p>
+        <p>{{ authStore.isAdmin ? t('dashboard.totalAgents') : t('dashboard.myAgents') }}</p>
       </article>
 
       <article class="metric-card">
@@ -39,10 +39,10 @@
           <span class="metric-icon status">
             <el-icon><Connection /></el-icon>
           </span>
-          <span class="metric-trend">实时监测</span>
+          <span class="metric-trend">{{ t('dashboard.realtimeMonitoring') }}</span>
         </div>
         <strong>{{ stats.onlineDevices }}</strong>
-        <p>在线设备</p>
+        <p>{{ t('dashboard.onlineDevices') }}</p>
       </article>
     </section>
 
@@ -53,10 +53,10 @@
             <div class="card-header">
               <div>
                 <p class="card-eyebrow">SERVICE ADDRESS</p>
-                <h3>服务地址</h3>
+                <h3>{{ t('dashboard.serviceAddress') }}</h3>
               </div>
               <el-button type="warning" size="small" :loading="otaTestLoading" @click="runOtaTest">
-                OTA 测试
+                {{ t('dashboard.otaTest') }}
               </el-button>
             </div>
           </template>
@@ -87,12 +87,12 @@
               </div>
 
               <div v-if="otaTestResult !== null" class="ota-test-block">
-                <span class="apple-chip is-primary">OTA 返回</span>
+                <span class="apple-chip is-primary">{{ t('dashboard.otaResponse') }}</span>
                 <pre class="ota-test-pre">{{ otaTestResult }}</pre>
               </div>
             </template>
 
-            <div v-else-if="!addressLoading" class="empty-inline">暂无 OTA 配置</div>
+            <div v-else-if="!addressLoading" class="empty-inline">{{ t('dashboard.noOtaConfig') }}</div>
           </div>
         </el-card>
 
@@ -101,7 +101,7 @@
             <div class="card-header">
               <div>
                 <p class="card-eyebrow">CONFIGURATION</p>
-                <h3>配置管理</h3>
+                <h3>{{ t('dashboard.configuration') }}</h3>
               </div>
             </div>
           </template>
@@ -110,24 +110,24 @@
             <button class="action-card action-primary" type="button" @click="$router.push('/admin/config-wizard')">
               <span class="action-icon"><el-icon><Guide /></el-icon></span>
               <span class="action-copy">
-                <strong>配置向导</strong>
-                <small>从统一流程完成首次或增量配置</small>
+                <strong>{{ t('nav.configWizard') }}</strong>
+                <small>{{ t('dashboard.configWizardHint') }}</small>
               </span>
             </button>
 
             <button class="action-card" type="button" @click="exportConfig">
               <span class="action-icon"><el-icon><Download /></el-icon></span>
               <span class="action-copy">
-                <strong>导出配置</strong>
-                <small>下载当前有效配置作为备份</small>
+                <strong>{{ t('dashboard.exportConfig') }}</strong>
+                <small>{{ t('dashboard.exportConfigHint') }}</small>
               </span>
             </button>
 
             <button class="action-card" type="button" @click="importConfig">
               <span class="action-icon"><el-icon><Upload /></el-icon></span>
               <span class="action-copy">
-                <strong>导入配置</strong>
-                <small>支持 YAML / JSON 的快速导入</small>
+                <strong>{{ t('dashboard.importConfig') }}</strong>
+                <small>{{ t('dashboard.importConfigHint') }}</small>
               </span>
             </button>
           </div>
@@ -148,28 +148,28 @@
             <div class="card-header">
               <div>
                 <p class="card-eyebrow">SYSTEM</p>
-                <h3>系统信息</h3>
+                <h3>{{ t('dashboard.system') }}</h3>
               </div>
             </div>
           </template>
 
           <div class="info-list">
             <div class="info-row">
-              <span>系统版本</span>
+              <span>{{ t('dashboard.version') }}</span>
               <strong>v1.0.0</strong>
             </div>
             <div class="info-row">
-              <span>程序启动时间</span>
+              <span>{{ t('dashboard.startedAt') }}</span>
               <strong>{{ programStartedAt }}</strong>
             </div>
             <div class="info-row">
-              <span>当前用户</span>
+              <span>{{ t('dashboard.currentUser') }}</span>
               <strong>{{ authStore.user?.username || '—' }}</strong>
             </div>
             <div class="info-row">
-              <span>用户角色</span>
+              <span>{{ t('dashboard.userRole') }}</span>
               <el-tag :type="authStore.isAdmin ? 'danger' : 'primary'" effect="light">
-                {{ authStore.isAdmin ? '管理员' : '普通用户' }}
+                {{ authStore.isAdmin ? t('layout.admin') : t('layout.user') }}
               </el-tag>
             </div>
           </div>
@@ -180,7 +180,7 @@
             <div class="card-header">
               <div>
                 <p class="card-eyebrow">SHORTCUTS</p>
-                <h3>快速操作</h3>
+                <h3>{{ t('dashboard.shortcuts') }}</h3>
               </div>
             </div>
           </template>
@@ -190,22 +190,22 @@
               <button class="quick-action" type="button" @click="$router.push('/admin/users')">
                 <span class="quick-action-icon"><el-icon><User /></el-icon></span>
                 <span>
-                  <strong>用户管理</strong>
-                  <small>查看账户、权限和状态</small>
+                  <strong>{{ t('menu.users') }}</strong>
+                  <small>{{ t('dashboard.usersHint') }}</small>
                 </span>
               </button>
               <button class="quick-action" type="button" @click="$router.push('/admin/llm-config')">
                 <span class="quick-action-icon"><el-icon><Setting /></el-icon></span>
                 <span>
-                  <strong>LLM 配置</strong>
-                  <small>调整模型接入、超参与策略</small>
+                  <strong>LLM {{ t('menu.config') }}</strong>
+                  <small>{{ t('dashboard.llmHint') }}</small>
                 </span>
               </button>
               <button class="quick-action" type="button" @click="$router.push('/admin/vad-config')">
                 <span class="quick-action-icon"><el-icon><Cpu /></el-icon></span>
                 <span>
-                  <strong>VAD 配置</strong>
-                  <small>管理语音活动检测与实时性</small>
+                  <strong>VAD {{ t('menu.config') }}</strong>
+                  <small>{{ t('dashboard.vadHint') }}</small>
                 </span>
               </button>
             </template>
@@ -214,11 +214,11 @@
               <button class="quick-action" type="button" @click="$router.push('/agents')">
                 <span class="quick-action-icon"><el-icon><Monitor /></el-icon></span>
                 <span>
-                  <strong>智能体管理</strong>
-                  <small>维护角色设定、绑定设备与测试能力</small>
+                  <strong>{{ t('menu.agents') }}</strong>
+                  <small>{{ t('dashboard.agentsHint') }}</small>
                 </span>
               </button>
-              <div class="empty-inline">普通用户的高频操作主要集中在智能体和设备工作台。</div>
+              <div class="empty-inline">{{ t('dashboard.userQuickHint') }}</div>
             </template>
           </div>
         </el-card>
@@ -229,6 +229,7 @@
 
 <script setup>
 import { ref, onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/utils/api'
 import { ElMessage } from 'element-plus'
@@ -244,6 +245,7 @@ import {
   CopyDocument
 } from '@element-plus/icons-vue'
 
+const { t } = useI18n()
 const authStore = useAuthStore()
 
 const addressLoading = ref(false)
@@ -307,7 +309,7 @@ async function loadServiceAddress() {
       }
     }
   } catch (err) {
-    console.error('加载服务地址失败:', err)
+    console.error(`${t('dashboard.loadAddressFailed')}:`, err)
   } finally {
     addressLoading.value = false
   }
@@ -316,9 +318,9 @@ async function loadServiceAddress() {
 function copyAddress(text) {
   if (!text) return
   navigator.clipboard.writeText(text).then(() => {
-    ElMessage.success('已复制到剪贴板')
+    ElMessage.success(t('dashboard.copied'))
   }).catch(() => {
-    ElMessage.error('复制失败')
+    ElMessage.error(t('dashboard.copyFailed'))
   })
 }
 
@@ -362,13 +364,13 @@ async function runOtaTest() {
         }
 
         if (value.ota_response !== undefined && value.ota_response !== '') {
-          displayText += `\n--- OTA 响应 ---\n${formatOtaResponseDisplay(value.ota_response)}`
+          displayText += `\n--- ${t('dashboard.otaResponse')} ---\n${formatOtaResponseDisplay(value.ota_response)}`
         }
 
-        otaTestResult.value = displayText.trim() || '未获取到详细信息'
-        ElMessage[value.ok ? 'success' : 'warning'](value.message || (value.ok ? 'OTA 测试通过' : 'OTA 测试未通过'))
+        otaTestResult.value = displayText.trim() || t('dashboard.otaDetailsMissing')
+        ElMessage[value.ok ? 'success' : 'warning'](value.message || (value.ok ? t('dashboard.otaPassed') : t('dashboard.otaNotPassed')))
       } else {
-        otaTestResult.value = '未获取到 OTA 测试结果'
+        otaTestResult.value = t('dashboard.otaResultMissing')
       }
     } else {
       otaTestResult.value = typeof data === 'string' ? data : JSON.stringify(data || {}, null, 2)
@@ -376,9 +378,9 @@ async function runOtaTest() {
   } catch (error) {
     const errorMsg = (error.response?.data && typeof error.response.data === 'object')
       ? JSON.stringify(error.response.data, null, 2)
-      : (error.response?.data?.message || error.message || '请求失败')
+      : (error.response?.data?.message || error.message || t('dashboard.requestFailed'))
     otaTestResult.value = errorMsg
-    ElMessage.error('OTA 测试请求失败')
+    ElMessage.error(t('dashboard.otaRequestFailed'))
   } finally {
     otaTestLoading.value = false
   }
@@ -411,10 +413,10 @@ const loadStats = async () => {
       onlineDevices: response.data.onlineDevices || 0
     }
     programStartedAt.value = response.data?.programStartedAt
-      ? new Date(response.data.programStartedAt).toLocaleString('zh-CN')
+      ? new Date(response.data.programStartedAt).toLocaleString('vi-VN')
       : '—'
   } catch (error) {
-    console.error('加载统计数据失败:', error)
+    console.error(`${t('dashboard.loadStatsFailed')}:`, error)
     stats.value = {
       totalUsers: 0,
       totalDevices: 0,
@@ -444,13 +446,13 @@ const exportConfig = async () => {
       link.click()
       window.URL.revokeObjectURL(url)
       document.body.removeChild(link)
-      ElMessage.success('配置导出成功')
+      ElMessage.success(t('dashboard.exportSuccess'))
     } else {
-      ElMessage.error('配置导出失败')
+      ElMessage.error(t('dashboard.exportFailed'))
     }
   } catch (error) {
-    console.error('导出配置失败:', error)
-    ElMessage.error('配置导出失败')
+    console.error(`${t('dashboard.exportFailed')}:`, error)
+    ElMessage.error(t('dashboard.exportFailed'))
   }
 }
 
@@ -466,7 +468,7 @@ const handleFileChange = async (event) => {
   const fileExtension = file.name.toLowerCase().substring(file.name.lastIndexOf('.'))
 
   if (!validExtensions.includes(fileExtension)) {
-    ElMessage.error('请选择 YAML 或 JSON 格式的文件')
+    ElMessage.error(t('dashboard.invalidConfigFile'))
     return
   }
 
@@ -483,14 +485,14 @@ const handleFileChange = async (event) => {
     })
 
     if (response.ok) {
-      ElMessage.success('配置导入成功')
+      ElMessage.success(t('dashboard.importSuccess'))
     } else {
       const error = await response.json()
-      ElMessage.error(error.error || '配置导入失败')
+      ElMessage.error(error.error || t('dashboard.importFailed'))
     }
   } catch (error) {
-    console.error('导入配置失败:', error)
-    ElMessage.error('配置导入失败')
+    console.error(`${t('dashboard.importFailed')}:`, error)
+    ElMessage.error(t('dashboard.importFailed'))
   }
 
   event.target.value = ''

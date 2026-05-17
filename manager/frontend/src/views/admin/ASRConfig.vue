@@ -8,24 +8,24 @@
         @click="testAllConfigs"
         :disabled="!getEnabledConfigs().length"
       >
-        测试全部
+        Kiểm tra tất cả
       </el-button>
       <el-button type="primary" @click="showDialog = true">
         <el-icon><Plus /></el-icon>
-        添加配置
+        Thêm cấu hình
       </el-button>
     </div>
 
     <el-table :data="configs" style="width: 100%" v-loading="loading">
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="name" label="配置名称" />
-      <el-table-column prop="config_id" label="配置ID" width="150" />
-      <el-table-column prop="provider" label="提供商">
+      <el-table-column prop="name" label="Tên cấu hình" />
+      <el-table-column prop="config_id" label="ID cấu hình" width="150" />
+      <el-table-column prop="provider" label="Nhà cung cấp">
         <template #default="scope">
           {{ scope.row.provider }}
         </template>
       </el-table-column>
-      <el-table-column prop="enabled" label="启用状态" width="80" align="center">
+      <el-table-column prop="enabled" label="Trạng thái bật" width="80" align="center">
         <template #default="scope">
           <el-switch 
             v-model="scope.row.enabled" 
@@ -33,7 +33,7 @@
           />
         </template>
       </el-table-column>
-      <el-table-column prop="is_default" label="默认配置" width="80" align="center">
+      <el-table-column prop="is_default" label="Cấu hình mặc định" width="80" align="center">
         <template #default="scope">
           <el-switch 
             v-model="scope.row.is_default" 
@@ -42,62 +42,62 @@
           />
         </template>
       </el-table-column>
-      <el-table-column label="测试结果" width="120" align="center">
+      <el-table-column label="Kết quả kiểm tra" width="120" align="center">
         <template #default="scope">
           <template v-if="testResults[scope.row.config_id]">
             <el-tooltip v-if="testResults[scope.row.config_id].ok" :content="formatTestResultTip(testResults[scope.row.config_id])" placement="top">
               <span class="test-result test-ok">{{ formatTestResultLabel(testResults[scope.row.config_id]) }}</span>
             </el-tooltip>
             <el-tooltip v-else :content="testResults[scope.row.config_id].message" placement="top" :show-after="200">
-              <span class="test-result test-err">错误</span>
+              <span class="test-result test-err">Lỗi</span>
             </el-tooltip>
           </template>
           <span v-else class="test-result test-none">-</span>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="创建时间" width="180">
+      <el-table-column prop="created_at" label="Thời gian tạo" width="180">
         <template #default="scope">
           {{ formatDate(scope.row.created_at) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="260">
+      <el-table-column label="Thao tác" width="260">
         <template #default="scope">
-          <el-button size="small" @click="editConfig(scope.row)">编辑</el-button>
+          <el-button size="small" @click="editConfig(scope.row)">Sửa</el-button>
           <el-button
             size="small"
             type="warning"
             :loading="testingId === scope.row.config_id"
             @click="testConfig(scope.row, 'asr')"
           >
-            测试
+            Kiểm tra
           </el-button>
           <el-button
             size="small"
             type="danger"
             @click="deleteConfig(scope.row.id)"
           >
-            删除
+            Xóa
           </el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- 添加/编辑配置弹窗 -->
+    <!-- Hộp thoại thêm/chỉnh sửa cấu hình -->
     <el-dialog
       v-model="showDialog"
-      :title="editingConfig ? '编辑ASR配置' : '添加ASR配置'"
+      :title="editingConfig ? 'Chỉnh sửa cấu hình ASR' : 'Thêm cấu hình ASR'"
       width="720px"
       @close="handleDialogClose"
     >
       <ASRConfigForm ref="formRef" :model="form" :rules="rules" />
       
       <template #footer>
-        <el-button @click="handleDialogClose">取消</el-button>
+        <el-button @click="handleDialogClose">Hủy</el-button>
         <el-button type="warning" plain @click="testCurrentConfig" :loading="testingCurrent">
-          测试
+          Kiểm tra
         </el-button>
         <el-button type="primary" @click="handleSave" :loading="saving">
-          保存
+          Lưu
         </el-button>
       </template>
     </el-dialog>
@@ -126,7 +126,7 @@ const formRef = ref()
 
 const validateAliyunPcm = (rule, value, callback) => {
   if (value !== 'pcm') {
-    callback(new Error('格式必须为pcm'))
+    callback(new Error('Định dạng phải là pcm'))
     return
   }
   callback()
@@ -134,7 +134,7 @@ const validateAliyunPcm = (rule, value, callback) => {
 
 const validateAliyun16000 = (rule, value, callback) => {
   if (Number(value) !== 16000) {
-    callback(new Error('采样率必须为16000'))
+    callback(new Error('Sample rate phải là 16000'))
     return
   }
   callback()
@@ -205,74 +205,74 @@ const form = reactive({
   }
 })
 
-// 按当前 provider 动态规则，避免未显示的 doubao/funasr 字段触发必填导致保存不发请求
+// 按当前 provider 动态规则，避免未显示的 doubao/funasr 字段触发必填导致Lưu不发请求
 const rules = computed(() => {
   const base = {
-    name: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
-    config_id: [{ required: true, message: '请输入配置ID', trigger: 'blur' }],
-    provider: [{ required: true, message: '请选择提供商', trigger: 'change' }]
+    name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
+    config_id: [{ required: true, message: 'Vui lòng nhập ID cấu hình', trigger: 'blur' }],
+    provider: [{ required: true, message: 'Vui lòng chọn nhà cung cấp', trigger: 'change' }]
   }
   if (form.provider === 'funasr') {
     return {
       ...base,
-      'funasr.host': [{ required: true, message: '请输入主机地址', trigger: 'blur' }],
-      'funasr.port': [{ required: true, message: '请输入端口', trigger: 'blur' }],
-      'funasr.mode': [{ required: true, message: '请选择模式', trigger: 'change' }],
-      'funasr.sample_rate': [{ required: true, message: '请选择采样率', trigger: 'change' }],
-      'funasr.chunk_size': [{ required: true, message: '请输入块大小', trigger: 'blur' }],
-      'funasr.chunk_interval': [{ required: true, message: '请输入块间隔', trigger: 'blur' }],
-      'funasr.max_connections': [{ required: true, message: '请输入最大连接数', trigger: 'blur' }],
-      'funasr.timeout': [{ required: true, message: '请输入超时时间', trigger: 'blur' }]
+      'funasr.host': [{ required: true, message: 'Vui lòng nhập địa chỉ host', trigger: 'blur' }],
+      'funasr.port': [{ required: true, message: 'Vui lòng nhập cổng', trigger: 'blur' }],
+      'funasr.mode': [{ required: true, message: 'Vui lòng chọn chế độ', trigger: 'change' }],
+      'funasr.sample_rate': [{ required: true, message: 'Vui lòng chọn sample rate', trigger: 'change' }],
+      'funasr.chunk_size': [{ required: true, message: 'Vui lòng nhập kích thước chunk', trigger: 'blur' }],
+      'funasr.chunk_interval': [{ required: true, message: 'Vui lòng nhập khoảng cách chunk', trigger: 'blur' }],
+      'funasr.max_connections': [{ required: true, message: 'Vui lòng nhập số kết nối tối đa', trigger: 'blur' }],
+      'funasr.timeout': [{ required: true, message: 'Vui lòng nhập thời gian timeout', trigger: 'blur' }]
     }
   }
   if (form.provider === 'aliyun_funasr') {
     return {
       ...base,
-      'aliyun_funasr.ws_url': [{ required: true, message: '请输入WS URL', trigger: 'blur' }],
-      'aliyun_funasr.model': [{ required: true, message: '请输入模型名称', trigger: 'blur' }],
+      'aliyun_funasr.ws_url': [{ required: true, message: 'Vui lòng nhập WS URL', trigger: 'blur' }],
+      'aliyun_funasr.model': [{ required: true, message: 'Vui lòng nhập tên model', trigger: 'blur' }],
       'aliyun_funasr.format': [
-        { required: true, message: '请选择音频格式', trigger: 'change' },
+        { required: true, message: 'Vui lòng chọn định dạng âm thanh', trigger: 'change' },
         { validator: validateAliyunPcm, trigger: 'change' }
       ],
       'aliyun_funasr.sample_rate': [
-        { required: true, message: '请选择采样率', trigger: 'change' },
+        { required: true, message: 'Vui lòng chọn sample rate', trigger: 'change' },
         { validator: validateAliyun16000, trigger: 'change' }
       ],
-      'aliyun_funasr.timeout': [{ required: true, message: '请输入超时时间', trigger: 'blur' }]
+      'aliyun_funasr.timeout': [{ required: true, message: 'Vui lòng nhập thời gian timeout', trigger: 'blur' }]
     }
   }
   if (form.provider === 'doubao') {
     return {
       ...base,
-      'doubao.appid': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-      'doubao.access_token': [{ required: true, message: '请输入访问令牌', trigger: 'blur' }],
-      'doubao.ws_url': [{ required: true, message: '请输入WebSocket URL', trigger: 'blur' }],
-      'doubao.resource_id': [{ required: true, message: '请选择资源规格', trigger: 'change' }],
-      'doubao.end_window_size': [{ required: true, message: '请输入结束窗口大小', trigger: 'blur' }],
-      'doubao.timeout': [{ required: true, message: '请输入超时时间', trigger: 'blur' }]
+      'doubao.appid': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+      'doubao.access_token': [{ required: true, message: 'Vui lòng nhập access token', trigger: 'blur' }],
+      'doubao.ws_url': [{ required: true, message: 'Vui lòng nhập WebSocket URL', trigger: 'blur' }],
+      'doubao.resource_id': [{ required: true, message: 'Vui lòng chọn quy cách tài nguyên', trigger: 'change' }],
+      'doubao.end_window_size': [{ required: true, message: 'Vui lòng nhập kích thước cửa sổ kết thúc', trigger: 'blur' }],
+      'doubao.timeout': [{ required: true, message: 'Vui lòng nhập thời gian timeout', trigger: 'blur' }]
     }
   }
   if (form.provider === 'aliyun_qwen3') {
     return {
       ...base,
-      'aliyun_qwen3.ws_url': [{ required: true, message: '请输入WS URL', trigger: 'blur' }],
-      'aliyun_qwen3.model': [{ required: true, message: '请输入模型名称', trigger: 'blur' }],
-      'aliyun_qwen3.format': [{ required: true, message: '请选择音频格式', trigger: 'change' }],
-      'aliyun_qwen3.sample_rate': [{ required: true, message: '请选择采样率', trigger: 'change' }],
-      'aliyun_qwen3.language': [{ required: true, message: '请输入语言', trigger: 'blur' }],
-      'aliyun_qwen3.timeout': [{ required: true, message: '请输入超时时间', trigger: 'blur' }]
+      'aliyun_qwen3.ws_url': [{ required: true, message: 'Vui lòng nhập WS URL', trigger: 'blur' }],
+      'aliyun_qwen3.model': [{ required: true, message: 'Vui lòng nhập tên model', trigger: 'blur' }],
+      'aliyun_qwen3.format': [{ required: true, message: 'Vui lòng chọn định dạng âm thanh', trigger: 'change' }],
+      'aliyun_qwen3.sample_rate': [{ required: true, message: 'Vui lòng chọn sample rate', trigger: 'change' }],
+      'aliyun_qwen3.language': [{ required: true, message: 'Vui lòng nhập ngôn ngữ', trigger: 'blur' }],
+      'aliyun_qwen3.timeout': [{ required: true, message: 'Vui lòng nhập thời gian timeout', trigger: 'blur' }]
     }
   }
   if (form.provider === 'xunfei') {
     return {
       ...base,
-      'xunfei.appid': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-      'xunfei.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
-      'xunfei.api_secret': [{ required: true, message: '请输入API Secret', trigger: 'blur' }],
-      'xunfei.host': [{ required: true, message: '请输入Host', trigger: 'blur' }],
-      'xunfei.path': [{ required: true, message: '请输入Path', trigger: 'blur' }],
-      'xunfei.sample_rate': [{ required: true, message: '请输入采样率', trigger: 'change' }],
-      'xunfei.timeout': [{ required: true, message: '请输入超时时间', trigger: 'blur' }]
+      'xunfei.appid': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+      'xunfei.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
+      'xunfei.api_secret': [{ required: true, message: 'Vui lòng nhập API Secret', trigger: 'blur' }],
+      'xunfei.host': [{ required: true, message: 'Vui lòng nhập Host', trigger: 'blur' }],
+      'xunfei.path': [{ required: true, message: 'Vui lòng nhập Path', trigger: 'blur' }],
+      'xunfei.sample_rate': [{ required: true, message: 'Vui lòng nhập sample rate', trigger: 'change' }],
+      'xunfei.timeout': [{ required: true, message: 'Vui lòng nhập thời gian timeout', trigger: 'blur' }]
     }
   }
   return base
@@ -284,7 +284,7 @@ const loadConfigs = async () => {
     const response = await api.get('/admin/asr-configs')
     configs.value = (response.data.data || []).map(normalizeASRConfigRow)
   } catch (error) {
-    ElMessage.error('加载配置失败')
+    ElMessage.error('Tải cấu hình thất bại')
   } finally {
     loading.value = false
   }
@@ -307,7 +307,7 @@ const editConfig = (config) => {
   form.is_default = config.is_default
   form.enabled = config.enabled
   
-  // 解析配置JSON并填充到对应字段
+  // Parse JSON cấu hình và điền vào các trường tương ứng
   try {
     const configObj = JSON.parse(config.json_data || '{}')
     
@@ -315,7 +315,7 @@ const editConfig = (config) => {
     if (configObj.funasr) {
       // 旧格式：包含provider层
       const funasrConfig = { ...form.funasr, ...configObj.funasr }
-      // 兼容chunk_size：如果是单个数字或无效格式，转换为默认值 [5, 10, 5]
+      // 兼容chunk_size：如果是单个数字或无效格式，转换为Mặc định值 [5, 10, 5]
       if (typeof funasrConfig.chunk_size === 'number') {
         funasrConfig.chunk_size = [5, 10, 5]
       } else if (!Array.isArray(funasrConfig.chunk_size) || funasrConfig.chunk_size.length !== 3) {
@@ -331,7 +331,7 @@ const editConfig = (config) => {
     } else if (config.provider === 'funasr' && configObj.host) {
       // 新格式：直接包含配置内容
       const funasrConfig = { ...form.funasr, ...configObj }
-      // 兼容chunk_size：如果是单个数字或无效格式，转换为默认值 [5, 10, 5]
+      // 兼容chunk_size：如果是单个数字或无效格式，转换为Mặc định值 [5, 10, 5]
       if (typeof funasrConfig.chunk_size === 'number') {
         funasrConfig.chunk_size = [5, 10, 5]
       } else if (!Array.isArray(funasrConfig.chunk_size) || funasrConfig.chunk_size.length !== 3) {
@@ -356,7 +356,7 @@ const editConfig = (config) => {
       form.xunfei = { ...form.xunfei, ...configObj }
     }
   } catch (error) {
-    console.error('解析配置JSON失败:', error)
+    console.error('Parse JSON cấu hình thất bại:', error)
   }
   
   showDialog.value = true
@@ -364,38 +364,38 @@ const editConfig = (config) => {
 
 const handleSave = async () => {
   if (!formRef.value) {
-    ElMessage.warning('表单未就绪，请稍后重试')
+    ElMessage.warning('Form chưa sẵn sàng, vui lòng thử lại sau')
     return
   }
   await formRef.value.validate(async (valid) => {
     if (valid) {
       saving.value = true
       try {
-        // 如果是新增配置且当前没有任何配置，则自动设为默认配置
+        // 如果是新增配置且当前没有任何配置，则Tự động设为Cấu hình mặc định
         const isFirstConfig = !editingConfig.value && configs.value.length === 0
         
         const configData = {
           name: form.name,
           config_id: form.config_id,
           provider: form.provider,
-          is_default: isFirstConfig || form.is_default, // 首次添加时自动设为默认
+          is_default: isFirstConfig || form.is_default, // 首次添加时Tự động设为Mặc định
           enabled: form.enabled !== undefined ? form.enabled : true, // 确保enabled字段存在
           json_data: formRef.value.getJsonData()
         }
         
         if (editingConfig.value) {
           await api.put(`/admin/asr-configs/${editingConfig.value.id}`, configData)
-          ElMessage.success('配置更新成功')
+          ElMessage.success('Cập nhật cấu hình thành công')
         } else {
           await api.post('/admin/asr-configs', configData)
-          ElMessage.success('配置创建成功')
+          ElMessage.success('Tạo cấu hình thành công')
         }
         
         showDialog.value = false
         loadConfigs()
       } catch (error) {
         const msg = error.response?.data?.error || error.response?.data?.message || error.message
-        ElMessage.error('保存失败: ' + msg)
+        ElMessage.error('Lưu thất bại: ' + msg)
       } finally {
         saving.value = false
       }
@@ -406,18 +406,18 @@ const handleSave = async () => {
 const toggleEnable = async (config) => {
   try {
     await api.post(`/admin/configs/${config.id}/toggle`)
-    ElMessage.success(`${config.enabled ? '启用' : '禁用'}成功`)
+    ElMessage.success(`${config.enabled ? 'Bật' : 'Tắt'}thành công`)
   } catch (error) {
-    // 恢复开关状态
+    // Khôi phục trạng thái switch
     config.enabled = !config.enabled
-    ElMessage.error('操作失败')
+    ElMessage.error('Thao tác thất bại')
   }
 }
 
 const toggleDefault = async (config) => {
   try {
     if (!config.enabled) {
-      ElMessage.warning('请先启用该配置才能设为默认')
+      ElMessage.warning('Vui lòng bật cấu hình trước khi đặt làm mặc định')
       config.is_default = false
       return
     }
@@ -432,14 +432,14 @@ const toggleDefault = async (config) => {
     }
     
     await api.put(`/admin/asr-configs/${config.id}`, configData)
-    ElMessage.success(config.is_default ? '设为默认成功' : '取消默认成功')
+    ElMessage.success(config.is_default ? 'Đặt làm mặc định thành công' : 'HủyMặc địnhthành công')
     
-    // 刷新列表以更新其他配置的默认状态
+    // Làm mới列表以更新其他配置的Mặc định状态
     loadConfigs()
   } catch (error) {
-    // 恢复开关状态
+    // Khôi phục trạng thái switch
     config.is_default = !config.is_default
-    ElMessage.error('操作失败')
+    ElMessage.error('Thao tác thất bại')
   }
 }
 
@@ -448,12 +448,12 @@ const getEnabledConfigs = () => {
 }
 
 function formatTestResultLabel(r) {
-  if (!r?.ok) return '错误'
-  return r.first_packet_ms != null ? `正确 ${r.first_packet_ms}ms` : '正确'
+  if (!r?.ok) return 'Lỗi'
+  return r.first_packet_ms != null ? `Đạt ${r.first_packet_ms}ms` : 'Đạt'
 }
 function formatTestResultTip(r) {
   if (!r?.ok) return ''
-  return r.first_packet_ms != null ? `通过，耗时 ${r.first_packet_ms}ms` : '通过'
+  return r.first_packet_ms != null ? `Đạt，Thời gian ${r.first_packet_ms}ms` : 'Đạt'
 }
 function formatTestMessage(result) {
   const base = result.message || ''
@@ -471,7 +471,7 @@ const testConfig = async (row, type) => {
       ElMessage.warning(`${row.name || row.config_id}：${result.message}`)
     }
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || '测试请求失败')
+    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
   } finally {
     testingId.value = null
   }
@@ -480,7 +480,7 @@ const testConfig = async (row, type) => {
 const testAllConfigs = async () => {
   const list = getEnabledConfigs()
   if (!list.length) {
-    ElMessage.warning('没有已启用的配置')
+    ElMessage.warning('Không có cấu hình nào đang bật')
     return
   }
   testingAll.value = true
@@ -493,12 +493,12 @@ const testAllConfigs = async () => {
         testResults.value = { ...testResults.value, [row.config_id]: result }
         if (result.ok) okCount++
       } catch (_) {
-        testResults.value = { ...testResults.value, [row.config_id]: { ok: false, message: '请求失败' } }
+        testResults.value = { ...testResults.value, [row.config_id]: { ok: false, message: 'Yêu cầu thất bại' } }
       }
     }
-    ElMessage.success(`全部测试完成：${okCount}/${list.length} 通过`)
+    ElMessage.success(`Đã hoàn tất kiểm tra tất cả: ${okCount}/${list.length} Đạt`)
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || '测试请求失败')
+    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
   } finally {
     testingAll.value = false
   }
@@ -513,7 +513,7 @@ const testCurrentConfig = async () => {
   }
   const configId = form.config_id?.trim()
   if (!configId) {
-    ElMessage.warning('请填写配置ID')
+    ElMessage.warning('Vui lòng nhập ID cấu hình')
     return
   }
   const payload = {
@@ -527,12 +527,12 @@ const testCurrentConfig = async () => {
   try {
     const result = await testWithData('asr', { [configId]: payload })
     if (result.ok) {
-      ElMessage.success(formatTestMessage(result) || '测试通过')
+      ElMessage.success(formatTestMessage(result) || 'Kiểm traĐạt')
     } else {
-      ElMessage.warning(result.message || '测试未通过')
+      ElMessage.warning(result.message || 'Kiểm tra chưa đạt')
     }
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || '测试请求失败')
+    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
   } finally {
     testingCurrent.value = false
   }
@@ -540,18 +540,18 @@ const testCurrentConfig = async () => {
 
 const deleteConfig = async (id) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个配置吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm('Bạn có chắc muốn xóa cấu hình này không?', 'Gợi ý', {
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy',
       type: 'warning'
     })
     
     await api.delete(`/admin/asr-configs/${id}`)
-    ElMessage.success('删除成功')
+    ElMessage.success('Xóathành công')
     loadConfigs()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      ElMessage.error('Xóa thất bại')
     }
   }
 }

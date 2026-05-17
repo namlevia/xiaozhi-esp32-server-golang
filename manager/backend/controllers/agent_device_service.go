@@ -958,7 +958,7 @@ func mapValues(values map[string]string) []string {
 func parseUintParam(c *gin.Context, name string) (uint, bool) {
 	id, err := strconv.Atoi(c.Param(name))
 	if err != nil || id <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID không hợp lệ"})
 		return 0, false
 	}
 	return uint(id), true

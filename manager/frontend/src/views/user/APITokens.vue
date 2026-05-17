@@ -1,38 +1,38 @@
 <template>
   <div class="api-tokens-page">
     <div class="page-actions">
-      <router-link class="doc-link" to="/openapi-docs">查看公开 OpenAPI 接口说明</router-link>
+      <router-link class="doc-link" to="/openapi-docs">Xem tài liệu OpenAPI công khai</router-link>
       <el-button type="primary" @click="openCreateDialog">
         <el-icon><Plus /></el-icon>
-        创建 Token
+        Tạo Token
       </el-button>
     </div>
 
     <el-alert type="info" :closable="false" show-icon>
       <template #title>
-        支持两种调用方式：Authorization: Bearer &lt;token&gt; 或 X-API-Token: &lt;token&gt;
+        Hỗ trợ hai cách gọi: Authorization: Bearer &lt;token&gt; hoặc X-API-Token: &lt;token&gt;
       </template>
     </el-alert>
 
     <el-card class="table-card" shadow="never">
-      <el-table :data="tokens" v-loading="loading" empty-text="暂无 Token，请先创建">
-        <el-table-column prop="name" label="名称" min-width="180" />
-        <el-table-column prop="token_prefix" label="前缀" min-width="140" />
-        <el-table-column label="状态" width="100">
+      <el-table :data="tokens" v-loading="loading" empty-text="Chưa có Token, hãy tạo trước">
+        <el-table-column prop="name" label="Tên" min-width="180" />
+        <el-table-column prop="token_prefix" label="Tiền tố" min-width="140" />
+        <el-table-column label="Trạng thái" width="100">
           <template #default="{ row }">
-            <el-tag :type="row.is_active ? 'success' : 'info'">{{ row.is_active ? '可用' : '已吊销' }}</el-tag>
+            <el-tag :type="row.is_active ? 'success' : 'info'">{{ row.is_active ? 'Khả dụng' : 'Đã thu hồi' }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column label="最后使用" min-width="170">
+        <el-table-column label="Lần dùng cuối" min-width="170">
           <template #default="{ row }">{{ formatTime(row.last_used_at) }}</template>
         </el-table-column>
-        <el-table-column label="过期时间" min-width="170">
+        <el-table-column label="Hết hạn lúc" min-width="170">
           <template #default="{ row }">{{ formatTime(row.expires_at) }}</template>
         </el-table-column>
-        <el-table-column label="创建时间" min-width="170">
+        <el-table-column label="Thời gian tạo" min-width="170">
           <template #default="{ row }">{{ formatTime(row.created_at) }}</template>
         </el-table-column>
-        <el-table-column label="操作" width="120" fixed="right">
+        <el-table-column label="Thao tác" width="120" fixed="right">
           <template #default="{ row }">
             <el-button
               link
@@ -40,37 +40,37 @@
               :disabled="!row.is_active"
               @click="handleRevoke(row)"
             >
-              吊销
+              Thu hồi
             </el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-card>
 
-    <el-dialog v-model="showCreate" title="创建 API Token" width="480px">
+    <el-dialog v-model="showCreate" title="Tạo API Token" width="480px">
       <el-form :model="form" :rules="rules" ref="formRef" label-width="100px">
-        <el-form-item label="Token 名称" prop="name">
-          <el-input v-model="form.name" maxlength="100" placeholder="例如：生产环境调用" />
+        <el-form-item label="Tên Token" prop="name">
+          <el-input v-model="form.name" maxlength="100" placeholder="Ví dụ: gọi từ môi trường production" />
         </el-form-item>
-        <el-form-item label="有效天数">
+        <el-form-item label="Số ngày hiệu lực">
           <el-input-number v-model="form.expires_in_days" :min="0" :max="3650" />
-          <div class="form-tip">0 表示永不过期</div>
+          <div class="form-tip">0 nghĩa là không bao giờ hết hạn</div>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="showCreate = false">取消</el-button>
-        <el-button type="primary" :loading="creating" @click="handleCreate">创建</el-button>
+        <el-button @click="showCreate = false">Hủy</el-button>
+        <el-button type="primary" :loading="creating" @click="handleCreate">Tạo</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="showPlainToken" title="请立即保存 Token" width="640px">
+    <el-dialog v-model="showPlainToken" title="Hãy lưu Token ngay" width="640px">
       <el-alert type="warning" :closable="false" show-icon>
-        明文 Token 后续无法再次查看，请立即复制并安全保存。
+        Token dạng plaintext sẽ không thể xem lại sau này, hãy sao chép và lưu ở nơi an toàn ngay bây giờ.
       </el-alert>
       <el-input class="token-input" v-model="latestToken" type="textarea" :rows="3" readonly />
       <template #footer>
-        <el-button @click="showPlainToken = false">关闭</el-button>
-        <el-button type="primary" @click="copyToken">复制 Token</el-button>
+        <el-button @click="showPlainToken = false">Đóng</el-button>
+        <el-button type="primary" @click="copyToken">Sao chép Token</el-button>
       </template>
     </el-dialog>
   </div>

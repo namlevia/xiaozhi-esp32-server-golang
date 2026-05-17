@@ -129,7 +129,7 @@ func playMusicHandler(ctx context.Context, argumentsInJSON string) (string, erro
 
 	if argumentsInJSON != "" {
 		if err := json.Unmarshal([]byte(argumentsInJSON), &params); err != nil {
-			response := NewErrorResponse("play_music", "参数解析失败", "PARSE_ERROR", "请检查参数格式是否正确")
+			response := NewErrorResponse("play_music", "Phân tích tham số thất bại", "PARSE_ERROR", "Vui lòng kiểm tra định dạng tham số")
 			return response.ToJSON()
 		}
 	}
@@ -137,12 +137,12 @@ func playMusicHandler(ctx context.Context, argumentsInJSON string) (string, erro
 	log.Infof("找到ChatSessionOperator，正在调用LocalMcpPlayMusic方法播放音乐: %s", params.Name)
 	audioData, realMusicName, err := GetMusicAudioData(ctx, &params)
 	if err != nil {
-		log.Errorf("获取音乐数据失败: %v", err)
-		response := NewErrorResponse("play_music", fmt.Sprintf("获取音乐数据失败: %v", err), "PLAYBACK_ERROR", "请检查音乐名称或网络连接")
+		log.Errorf("Lấy dữ liệu nhạc thất bại: %v", err)
+		response := NewErrorResponse("play_music", fmt.Sprintf("Lấy dữ liệu nhạc thất bại: %v", err), "PLAYBACK_ERROR", "Vui lòng kiểm tra tên bài hát hoặc kết nối mạng")
 		return response.ToJSON()
 	} else {
 		// 成功播放 - 动作类响应，终止后续处理
-		response := NewAudioResponse("play_music", "play_music", fmt.Sprintf("开始播放音乐: %s", realMusicName), true, audioData)
+		response := NewAudioResponse("play_music", "play_music", fmt.Sprintf("Bắt đầu phát nhạc: %s", realMusicName), true, audioData)
 		response.MusicName = realMusicName
 		return response.ToJSON()
 	}
@@ -199,7 +199,7 @@ func getCurrentDateTimeHandler(ctx context.Context, argumentsInJSON string) (str
 	}
 
 	// 创建内容类响应
-	response := NewContentResponse("get_current_datetime", data, fmt.Sprintf("当前时间：%s", formatChineseDateTime(now)))
+	response := NewContentResponse("get_current_datetime", data, fmt.Sprintf("Thời gian hiện tại: %s", formatChineseDateTime(now)))
 	// response.Format = "datetime"
 	// response.DisplayHint = "可用于显示当前日期时间信息"
 
@@ -224,7 +224,7 @@ func exitConversationHandler(ctx context.Context, argumentsInJSON string) (strin
 	}
 
 	// 创建动作类响应 - 终止性操作
-	response := NewActionResponse("exit_conversation", "exit_conversation", "对话即将结束，感谢您的使用！", "exiting", true)
+	response := NewActionResponse("exit_conversation", "exit_conversation", "Cuộc trò chuyện sắp kết thúc, cảm ơn bạn đã sử dụng!", "exiting", true)
 	response.UserState = "conversation_ended"
 	response.Instruction = "对话已结束，请不要生成额外的文本回复"
 	response.Metadata = map[string]string{
@@ -281,7 +281,7 @@ func clearConversationHistoryHandler(ctx context.Context, argumentsInJSON string
 				return "", err
 			} else {
 				// 成功清空 - 动作类响应，但不终止对话
-				response := NewActionResponse("clear_conversation_history", "clear_history", "历史对话已成功清空，您可以开始全新的对话。", "completed", false)
+				response := NewActionResponse("clear_conversation_history", "clear_history", "Lịch sử trò chuyện đã được xóa, bạn có thể bắt đầu cuộc trò chuyện mới.", "completed", false)
 				response.Metadata = map[string]string{
 					"reason": reason,
 					"status": "cleared",
@@ -305,16 +305,16 @@ func switchDeviceRoleHandler(ctx context.Context, argumentsInJSON string) (strin
 
 	var params SwitchDeviceRoleParams
 	if argumentsInJSON == "" {
-		response := NewErrorResponse("switch_device_role", "缺少参数 role_name", "MISSING_ROLE_NAME", "请提供要切换的角色名称")
+		response := NewErrorResponse("switch_device_role", "Thiếu tham số role_name", "MISSING_ROLE_NAME", "Vui lòng cung cấp tên vai trò cần chuyển")
 		return response.ToJSON()
 	}
 	if err := json.Unmarshal([]byte(argumentsInJSON), &params); err != nil {
-		response := NewErrorResponse("switch_device_role", "参数解析失败", "PARSE_ERROR", "请检查 role_name 参数格式")
+		response := NewErrorResponse("switch_device_role", "Phân tích tham số thất bại", "PARSE_ERROR", "Vui lòng kiểm tra định dạng tham số role_name")
 		return response.ToJSON()
 	}
 	params.RoleName = strings.TrimSpace(params.RoleName)
 	if params.RoleName == "" {
-		response := NewErrorResponse("switch_device_role", "角色名称不能为空", "INVALID_ROLE_NAME", "请提供有效的 role_name")
+		response := NewErrorResponse("switch_device_role", "Tên vai trò không được để trống", "INVALID_ROLE_NAME", "Vui lòng cung cấp role_name hợp lệ")
 		return response.ToJSON()
 	}
 
@@ -323,14 +323,14 @@ func switchDeviceRoleHandler(ctx context.Context, argumentsInJSON string) (strin
 			matchedRoleName, err := chatSessionOperator.LocalMcpSwitchDeviceRole(ctx, params.RoleName)
 			if err != nil {
 				log.Errorf("切换设备角色失败: %v", err)
-				response := NewErrorResponse("switch_device_role", fmt.Sprintf("切换角色失败: %v", err), "SWITCH_ROLE_FAILED", "请尝试更换角色名称或稍后重试")
+				response := NewErrorResponse("switch_device_role", fmt.Sprintf("Chuyển vai trò thất bại: %v", err), "SWITCH_ROLE_FAILED", "Vui lòng thử đổi tên vai trò hoặc thử lại sau")
 				return response.ToJSON()
 			}
 
 			response := NewActionResponse(
 				"switch_device_role",
 				"switch_device_role",
-				fmt.Sprintf("已切换到角色：%s", matchedRoleName),
+				fmt.Sprintf("Đã chuyển sang vai trò: %s", matchedRoleName),
 				"completed",
 				false,
 			)
@@ -354,7 +354,7 @@ func restoreDeviceDefaultRoleHandler(ctx context.Context, argumentsInJSON string
 		if chatSessionOperator, ok := chatSessionOperatorValue.(ChatSessionOperator); ok {
 			if err := chatSessionOperator.LocalMcpRestoreDeviceDefaultRole(ctx); err != nil {
 				log.Errorf("恢复设备默认角色失败: %v", err)
-				response := NewErrorResponse("restore_device_default_role", fmt.Sprintf("恢复默认角色失败: %v", err), "RESTORE_ROLE_FAILED", "请稍后重试")
+				response := NewErrorResponse("restore_device_default_role", fmt.Sprintf("Khôi phục vai trò mặc định thất bại: %v", err), "RESTORE_ROLE_FAILED", "Vui lòng thử lại sau")
 				return response.ToJSON()
 			}
 
@@ -379,13 +379,13 @@ func searchKnowledgeHandler(ctx context.Context, argumentsInJSON string) (string
 	var params SearchKnowledgeParams
 	if argumentsInJSON != "" {
 		if err := json.Unmarshal([]byte(argumentsInJSON), &params); err != nil {
-			response := NewErrorResponse("search_knowledge", "参数解析失败", "PARSE_ERROR", "请检查 query 参数格式")
+			response := NewErrorResponse("search_knowledge", "Phân tích tham số thất bại", "PARSE_ERROR", "Vui lòng kiểm tra định dạng tham số query")
 			return response.ToJSON()
 		}
 	}
 	params.Query = strings.TrimSpace(params.Query)
 	if params.Query == "" {
-		response := NewErrorResponse("search_knowledge", "query 不能为空", "INVALID_QUERY", "请提供要检索的内容")
+		response := NewErrorResponse("search_knowledge", "query không được để trống", "INVALID_QUERY", "Vui lòng cung cấp nội dung cần tìm")
 		return response.ToJSON()
 	}
 	if params.TopK <= 0 {
@@ -403,7 +403,7 @@ func searchKnowledgeHandler(ctx context.Context, argumentsInJSON string) (string
 
 	hits, err := chatSessionOperator.LocalMcpSearchKnowledge(ctx, params.Query, params.TopK, params.KnowledgeBaseIDs)
 	if err != nil {
-		response := NewErrorResponse("search_knowledge", fmt.Sprintf("信息检索失败: %v", err), "SEARCH_FAILED", "请稍后重试")
+		response := NewErrorResponse("search_knowledge", fmt.Sprintf("Tìm kiếm thông tin thất bại: %v", err), "SEARCH_FAILED", "Vui lòng thử lại sau")
 		return response.ToJSON()
 	}
 
@@ -413,7 +413,7 @@ func searchKnowledgeHandler(ctx context.Context, argumentsInJSON string) (string
 		"count": len(hits),
 	}
 	if len(hits) == 0 {
-		response := NewContentResponse("search_knowledge", data, "未找到足够相关信息")
+		response := NewContentResponse("search_knowledge", data, "Không tìm thấy đủ thông tin liên quan")
 		return response.ToJSON()
 	}
 
@@ -539,7 +539,7 @@ func GetMusicAudioData(ctx context.Context, musicParams *PlayMusicParams) ([]byt
 	m.ParseMusic()
 	rc, err := m.ReadCloser()
 	if err != nil {
-		return nil, "", fmt.Errorf("获取音乐数据失败: %v", err)
+		return nil, "", fmt.Errorf("Lấy dữ liệu nhạc thất bại: %v", err)
 	}
 	defer rc.Close()
 

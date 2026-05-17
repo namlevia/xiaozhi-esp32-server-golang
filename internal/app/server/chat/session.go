@@ -808,7 +808,7 @@ func (s *ChatSession) HandleNotActivated() {
 	sessionCtx := s.clientState.SessionCtx.Get(s.clientState.Ctx)
 	ctx := s.clientState.AfterAsrSessionCtx.Get(sessionCtx)
 	err = s.ttsManager.handleTextResponse(ctx, llm_common.LLMResponseStruct{
-		Text: fmt.Sprintf("请在后台添加设备，激活码: %s", code),
+		Text: fmt.Sprintf("Vui lòng thêm thiết bị trong trang quản trị, mã kích hoạt: %s", code),
 	}, false)
 	s.ttsManager.RequestTurnEnd(ctx, err)
 

@@ -21,7 +21,7 @@
               @click="navigate"
             >
               <el-icon><Guide /></el-icon>
-              <span>配置向导</span>
+              <span>{{ t('nav.configWizard') }}</span>
             </el-button>
           </router-link>
           <router-link to="/admin/ota-config" custom v-slot="{ navigate, isActive }">
@@ -32,7 +32,7 @@
               @click="navigate"
             >
               <el-icon><Upload /></el-icon>
-              <span>OTA 配置</span>
+              <span>{{ t('nav.otaConfig') }}</span>
             </el-button>
           </router-link>
         </template>
@@ -49,7 +49,7 @@
           <template #dropdown>
             <el-dropdown-menu>
               <el-dropdown-item v-if="!props.isAdmin" command="api-tokens">API Token</el-dropdown-item>
-              <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              <el-dropdown-item command="logout">{{ t('nav.logout') }}</el-dropdown-item>
             </el-dropdown-menu>
           </template>
         </el-dropdown>
@@ -59,7 +59,10 @@
 </template>
 
 <script setup>
+import { useI18n } from 'vue-i18n'
 import { ArrowDown, Guide, Upload } from '@element-plus/icons-vue'
+
+const { t } = useI18n()
 
 const props = defineProps({
   title: {

@@ -19,11 +19,12 @@
 
 <script setup>
 import { useRouter } from 'vue-router'
+import { t } from '../locales'
 
 const props = defineProps({
   title: {
     type: String,
-    default: '小智管理系统'
+    default: () => t('app.name')
   },
   showBack: {
     type: Boolean,

@@ -1,18 +1,18 @@
 <template>
   <div class="config-page">
     <div class="page-actions">
-      <el-button type="primary" @click="openDialog()">添加配置</el-button>
+      <el-button type="primary" @click="openDialog()">Thêm cấu hình</el-button>
     </div>
 
     <el-table :data="items" v-loading="loading" style="width: 100%">
       <el-table-column prop="id" label="ID" width="70" />
-      <el-table-column prop="provider" label="提供商" width="120" />
-      <el-table-column prop="name" label="名称" width="160" />
-      <el-table-column prop="config_id" label="配置ID" width="170" />
-      <el-table-column label="配置摘要">
+      <el-table-column prop="provider" label="Nhà cung cấp" width="120" />
+      <el-table-column prop="name" label="Tên" width="160" />
+      <el-table-column prop="config_id" label="ID cấu hình" width="170" />
+      <el-table-column label="Tóm tắt cấu hình">
         <template #default="scope">{{ getConfigSummary(scope.row) }}</template>
       </el-table-column>
-      <el-table-column label="启用" width="80">
+      <el-table-column label="Bật" width="80">
         <template #default="scope">
           <el-switch
             v-model="scope.row.enabled"
@@ -21,7 +21,7 @@
           />
         </template>
       </el-table-column>
-      <el-table-column label="默认" width="80">
+      <el-table-column label="Mặc định" width="80">
         <template #default="scope">
           <el-switch
             v-model="scope.row.is_default"
@@ -31,24 +31,24 @@
           />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="170">
+      <el-table-column label="Thao tác" width="170">
         <template #default="scope">
-          <el-button size="small" @click="openDialog(scope.row)">编辑</el-button>
-          <el-button size="small" type="danger" @click="remove(scope.row.id)">删除</el-button>
+          <el-button size="small" @click="openDialog(scope.row)">Sửa</el-button>
+          <el-button size="small" type="danger" @click="remove(scope.row.id)">Xóa</el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="dialogVisible" :title="editing ? '编辑配置' : '新增配置'" width="700px">
+    <el-dialog v-model="dialogVisible" :title="editing ? 'Sửa cấu hình' : 'Thêm cấu hình'" width="700px">
       <el-form :model="form" label-width="100px">
-        <el-form-item label="提供商">
+        <el-form-item label="Nhà cung cấp">
           <el-select v-model="form.provider" style="width: 100%" @change="onProviderChange">
             <el-option value="dify" label="dify" />
             <el-option value="ragflow" label="ragflow" />
             <el-option value="weknora" label="weknora" />
           </el-select>
         </el-form-item>
-        <el-form-item label="提供商官网">
+        <el-form-item label="Trang chủ nhà cung cấp">
           <a
             :href="getProviderWebsite(form.provider)"
             target="_blank"
@@ -58,48 +58,48 @@
             {{ getProviderWebsite(form.provider) }}
           </a>
         </el-form-item>
-        <el-form-item label="名称"><el-input v-model="form.name" /></el-form-item>
-        <el-form-item label="配置ID"><el-input v-model="form.config_id" /></el-form-item>
+        <el-form-item label="Tên"><el-input v-model="form.name" /></el-form-item>
+        <el-form-item label="ID cấu hình"><el-input v-model="form.config_id" /></el-form-item>
         <template v-if="form.provider === 'dify'">
           <el-form-item label="Base URL"><el-input v-model="form.base_url" :placeholder="DEFAULT_DIFY_BASE_URL" /></el-form-item>
           <el-form-item label="API Key"><el-input v-model="form.api_key" type="password" show-password /></el-form-item>
-          <el-form-item label="阈值"><el-input-number v-model="form.score_threshold" :min="0" :max="1" :step="0.01" :precision="2" style="width:100%" /></el-form-item>
-          <el-form-item label="Dataset权限">
-            <el-select v-model="form.dataset_permission" style="width: 100%" placeholder="请选择">
-              <el-option value="only_me" label="only_me（仅自己可见）" />
-              <el-option value="all_team_members" label="all_team_members（团队可见）" />
-              <el-option value="partial_members" label="partial_members（部分成员可见）" />
+          <el-form-item label="Ngưỡng"><el-input-number v-model="form.score_threshold" :min="0" :max="1" :step="0.01" :precision="2" style="width:100%" /></el-form-item>
+          <el-form-item label="Quyền Dataset">
+            <el-select v-model="form.dataset_permission" style="width: 100%" placeholder="Vui lòng chọn">
+              <el-option value="only_me" label="only_me (chỉ mình tôi thấy)" />
+              <el-option value="all_team_members" label="all_team_members (team thấy được)" />
+              <el-option value="partial_members" label="partial_members (một phần thành viên thấy được)" />
             </el-select>
             <div class="form-helper-text">
-              控制外部知识库平台中该 dataset 的可见范围，不影响本系统用户权限。
+              Kiểm soát phạm vi hiển thị của dataset trên nền tảng Knowledge Base bên ngoài, không ảnh hưởng đến quyền người dùng trong hệ thống này.
             </div>
           </el-form-item>
-          <el-form-item label="Dataset提供方"><el-input v-model="form.dataset_provider" placeholder="vendor" /></el-form-item>
-          <el-form-item label="索引策略">
-            <el-select v-model="form.dataset_indexing_technique" style="width: 100%" placeholder="请选择">
-              <el-option value="high_quality" label="high_quality（高质量）" />
-              <el-option value="economy" label="economy（经济）" />
+          <el-form-item label="Nhà cung cấp Dataset"><el-input v-model="form.dataset_provider" placeholder="vendor" /></el-form-item>
+          <el-form-item label="Chiến lược index">
+            <el-select v-model="form.dataset_indexing_technique" style="width: 100%" placeholder="Vui lòng chọn">
+              <el-option value="high_quality" label="high_quality (chất lượng cao)" />
+              <el-option value="economy" label="economy (tiết kiệm)" />
             </el-select>
           </el-form-item>
         </template>
         <template v-else-if="form.provider === 'ragflow'">
           <el-form-item label="Base URL"><el-input v-model="form.base_url" :placeholder="DEFAULT_RAGFLOW_BASE_URL" /></el-form-item>
           <el-form-item label="API Key"><el-input v-model="form.api_key" type="password" show-password /></el-form-item>
-          <el-form-item label="相似度阈值"><el-input-number v-model="form.similarity_threshold" :min="0" :max="1" :step="0.01" :precision="2" style="width:100%" /></el-form-item>
-          <el-form-item label="向量权重"><el-input-number v-model="form.vector_similarity_weight" :min="0" :max="1" :step="0.01" :precision="2" style="width:100%" /></el-form-item>
-          <el-form-item label="启用关键词"><el-switch v-model="form.keyword" /></el-form-item>
-          <el-form-item label="启用高亮"><el-switch v-model="form.highlight" /></el-form-item>
-          <el-form-item label="Dataset权限">
-            <el-select v-model="form.dataset_permission" style="width: 100%" placeholder="请选择">
-              <el-option value="me" label="me（仅自己可见）" />
-              <el-option value="team" label="team（团队可见）" />
+          <el-form-item label="Ngưỡng tương đồng"><el-input-number v-model="form.similarity_threshold" :min="0" :max="1" :step="0.01" :precision="2" style="width:100%" /></el-form-item>
+          <el-form-item label="Trọng số vector"><el-input-number v-model="form.vector_similarity_weight" :min="0" :max="1" :step="0.01" :precision="2" style="width:100%" /></el-form-item>
+          <el-form-item label="Bật keyword"><el-switch v-model="form.keyword" /></el-form-item>
+          <el-form-item label="Bật highlight"><el-switch v-model="form.highlight" /></el-form-item>
+          <el-form-item label="Quyền Dataset">
+            <el-select v-model="form.dataset_permission" style="width: 100%" placeholder="Vui lòng chọn">
+              <el-option value="me" label="me (chỉ mình tôi thấy)" />
+              <el-option value="team" label="team (team thấy được)" />
             </el-select>
             <div class="form-helper-text">
-              控制外部知识库平台中该 dataset 的可见范围，不影响本系统用户权限。
+              Kiểm soát phạm vi hiển thị của dataset trên nền tảng Knowledge Base bên ngoài, không ảnh hưởng đến quyền người dùng trong hệ thống này.
             </div>
           </el-form-item>
-          <el-form-item label="分块策略">
-            <el-select v-model="form.dataset_chunk_method" style="width: 100%" placeholder="请选择">
+          <el-form-item label="Chiến lược chia chunk">
+            <el-select v-model="form.dataset_chunk_method" style="width: 100%" placeholder="Vui lòng chọn">
               <el-option value="naive" label="naive" />
               <el-option value="qa" label="qa" />
               <el-option value="table" label="table" />
@@ -110,16 +110,16 @@
         <template v-else-if="form.provider === 'weknora'">
           <el-form-item label="Base URL"><el-input v-model="form.base_url" :placeholder="DEFAULT_WEKNORA_BASE_URL" /></el-form-item>
           <el-form-item label="API Key"><el-input v-model="form.api_key" type="password" show-password /></el-form-item>
-          <el-form-item label="阈值"><el-input-number v-model="form.score_threshold" :min="0" :max="1" :step="0.01" :precision="2" style="width:100%" /></el-form-item>
-          <el-form-item label="模型列表">
+          <el-form-item label="Ngưỡng"><el-input-number v-model="form.score_threshold" :min="0" :max="1" :step="0.01" :precision="2" style="width:100%" /></el-form-item>
+          <el-form-item label="Danh sách model">
             <div class="inline-helper-row">
-              <el-button size="small" :loading="weknoraModelLoading" @click="fetchWeknoraModels(true, false)">刷新模型</el-button>
-              <span v-if="weknoraModelLoading" class="inline-helper-text">正在拉取模型列表...</span>
+              <el-button size="small" :loading="weknoraModelLoading" @click="fetchWeknoraModels(true, false)">Làm mới model</el-button>
+              <span v-if="weknoraModelLoading" class="inline-helper-text">Đang lấy danh sách model...</span>
               <span v-else-if="weknoraModelLoadError" class="inline-helper-text is-error">{{ weknoraModelLoadError }}</span>
-              <span v-else class="inline-helper-text">自动拉取 embedding/llm/rerank 模型；也可手动输入。</span>
+              <span v-else class="inline-helper-text">Tự động lấy model embedding/llm/rerank; cũng có thể nhập thủ công.</span>
             </div>
           </el-form-item>
-          <el-form-item label="Embedding模型">
+          <el-form-item label="Model Embedding">
             <el-select
               v-model="form.embedding_model_id"
               filterable
@@ -127,7 +127,7 @@
               default-first-option
               clearable
               style="width:100%;"
-              placeholder="必填：请选择或手动输入"
+              placeholder="Bắt buộc: chọn hoặc nhập thủ công"
             >
               <el-option
                 v-for="item in weknoraEmbeddingModels"
@@ -137,16 +137,16 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="分块大小"><el-input-number v-model="form.chunk_size" :min="1" :step="100" style="width:100%" /></el-form-item>
-          <el-form-item label="重叠大小"><el-input-number v-model="form.chunk_overlap" :min="0" :step="50" style="width:100%" /></el-form-item>
-          <el-form-item label="分隔符">
-            <el-input v-model="form.separators_raw" placeholder="逗号分隔，如 \n\n,\n,。,！,？,;,；" />
+          <el-form-item label="Kích thước chunk"><el-input-number v-model="form.chunk_size" :min="1" :step="100" style="width:100%" /></el-form-item>
+          <el-form-item label="Kích thước overlap"><el-input-number v-model="form.chunk_overlap" :min="0" :step="50" style="width:100%" /></el-form-item>
+          <el-form-item label="Dấu phân tách">
+            <el-input v-model="form.separators_raw" placeholder="Phân tách bằng dấu phẩy, ví dụ \n\n,\n,。,！,？,;,；" />
             <div class="form-helper-text">
-              保存时将按逗号拆分为 separators 数组。
+              Khi lưu sẽ tách theo dấu phẩy thành mảng separators.
             </div>
           </el-form-item>
-          <el-form-item label="多模态"><el-switch v-model="form.enable_multimodal" /></el-form-item>
-          <el-form-item label="Summary模型">
+          <el-form-item label="Đa phương thức"><el-switch v-model="form.enable_multimodal" /></el-form-item>
+          <el-form-item label="Model Summary">
             <el-select
               v-model="form.summary_model_id"
               filterable
@@ -154,7 +154,7 @@
               default-first-option
               clearable
               style="width:100%;"
-              placeholder="可选：请选择或手动输入"
+              placeholder="Tùy chọn: chọn hoặc nhập thủ công"
             >
               <el-option
                 v-for="item in weknoraLLMModels"
@@ -164,10 +164,10 @@
               />
             </el-select>
             <div class="form-helper-text">
-              用于知识摘要生成；不配置则跳过摘要步骤。
+              Dùng để tạo tóm tắt tri thức; nếu không cấu hình sẽ bỏ qua bước tóm tắt.
             </div>
           </el-form-item>
-          <el-form-item label="Rerank模型">
+          <el-form-item label="Model Rerank">
             <el-select
               v-model="form.rerank_model_id"
               filterable
@@ -175,7 +175,7 @@
               default-first-option
               clearable
               style="width:100%;"
-              placeholder="可选：请选择或手动输入"
+              placeholder="Tùy chọn: chọn hoặc nhập thủ công"
             >
               <el-option
                 v-for="item in weknoraRerankModels"
@@ -185,16 +185,16 @@
               />
             </el-select>
           </el-form-item>
-          <el-form-item label="VLM模型ID"><el-input v-model="form.vlm_model_id" placeholder="可选" /></el-form-item>
-          <el-form-item label="轮询间隔ms"><el-input-number v-model="form.parse_poll_interval_ms" :min="100" :step="100" style="width:100%" /></el-form-item>
-          <el-form-item label="解析超时ms"><el-input-number v-model="form.parse_timeout_ms" :min="1000" :step="1000" style="width:100%" /></el-form-item>
+          <el-form-item label="ID model VLM"><el-input v-model="form.vlm_model_id" placeholder="Tùy chọn" /></el-form-item>
+          <el-form-item label="Khoảng polling (ms)"><el-input-number v-model="form.parse_poll_interval_ms" :min="100" :step="100" style="width:100%" /></el-form-item>
+          <el-form-item label="Timeout phân tích (ms)"><el-input-number v-model="form.parse_timeout_ms" :min="1000" :step="1000" style="width:100%" /></el-form-item>
         </template>
-        <el-form-item label="启用"><el-switch v-model="form.enabled" /></el-form-item>
-        <el-form-item label="默认"><el-switch v-model="form.is_default" /></el-form-item>
+        <el-form-item label="Bật"><el-switch v-model="form.enabled" /></el-form-item>
+        <el-form-item label="Mặc định"><el-switch v-model="form.is_default" /></el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">保存</el-button>
+        <el-button @click="dialogVisible = false">Hủy</el-button>
+        <el-button type="primary" @click="submit">Lưu</el-button>
       </template>
     </el-dialog>
   </div>
@@ -332,7 +332,7 @@ const fetchWeknoraModels = async (force = false, silent = true) => {
   const apiKey = String(form.api_key || '').trim()
   if (!baseURL || !apiKey) {
     if (!silent) {
-      ElMessage.warning('请先填写 WeKnora Base URL 和 API Key')
+      ElMessage.warning('Vui lòng nhập WeKnora Base URL và API Key trước')
     }
     return
   }
@@ -373,7 +373,7 @@ const fetchWeknoraModels = async (force = false, silent = true) => {
     }
   } catch (e) {
     if (seq !== weknoraFetchSeq) return
-    const msg = e?.response?.data?.error || '拉取 WeKnora 模型列表失败'
+    const msg = e?.response?.data?.error || 'Lấy danh sách model WeKnora thất bại'
     weknoraModelLoadError.value = msg
     if (!silent) {
       ElMessage.error(msg)
@@ -510,7 +510,7 @@ const openDialog = (row = null) => {
 
 const submit = async () => {
   if (form.provider === 'weknora' && !String(form.embedding_model_id || '').trim()) {
-    ElMessage.error('Embedding模型ID不能为空')
+    ElMessage.error('ID model Embedding không được để trống')
     return
   }
   const weknoraSeparators = parseSeparators(form.separators_raw)
@@ -563,11 +563,11 @@ const submit = async () => {
     } else {
       await api.post('/admin/knowledge-search-configs', payload)
     }
-    ElMessage.success('保存成功')
+    ElMessage.success('Lưu thành công')
     dialogVisible.value = false
     await loadData()
   } catch (e) {
-    ElMessage.error('保存失败')
+    ElMessage.error('Lưu thất bại')
   }
 }
 
@@ -619,11 +619,11 @@ const onRowSwitchChange = async (row, field, value) => {
     }
     row.enabled = enabled
     row.is_default = isDefault
-    ElMessage.success('更新成功')
+    ElMessage.success('Cập nhật thành công')
     await loadData()
   } catch (e) {
     await loadData()
-    ElMessage.error('更新失败')
+    ElMessage.error('Cập nhật thất bại')
   } finally {
     setRowSwitchLoading(id, field, false)
   }
@@ -631,9 +631,9 @@ const onRowSwitchChange = async (row, field, value) => {
 
 const remove = async (id) => {
   try {
-    await ElMessageBox.confirm('确认删除该配置吗？', '提示', { type: 'warning' })
+    await ElMessageBox.confirm('Xác nhận xóa cấu hình này?', 'Xác nhận', { type: 'warning' })
     await api.delete(`/admin/knowledge-search-configs/${id}`)
-    ElMessage.success('删除成功')
+    ElMessage.success('Xóa thành công')
     await loadData()
   } catch {}
 }

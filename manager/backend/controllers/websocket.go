@@ -100,29 +100,29 @@ func (ctrl *WebSocketController) HandleWebSocket(c *gin.Context) {
 		tokenString = strings.TrimSpace(c.Query("token"))
 	}
 	if tokenString == "" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "缺少WebSocket认证token"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu token xác thực WebSocket"})
 		return
 	}
 
 	claims, err := ctrl.parseWSClientToken(tokenString)
 	if err != nil {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "无效的WebSocket认证token"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token xác thực WebSocket không hợp lệ"})
 		return
 	}
 	if claims.Purpose != "manager-ws-client" {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "无效的WebSocket token用途"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Mục đích sử dụng WebSocket token không hợp lệ"})
 		return
 	}
 
 	// 获取UUID header
 	clientUUID := c.GetHeader("UUID")
 	if clientUUID == "" {
-		log.Printf("WebSocket连接缺少UUID header")
-		c.JSON(http.StatusBadRequest, gin.H{"error": "缺少UUID header"})
+		log.Printf("WebSocket连接Thiếu header UUID")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Thiếu header UUID"})
 		return
 	}
 	if strings.TrimSpace(claims.UUID) != "" && strings.TrimSpace(claims.UUID) != strings.TrimSpace(clientUUID) {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "UUID与token不匹配"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "UUID không khớp với token"})
 		return
 	}
 
@@ -154,7 +154,7 @@ func (ctrl *WebSocketController) HandleWebSocket(c *gin.Context) {
 	// 存储到clientsMap中
 	ctrl.clientsMap.Set(clientUUID, client)
 
-	log.Printf("新的WebSocket客户端已连接: %s", clientUUID)
+	log.Printf("新的WebSocketClient đã kết nối: %s", clientUUID)
 
 	// 启动客户端消息处理
 	go client.handleMessages()
@@ -451,7 +451,7 @@ func (client *WebSocketClient) handleDeviceActiveRequest(request *WebSocketReque
 	response := map[string]interface{}{
 		"device_id":      deviceID,
 		"last_active_at": now.Format(time.RFC3339),
-		"message":        "设备活跃时间更新成功",
+		"message":        "Cập nhật thời gian hoạt động của thiết bị thành công",
 	}
 
 	client.sendResponse(request.ID, 200, response, "")
@@ -497,7 +497,7 @@ func (client *WebSocketClient) handleDeviceInactiveRequest(request *WebSocketReq
 	response := map[string]interface{}{
 		"device_id":      deviceID,
 		"last_active_at": nil, // 离线状态
-		"message":        "设备离线状态更新成功",
+		"message":        "Cập nhật trạng thái offline của thiết bị thành công",
 	}
 
 	client.sendResponse(request.ID, 200, response, "")
@@ -1245,13 +1245,13 @@ func (ctrl *WebSocketController) GetClientStatus(uuid string) map[string]interfa
 		return map[string]interface{}{
 			"uuid":      client.ID,
 			"connected": client.isConnected,
-			"message":   "客户端已连接",
+			"message":   "Client đã kết nối",
 		}
 	}
 
 	return map[string]interface{}{
 		"uuid":      uuid,
 		"connected": false,
-		"message":   "客户端未连接",
+		"message":   "Client chưa kết nối",
 	}
 }

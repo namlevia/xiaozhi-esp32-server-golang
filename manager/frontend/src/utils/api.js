@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
+import { t } from '../locales'
 
 const api = axios.create({
   baseURL: '/api',
@@ -32,7 +33,7 @@ api.interceptors.response.use(
       localStorage.removeItem('user')
       window.location.href = '/login'
     } else if (!silentError) {
-      ElMessage.error(error.response?.data?.error || '请求失败')
+      ElMessage.error(error.response?.data?.error || t('common.requestFailed'))
     }
     return Promise.reject(error)
   }

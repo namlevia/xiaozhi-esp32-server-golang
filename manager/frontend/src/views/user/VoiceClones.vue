@@ -1,17 +1,17 @@
 <template>
   <div class="voice-clones-page">
     <div class="page-actions">
-      <el-button type="primary" @click="openCreateDialog">创建复刻音色</el-button>
+      <el-button type="primary" @click="openCreateDialog">Tạo clone giọng</el-button>
     </div>
 
     <el-table :data="voiceClones" v-loading="loading" stripe style="width: 100%" table-layout="fixed">
-      <el-table-column prop="name" label="名称" min-width="120" show-overflow-tooltip />
-      <el-table-column prop="provider" label="提供商" width="100" show-overflow-tooltip />
-      <el-table-column label="TTS配置" min-width="180" show-overflow-tooltip>
+      <el-table-column prop="name" label="Tên" min-width="120" show-overflow-tooltip />
+      <el-table-column prop="provider" label="Nhà cung cấp" width="100" show-overflow-tooltip />
+      <el-table-column label="Cấu hình TTS" min-width="180" show-overflow-tooltip>
         <template #default="{ row }">{{ `${row.tts_config_name || '-'} (${row.tts_config_id || '-'})` }}</template>
       </el-table-column>
-      <el-table-column prop="provider_voice_id" label="复刻音色ID" min-width="160" show-overflow-tooltip />
-      <el-table-column v-if="authStore.isAdmin" label="共享给所有人" width="140" align="center">
+      <el-table-column prop="provider_voice_id" label="ID giọng đã clone" min-width="160" show-overflow-tooltip />
+      <el-table-column v-if="authStore.isAdmin" label="Chia sẻ cho mọi người" width="140" align="center">
         <template #default="{ row }">
           <el-switch
             :model-value="!!row.shared_to_all"
@@ -20,20 +20,20 @@
           />
         </template>
       </el-table-column>
-      <el-table-column label="任务状态" width="100">
+      <el-table-column label="Trạng thái tác vụ" width="100">
         <template #default="{ row }">
           <el-tag :type="getCloneStatusTagType(row)" size="small">{{ formatCloneStatus(row) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="失败原因" min-width="140" show-overflow-tooltip>
+      <el-table-column label="Lý do thất bại" min-width="140" show-overflow-tooltip>
         <template #default="{ row }">
           <span>{{ getCloneLastError(row) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="创建时间" width="160" show-overflow-tooltip>
+      <el-table-column label="Thời gian tạo" width="160" show-overflow-tooltip>
         <template #default="{ row }">{{ formatDate(row.created_at) }}</template>
       </el-table-column>
-      <el-table-column label="操作" width="460">
+      <el-table-column label="Thao tác" width="460">
         <template #default="{ row }">
           <div class="action-buttons">
             <el-button
@@ -43,18 +43,18 @@
               :loading="previewUploadSubmittingID === row.id"
               @click="previewUploadedAudio(row)"
             >
-              原音频
+              Audio gốc
             </el-button>
             <el-button
-              v-if="canPreviewClonedVoice(row)"
+              v-if="canPreviewClonedGiọng(row)"
               size="small"
               type="success"
               :loading="previewClonedSubmittingID === row.id"
-              @click="previewClonedVoice(row)"
+              @click="previewClonedGiọng(row)"
             >
-              试听复刻
+              Nghe thử clone
             </el-button>
-            <el-button size="small" type="primary" plain @click="openEditDialog(row)">编辑</el-button>
+            <el-button size="small" type="primary" plain @click="openEditDialog(row)">Sửa</el-button>
             <el-button
               v-if="canRetryClone(row)"
               size="small"
@@ -63,7 +63,7 @@
               :loading="retrySubmittingID === row.id"
               @click="retryClone(row)"
             >
-              重新复刻
+              Clone lại
             </el-button>
             <el-button
               v-if="canAppendRefAudio(row)"
@@ -73,7 +73,7 @@
               :loading="appendAudioSubmittingID === row.id"
               @click="openAppendAudioDialog(row)"
             >
-              追加参考音频
+              Thêm audio tham chiếu
             </el-button>
             <el-button
               size="small"
@@ -82,7 +82,7 @@
               :loading="deleteSubmittingID === row.id"
               @click="deleteClone(row)"
             >
-              删除
+              Xóa
             </el-button>
           </div>
         </template>
@@ -97,16 +97,16 @@
       @change="handleAppendAudioFileChange"
     />
 
-    <el-dialog v-model="createDialogVisible" title="创建复刻音色" width="680px">
+    <el-dialog v-model="createDialogVisible" title="Tạo clone giọng" width="680px">
       <el-form label-width="140px">
-        <el-form-item label="复刻名称">
-          <el-input v-model="form.name" placeholder="可选，不填则自动使用文件名" />
+        <el-form-item label="Tên clone">
+          <el-input v-model="form.name" placeholder="Không bắt buộc; để trống sẽ tự dùng tên file" />
         </el-form-item>
-        <el-form-item label="TTS配置" required>
-          <el-select v-model="form.tts_config_id" placeholder="请选择可复刻的TTS配置" style="width: 100%" @change="onConfigChange">
+        <el-form-item label="Cấu hình TTS" required>
+          <el-select v-model="form.tts_config_id" placeholder="Vui lòng chọn cấu hình TTS hỗ trợ clone" style="width: 100%" @change="onConfigChange">
             <el-option v-for="cfg in cloneEnabledConfigs" :key="cfg.config_id" :label="`${cfg.name} (${cfg.config_id})`" :value="cfg.config_id" />
           </el-select>
-          <div v-if="isAliyunQwenProvider" class="help">提示：选择该复刻音色后，运行时会自动切换为模型 {{ qwenCloneRuntimeModel }}</div>
+          <div v-if="isAliyunQwenProvider" class="help">Gợi ý: sau khi chọn voice clone này, runtime sẽ tự chuyển sang model {{ qwenCloneRuntimeModel }}</div>
           <el-alert
             v-if="createChargeNotice.message"
             class="clone-charge-alert"
@@ -116,92 +116,92 @@
             show-icon
           />
         </el-form-item>
-        <el-form-item label="音频来源">
+        <el-form-item label="Nguồn audio">
           <el-radio-group v-model="form.source_type">
-            <el-radio label="upload">上传音频</el-radio>
-            <el-radio label="record">浏览器录音</el-radio>
+            <el-radio label="upload">Upload audio</el-radio>
+            <el-radio label="record">Ghi âm bằng trình duyệt</el-radio>
           </el-radio-group>
         </el-form-item>
 
-        <el-form-item v-if="form.source_type === 'upload'" label="音频文件" required>
+        <el-form-item v-if="form.source_type === 'upload'" label="File audio" required>
           <input type="file" :accept="uploadAcceptTypes" @change="handleFileChange" />
           <div class="help">{{ audioRequirementText }}</div>
         </el-form-item>
 
-        <el-form-item v-else label="浏览器录音" required>
-          <el-button :disabled="isRecording" @click="startRecording">开始录音</el-button>
-          <el-button :disabled="!isRecording" type="warning" @click="stopRecording">停止录音</el-button>
+        <el-form-item v-else label="Ghi âm bằng trình duyệt" required>
+          <el-button :disabled="isRecording" @click="startRecording">Bắt đầu ghi âm</el-button>
+          <el-button :disabled="!isRecording" type="warning" @click="stopRecording">Dừng ghi âm</el-button>
           <audio v-if="recordPreviewUrl" :src="recordPreviewUrl" controls style="display:block;width:100%;margin-top:10px" />
           <div class="help">{{ audioRequirementText }}</div>
         </el-form-item>
 
-        <el-form-item :label="capability.requires_transcript ? '音频对应文字 *' : '音频对应文字'">
+        <el-form-item :label="capability.requires_transcript ? 'Bản chép lời audio *' : 'Bản chép lời audio'">
           <el-input
             v-model="form.transcript"
             type="textarea"
             :rows="4"
-            :placeholder="capability.requires_transcript ? '该提供商要求填写音频对应文字' : '可选填写，不填也可提交'"
+            :placeholder="capability.requires_transcript ? 'Nhà cung cấp này yêu cầu nhập bản chép lời audio' : 'Không bắt buộc; có thể để trống khi gửi'"
           />
-          <div class="help">要求：{{ capability.min_text_len || 0 }} - {{ capability.max_text_len || 4000 }} 字符</div>
+          <div class="help">Yêu cầu: {{ capability.min_text_len || 0 }} - {{ capability.max_text_len || 4000 }} ký tự</div>
         </el-form-item>
 
-        <el-form-item label="文字语言">
+        <el-form-item label="Ngôn ngữ bản chép lời">
           <el-select v-model="form.transcript_lang" style="width: 220px">
-            <el-option label="中文 (zh-CN)" value="zh-CN" />
-            <el-option label="英文 (en-US)" value="en-US" />
+            <el-option label="Tiếng Trung (zh-CN)" value="zh-CN" />
+            <el-option label="Tiếng Anh (en-US)" value="en-US" />
           </el-select>
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="createDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="submitting" @click="submitClone">提交复刻</el-button>
+        <el-button @click="createDialogVisible = false">Hủy</el-button>
+        <el-button type="primary" :loading="submitting" @click="submitClone">Gửi clone</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="audioDialogVisible" title="复刻原始音频" width="720px">
+    <el-dialog v-model="audioDialogVisible" title="Audio gốc của clone" width="720px">
       <el-table :data="currentAudios" stripe>
-        <el-table-column prop="source_type" label="来源" width="90" />
-        <el-table-column prop="file_name" label="文件名" min-width="220" />
-        <el-table-column prop="transcript" label="对应文字" min-width="240" show-overflow-tooltip />
-        <el-table-column label="播放" width="120">
+        <el-table-column prop="source_type" label="Nguồn" width="90" />
+        <el-table-column prop="file_name" label="Tên file" min-width="220" />
+        <el-table-column prop="transcript" label="Bản chép lời" min-width="240" show-overflow-tooltip />
+        <el-table-column label="Phát" width="120">
           <template #default="{ row }">
-            <el-button link type="primary" @click="playAudio(row)">播放</el-button>
+            <el-button link type="primary" @click="playAudio(row)">Phát</el-button>
           </template>
         </el-table-column>
       </el-table>
     </el-dialog>
 
-    <el-dialog v-model="editDialogVisible" title="编辑复刻音色" width="620px" @close="resetEditForm">
+    <el-dialog v-model="editDialogVisible" title="Sửa clone giọng" width="620px" @close="resetEditForm">
       <el-form label-width="120px">
-        <el-form-item label="名称">
+        <el-form-item label="Tên">
           <el-input v-model="editForm.name" maxlength="100" show-word-limit />
         </el-form-item>
-        <el-form-item label="提供商">
+        <el-form-item label="Nhà cung cấp">
           <el-input v-model="editForm.provider" readonly class="readonly-field" />
         </el-form-item>
-        <el-form-item label="TTS配置">
+        <el-form-item label="Cấu hình TTS">
           <el-input v-model="editForm.ttsConfigDisplay" readonly class="readonly-field" />
         </el-form-item>
-        <el-form-item label="复刻音色ID">
-          <el-input v-model="editForm.providerVoiceID" readonly class="readonly-field" />
+        <el-form-item label="ID giọng đã clone">
+          <el-input v-model="editForm.providerGiọngID" readonly class="readonly-field" />
         </el-form-item>
-        <el-form-item label="任务状态">
+        <el-form-item label="Trạng thái tác vụ">
           <el-input v-model="editForm.statusText" readonly class="readonly-field" />
         </el-form-item>
-        <el-form-item label="创建时间">
+        <el-form-item label="Thời gian tạo">
           <el-input v-model="editForm.createdAtText" readonly class="readonly-field" />
         </el-form-item>
-        <el-form-item v-if="editForm.lastError" label="失败原因">
+        <el-form-item v-if="editForm.lastError" label="Lý do thất bại">
           <el-input v-model="editForm.lastError" type="textarea" :rows="3" readonly class="readonly-field" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="editDialogVisible = false">取消</el-button>
-        <el-button type="primary" :loading="editSubmitting" @click="submitEditClone">保存</el-button>
+        <el-button @click="editDialogVisible = false">Hủy</el-button>
+        <el-button type="primary" :loading="editSubmitting" @click="submitEditClone">Lưu</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="previewPlayerVisible" title="音频试听" width="560px" @close="closePreviewPlayerDialog">
+    <el-dialog v-model="previewPlayerVisible" title="Nghe thử audio" width="560px" @close="closePreviewPlayerDialog">
       <div class="preview-player">
         <div class="preview-player-meta">
           <el-tag size="small" effect="plain">{{ previewPlayerSourceLabel || '-' }}</el-tag>
@@ -221,9 +221,9 @@
         />
         <div class="preview-player-actions">
           <el-button type="primary" :disabled="!previewPlayerURL" @click="togglePreviewPlayback">
-            {{ previewPlayerPlaying ? '暂停' : '播放' }}
+            {{ previewPlayerPlaying ? 'Tạm dừng' : 'Phát' }}
           </el-button>
-          <el-button :disabled="!previewPlayerURL" @click="stopPreviewPlayback">停止</el-button>
+          <el-button :disabled="!previewPlayerURL" @click="stopPreviewPlayback">Dừng</el-button>
           <span class="preview-player-time">{{ formatPlayerTime(previewPlayerCurrentTime) }} / {{ formatPlayerTime(previewPlayerDuration) }}</span>
         </div>
       </div>
@@ -286,7 +286,7 @@ const editForm = ref({
   name: '',
   provider: '',
   ttsConfigDisplay: '',
-  providerVoiceID: '',
+  providerGiọngID: '',
   statusText: '',
   createdAtText: '',
   lastError: ''
@@ -303,24 +303,24 @@ const resolveChargeNotice = (provider, scene = 'create') => {
   if (normalized === 'aliyun_qwen') {
     return {
       message: scene === 'create'
-        ? '计费提醒：千问声音复刻按音色收费，1分钱/个音色。'
-        : '计费提醒：千问声音复刻按音色收费，1分钱/个音色，继续试听请确认。',
+        ? 'Nhắc phí: Qwen tính phí clone giọng theo voice, 0,01 CNY/voice.'
+        : 'Nhắc phí: Qwen tính phí clone giọng theo voice, 0,01 CNY/voice; vui lòng xác nhận để nghe thử tiếp.',
       type: 'warning'
     }
   }
   if (normalized === 'minimax') {
     return {
       message: scene === 'create'
-        ? '计费提醒：Minimax 复刻免费，首次试听该复刻音色收费 9.9 元。'
-        : '计费提醒：Minimax 复刻免费，但该复刻音色首次试听收费 9.9 元，继续试听请确认。',
+        ? 'Nhắc phí: Minimax clone miễn phí, lần nghe thử đầu tiên của voice clone này tính 9,9 CNY.'
+        : 'Nhắc phí: Minimax clone miễn phí, nhưng lần nghe thử đầu tiên của voice clone này tính 9,9 CNY; vui lòng xác nhận để nghe thử tiếp.',
       type: 'warning'
     }
   }
   if (normalized === 'cosyvoice') {
     return {
       message: scene === 'create'
-        ? '计费提醒：CosyVoice 声音复刻与试听免费。'
-        : '计费提醒：CosyVoice 声音复刻与试听免费，继续试听请确认。',
+        ? 'Nhắc phí: CosyGiọng miễn phí clone giọng và nghe thử.'
+        : 'Nhắc phí: CosyGiọng miễn phí clone giọng và nghe thử; vui lòng xác nhận để nghe thử tiếp.',
       type: 'info'
     }
   }
@@ -338,12 +338,12 @@ const uploadAcceptTypes = computed(() => {
 })
 const audioRequirementText = computed(() => {
   if (requiresMinimaxDuration.value) {
-    return `要求：WAV 格式，时长不少于 ${MIN_AUDIO_DURATION_SECONDS} 秒`
+    return `Yêu cầu: định dạng WAV, thời lượng không dưới ${MIN_AUDIO_DURATION_SECONDS} giây`
   }
   if (isAliyunQwenProvider.value) {
-    return '要求：WAV/MP3/M4A，建议 10-20 秒（最长 60 秒）'
+    return 'Yêu cầu: WAV/MP3/M4A, khuyến nghị 10-20 giây (tối đa 60 giây)'
   }
-  return '要求：WAV 格式（CosyVoice 需填写音频对应文字）'
+  return 'Yêu cầu: định dạng WAV (CosyGiọng cần bản chép lời audio)'
 })
 
 const isRecording = ref(false)
@@ -371,11 +371,11 @@ const normalizeCloneStatus = (row) => {
 }
 const formatCloneStatus = (row) => {
   const status = normalizeCloneStatus(row)
-  if (status === 'queued') return '排队中'
-  if (status === 'processing') return '处理中'
-  if (status === 'active') return '成功'
-  if (status === 'failed') return '失败'
-  return '未知'
+  if (status === 'queued') return 'Đang chờ'
+  if (status === 'processing') return 'Đang xử lý'
+  if (status === 'active') return 'Thành công'
+  if (status === 'failed') return 'Thất bại'
+  return 'Không xác định'
 }
 const getCloneStatusTagType = (row) => {
   const status = normalizeCloneStatus(row)
@@ -393,7 +393,7 @@ const getCloneLastError = (row) => {
   return meta.last_error || '-'
 }
 const canRetryClone = (row) => normalizeCloneStatus(row) === 'failed'
-const canPreviewClonedVoice = (row) => normalizeCloneStatus(row) === 'active'
+const canPreviewClonedGiọng = (row) => normalizeCloneStatus(row) === 'active'
 const canAppendRefAudio = (row) => normalizeCloneStatus(row) === 'active' && normalizeProvider(row?.provider) === 'indextts_vllm'
 const formatPlayerTime = (seconds) => {
   const value = Number(seconds || 0)
@@ -452,7 +452,7 @@ const setPreviewPlayerSource = async (blob, sourceLabel, cloneLabel) => {
   try {
     await audioEl.play()
   } catch (error) {
-    ElMessage.info('音频已加载，点击播放即可试听')
+    ElMessage.info('Audio đã tải, bấm phát để nghe thử')
   }
 }
 const togglePreviewPlayback = async () => {
@@ -503,7 +503,7 @@ const scheduleClonePolling = () => {
     }
     clonePollingBusy.value = true
     try {
-      await loadVoiceClones(true)
+      await loadGiọngClones(true)
     } finally {
       clonePollingBusy.value = false
       if (voiceClones.value.some(hasPendingCloneTask)) {
@@ -513,7 +513,7 @@ const scheduleClonePolling = () => {
   }, 2000)
 }
 
-const loadVoiceClones = async (silent = false) => {
+const loadGiọngClones = async (silent = false) => {
   if (!silent) loading.value = true
   try {
     const res = await api.get('/user/voice-clones')
@@ -587,14 +587,14 @@ const getAudioDurationSeconds = (blobOrFile) => new Promise((resolve, reject) =>
     const duration = Number(audio.duration || 0)
     URL.revokeObjectURL(url)
     if (!Number.isFinite(duration) || duration <= 0) {
-      reject(new Error('无法读取音频时长'))
+      reject(new Error('Không đọc được thời lượng audio'))
       return
     }
     resolve(duration)
   }
   audio.onerror = () => {
     URL.revokeObjectURL(url)
-    reject(new Error('无法解析音频文件'))
+    reject(new Error('Không phân tích được file audio'))
   }
   audio.src = url
 })
@@ -607,7 +607,7 @@ const handleFileChange = async (event) => {
     return
   }
   if (!isSupportedUploadAudio(file)) {
-    ElMessage.warning(isAliyunQwenProvider.value ? '仅支持 WAV/MP3/M4A 音频' : '仅支持 WAV 格式音频')
+    ElMessage.warning(isAliyunQwenProvider.value ? 'Chỉ hỗ trợ audio WAV/MP3/M4A' : 'Chỉ hỗ trợ audio định dạng WAV')
     form.value.audioFile = null
     form.value.audioDurationSec = 0
     event.target.value = ''
@@ -621,7 +621,7 @@ const handleFileChange = async (event) => {
   try {
     const duration = await getAudioDurationSeconds(file)
     if (requiresMinimaxDuration.value && duration < MIN_AUDIO_DURATION_SECONDS) {
-      ElMessage.warning(`音频时长需不少于 ${MIN_AUDIO_DURATION_SECONDS} 秒，当前约 ${duration.toFixed(2)} 秒`)
+      ElMessage.warning(`Thời lượng audio phải không dưới ${MIN_AUDIO_DURATION_SECONDS} giây, hiện khoảng ${duration.toFixed(2)} giây`)
       form.value.audioFile = null
       form.value.audioDurationSec = 0
       event.target.value = ''
@@ -630,7 +630,7 @@ const handleFileChange = async (event) => {
     form.value.audioFile = file
     form.value.audioDurationSec = duration
   } catch (error) {
-    ElMessage.warning(error.message || '读取音频时长失败')
+    ElMessage.warning(error.message || 'Đọc thời lượng audio thất bại')
     form.value.audioFile = null
     form.value.audioDurationSec = 0
     event.target.value = ''
@@ -707,7 +707,7 @@ const startRecording = async () => {
       const wavBlob = await convertToWav(blob)
       const duration = await getAudioDurationSeconds(wavBlob)
       if (requiresMinimaxDuration.value && duration < MIN_AUDIO_DURATION_SECONDS) {
-        ElMessage.warning(`录音时长需不少于 ${MIN_AUDIO_DURATION_SECONDS} 秒，当前约 ${duration.toFixed(2)} 秒`)
+        ElMessage.warning(`Thời lượng ghi âm phải không dưới ${MIN_AUDIO_DURATION_SECONDS} giây, hiện khoảng ${duration.toFixed(2)} giây`)
         form.value.recordBlob = null
         form.value.audioDurationSec = 0
         if (recordPreviewUrl.value) {
@@ -721,7 +721,7 @@ const startRecording = async () => {
         recordPreviewUrl.value = URL.createObjectURL(wavBlob)
       }
     } catch (error) {
-      ElMessage.error('录音转换失败，请重试')
+      ElMessage.error('Chuyển đổi ghi âm thất bại, vui lòng thử lại')
       form.value.recordBlob = null
       form.value.audioDurationSec = 0
       if (recordPreviewUrl.value) {
@@ -742,15 +742,15 @@ const stopRecording = () => {
 
 const submitClone = async () => {
   if (!form.value.tts_config_id) {
-    ElMessage.warning('请选择可复刻的 TTS 配置')
+    ElMessage.warning('Vui lòng chọn cấu hình TTS hỗ trợ clone')
     return
   }
   const createNotice = resolveChargeNotice(currentCloneProvider.value, 'create')
   if (createNotice.message) {
     try {
-      await ElMessageBox.confirm(createNotice.message, '创建复刻提醒', {
-        confirmButtonText: '我已知晓，继续',
-        cancelButtonText: '取消',
+      await ElMessageBox.confirm(createNotice.message, 'Nhắc trước khi tạo clone', {
+        confirmButtonText: 'Tôi đã hiểu, tiếp tục',
+        cancelButtonText: 'Hủy',
         type: createNotice.type
       })
     } catch (error) {
@@ -758,7 +758,7 @@ const submitClone = async () => {
     }
   }
   if (capability.value.requires_transcript && !form.value.transcript.trim()) {
-    ElMessage.warning('该提供商要求填写音频对应文字')
+    ElMessage.warning('Nhà cung cấp này yêu cầu nhập bản chép lời audio')
     return
   }
 
@@ -771,7 +771,7 @@ const submitClone = async () => {
 
   if (form.value.source_type === 'upload') {
     if (!form.value.audioFile) {
-      ElMessage.warning('请上传音频文件')
+      ElMessage.warning('Vui lòng tải lên file audio')
       return
     }
     let duration = form.value.audioDurationSec
@@ -779,18 +779,18 @@ const submitClone = async () => {
       try {
         duration = await getAudioDurationSeconds(form.value.audioFile)
       } catch (error) {
-        ElMessage.warning(error.message || '读取音频时长失败')
+        ElMessage.warning(error.message || 'Đọc thời lượng audio thất bại')
         return
       }
     }
     if (requiresMinimaxDuration.value && duration < MIN_AUDIO_DURATION_SECONDS) {
-      ElMessage.warning(`音频时长需不少于 ${MIN_AUDIO_DURATION_SECONDS} 秒，当前约 ${duration.toFixed(2)} 秒`)
+      ElMessage.warning(`Thời lượng audio phải không dưới ${MIN_AUDIO_DURATION_SECONDS} giây, hiện khoảng ${duration.toFixed(2)} giây`)
       return
     }
     fd.append('audio_file', form.value.audioFile)
   } else {
     if (!form.value.recordBlob) {
-      ElMessage.warning('请先录音')
+      ElMessage.warning('Vui lòng ghi âm trước')
       return
     }
     let duration = form.value.audioDurationSec
@@ -798,12 +798,12 @@ const submitClone = async () => {
       try {
         duration = await getAudioDurationSeconds(form.value.recordBlob)
       } catch (error) {
-        ElMessage.warning(error.message || '读取录音时长失败')
+        ElMessage.warning(error.message || 'Đọc thời lượng ghi âm thất bại')
         return
       }
     }
     if (requiresMinimaxDuration.value && duration < MIN_AUDIO_DURATION_SECONDS) {
-      ElMessage.warning(`录音时长需不少于 ${MIN_AUDIO_DURATION_SECONDS} 秒，当前约 ${duration.toFixed(2)} 秒`)
+      ElMessage.warning(`Thời lượng ghi âm phải không dưới ${MIN_AUDIO_DURATION_SECONDS} giây, hiện khoảng ${duration.toFixed(2)} giây`)
       return
     }
     fd.append('audio_blob', form.value.recordBlob, `recording_${Date.now()}.wav`)
@@ -813,9 +813,9 @@ const submitClone = async () => {
   try {
     const res = await api.post('/user/voice-clones', fd, { timeout: 120000 })
     const queued = res.status === 202 || pendingStatuses.includes(normalizeCloneStatus(res.data?.data || {}))
-    ElMessage.success(queued ? '已提交复刻任务，正在后台处理' : '复刻音色创建成功')
+    ElMessage.success(queued ? 'Đã gửi task clone, đang xử lý nền' : 'Tạo clone giọng thành công')
     createDialogVisible.value = false
-    await loadVoiceClones()
+    await loadGiọngClones()
   } finally {
     submitting.value = false
   }
@@ -835,7 +835,7 @@ const openEditDialog = (clone) => {
     name: String(clone.name || ''),
     provider: String(clone.provider || '-'),
     ttsConfigDisplay: `${clone.tts_config_name || '-'} (${clone.tts_config_id || '-'})`,
-    providerVoiceID: String(clone.provider_voice_id || '-'),
+    providerGiọngID: String(clone.provider_voice_id || '-'),
     statusText: formatCloneStatus(clone),
     createdAtText: formatDate(clone.created_at),
     lastError: String(getCloneLastError(clone) === '-' ? '' : getCloneLastError(clone))
@@ -850,7 +850,7 @@ const resetEditForm = () => {
     name: '',
     provider: '',
     ttsConfigDisplay: '',
-    providerVoiceID: '',
+    providerGiọngID: '',
     statusText: '',
     createdAtText: '',
     lastError: ''
@@ -863,11 +863,11 @@ const submitEditClone = async () => {
   if (!cloneID) return
   const nextName = String(editForm.value.name || '').trim()
   if (!nextName) {
-    ElMessage.warning('名称不能为空')
+    ElMessage.warning('Tên không được để trống')
     return
   }
   if ([...nextName].length > 100) {
-    ElMessage.warning('名称长度不能超过100个字符')
+    ElMessage.warning('Tên không được vượt quá 100 ký tự')
     return
   }
   if (nextName === String(editForm.value.originalName || '').trim()) {
@@ -878,9 +878,9 @@ const submitEditClone = async () => {
   editSubmitting.value = true
   try {
     await api.put(`/user/voice-clones/${cloneID}`, { name: nextName })
-    ElMessage.success('名称更新成功')
+    ElMessage.success('Cập nhật tên thành công')
     editDialogVisible.value = false
-    await loadVoiceClones(true)
+    await loadGiọngClones(true)
   } finally {
     editSubmitting.value = false
   }
@@ -891,8 +891,8 @@ const retryClone = async (clone) => {
   retrySubmittingID.value = clone.id
   try {
     await api.post(`/user/voice-clones/${clone.id}/retry`)
-    ElMessage.success('已提交重新复刻任务，正在后台处理')
-    await loadVoiceClones(true)
+    ElMessage.success('Đã gửi task clone lại, đang xử lý nền')
+    await loadGiọngClones(true)
   } finally {
     retrySubmittingID.value = null
   }
@@ -904,7 +904,7 @@ const toggleSharedToAll = async (clone, nextValue) => {
   try {
     await api.put(`/user/voice-clones/${clone.id}`, { shared_to_all: !!nextValue })
     clone.shared_to_all = !!nextValue
-    ElMessage.success(nextValue ? '已启用给所有人使用' : '已关闭共享')
+    ElMessage.success(nextValue ? 'Đã bật chia sẻ cho mọi người' : 'Đã tắt chia sẻ')
   } finally {
     shareSubmittingID.value = null
   }
@@ -914,12 +914,12 @@ const deleteClone = async (clone) => {
   if (!clone?.id || deleteSubmittingID.value) return
   try {
     await ElMessageBox.confirm(
-      `确认删除复刻音色“${clone.name || clone.provider_voice_id || clone.id}”吗？删除后将不再出现在列表和可选音色中。`,
-      '删除复刻音色',
+      `Xác nhận xóa clone giọng “${clone.name || clone.provider_voice_id || clone.id}” không? Sau khi xóa, mục này sẽ không còn trong danh sách và lựa chọn voice.`,
+      'Xóa giọng clone',
       {
         type: 'warning',
-        confirmButtonText: '删除',
-        cancelButtonText: '取消'
+        confirmButtonText: 'Xóa',
+        cancelButtonText: 'Hủy'
       }
     )
   } catch {
@@ -928,8 +928,8 @@ const deleteClone = async (clone) => {
   deleteSubmittingID.value = clone.id
   try {
     await api.delete(`/user/voice-clones/${clone.id}`)
-    ElMessage.success('删除成功')
-    await loadVoiceClones(true)
+    ElMessage.success('Xóa thành công')
+    await loadGiọngClones(true)
   } finally {
     deleteSubmittingID.value = null
   }
@@ -940,7 +940,7 @@ const openAppendAudioDialog = (clone) => {
   appendAudioTargetClone.value = clone
   const input = appendAudioInputRef.value
   if (!input) {
-    ElMessage.error('文件选择器未就绪')
+    ElMessage.error('Bộ chọn file chưa sẵn sàng')
     return
   }
   input.value = ''
@@ -960,10 +960,10 @@ const handleAppendAudioFileChange = async (event) => {
     fd.append('source_type', 'upload')
     fd.append('audio_file', file)
     await api.post(`/user/voice-clones/${clone.id}/append-audio`, fd, { timeout: 120000 })
-    ElMessage.success('追加参考音频成功')
-    await loadVoiceClones(true)
+    ElMessage.success('Thêm audio tham chiếu thành công')
+    await loadGiọngClones(true)
   } catch (error) {
-    ElMessage.error(error?.response?.data?.error || '追加参考音频失败')
+    ElMessage.error(error?.response?.data?.error || 'Thêm audio tham chiếu thất bại')
   } finally {
     appendAudioSubmittingID.value = null
     appendAudioTargetClone.value = null
@@ -974,7 +974,7 @@ const handleAppendAudioFileChange = async (event) => {
 const playAudio = async (audio) => {
   const response = await api.get(`/user/voice-clones/audios/${audio.id}/file`, { responseType: 'blob' })
   const label = String(audio?.file_name || '')
-  await setPreviewPlayerSource(response.data, '原音频', label || '复刻原始音频')
+  await setPreviewPlayerSource(response.data, 'Audio gốc', label || 'Audio gốc của clone')
 }
 
 const previewUploadedAudio = async (clone) => {
@@ -984,26 +984,26 @@ const previewUploadedAudio = async (clone) => {
     const res = await api.get(`/user/voice-clones/${clone.id}/audios`)
     const audios = res.data.data || []
     if (!audios.length) {
-      ElMessage.warning('未找到已上传音频')
+      ElMessage.warning('Không tìm thấy audio đã tải lên')
       return
     }
     const audioRes = await api.get(`/user/voice-clones/audios/${audios[0].id}/file`, { responseType: 'blob' })
-    await setPreviewPlayerSource(audioRes.data, '原音频', String(clone?.name || '复刻任务'))
+    await setPreviewPlayerSource(audioRes.data, 'Audio gốc', String(clone?.name || 'Tác vụ clone'))
   } catch (error) {
-    ElMessage.error(error?.response?.data?.error || '预览上传音频失败')
+    ElMessage.error(error?.response?.data?.error || 'Nghe thử audio đã tải lên thất bại')
   } finally {
     previewUploadSubmittingID.value = null
   }
 }
 
-const previewClonedVoice = async (clone) => {
-  if (!clone?.id || !canPreviewClonedVoice(clone) || previewClonedSubmittingID.value) return
+const previewClonedGiọng = async (clone) => {
+  if (!clone?.id || !canPreviewClonedGiọng(clone) || previewClonedSubmittingID.value) return
   const previewNotice = resolveChargeNotice(clone?.provider, 'preview')
   if (previewNotice.message) {
     try {
-      await ElMessageBox.confirm(previewNotice.message, '试听复刻提醒', {
-        confirmButtonText: '继续试听',
-        cancelButtonText: '取消',
+      await ElMessageBox.confirm(previewNotice.message, 'Nhắc trước khi nghe thử clone', {
+        confirmButtonText: 'Tiếp tục nghe thử',
+        cancelButtonText: 'Hủy',
         type: previewNotice.type
       })
     } catch (error) {
@@ -1013,16 +1013,16 @@ const previewClonedVoice = async (clone) => {
   previewClonedSubmittingID.value = clone.id
   try {
     const response = await api.get(`/user/voice-clones/${clone.id}/preview`, { responseType: 'blob' })
-    await setPreviewPlayerSource(response.data, '试听复刻', String(clone?.name || '复刻任务'))
+    await setPreviewPlayerSource(response.data, 'Nghe thử clone', String(clone?.name || 'Tác vụ clone'))
   } catch (error) {
-    ElMessage.error(error?.response?.data?.error || '试听复刻音频失败')
+    ElMessage.error(error?.response?.data?.error || 'Nghe thử audio clone thất bại')
   } finally {
     previewClonedSubmittingID.value = null
   }
 }
 
 onMounted(async () => {
-  await loadVoiceClones()
+  await loadGiọngClones()
 })
 
 onBeforeUnmount(() => {

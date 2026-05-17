@@ -149,7 +149,7 @@ func NewVoiceCloneController(db *gorm.DB, cfg *config.Config) *VoiceCloneControl
 func (vcc *VoiceCloneController) CreateVoiceClone(c *gin.Context) {
 	userIDAny, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 	userID := userIDAny.(uint)
@@ -160,47 +160,47 @@ func (vcc *VoiceCloneController) CreateVoiceClone(c *gin.Context) {
 	transcriptLang := strings.TrimSpace(c.DefaultPostForm("transcript_lang", "zh-CN"))
 	sourceType := strings.TrimSpace(c.DefaultPostForm("source_type", "upload"))
 	if ttsConfigID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "tts_config_id不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "tts_config_id không được để trống"})
 		return
 	}
 	if sourceType != "upload" && sourceType != "record" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "source_type仅支持upload或record"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "source_type chỉ hỗ trợ upload hoặc record"})
 		return
 	}
 
 	var ttsCfg models.Config
 	if err := vcc.DB.Where("type = ? AND config_id = ?", "tts", ttsConfigID).First(&ttsCfg).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "TTS配置不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cấu hình TTS không tồn tại"})
 		return
 	}
 	rawProvider := strings.TrimSpace(ttsCfg.Provider)
 	provider := normalizeCloneProvider(rawProvider)
 	if provider != "doubao" && provider != "minimax" && provider != "cosyvoice" && provider != "aliyun_qwen" && provider != "indextts_vllm" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "当前仅支持 豆包/Minimax/CosyVoice/千问/IndexTTS 提供商的声音复刻"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Hiện chỉ hỗ trợ clone giọng cho các nhà cung cấp Doubao/Minimax/CosyVoice/Qwen/IndexTTS"})
 		return
 	}
 
 	capability := GetCloneProviderCapability(provider)
 	if !capability.Enabled {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "该提供商暂未开启声音复刻"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nhà cung cấp này chưa bật tính năng clone giọng"})
 		return
 	}
 	if capability.RequiresTranscript {
 		if transcript == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "该提供商复刻要求必须填写音频对应文字"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Nhà cung cấp này yêu cầu nhập bản chép lời tương ứng với audio"})
 			return
 		}
 		if len([]rune(transcript)) < capability.MinTextLen {
-			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("音频对应文字长度不能少于%d个字符", capability.MinTextLen)})
+			c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Độ dài bản chép lời của audio không được ít hơn %d ký tự", capability.MinTextLen)})
 			return
 		}
 	}
 	if capability.MaxTextLen > 0 && len([]rune(transcript)) > capability.MaxTextLen {
-		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("音频对应文字长度不能超过%d个字符", capability.MaxTextLen)})
+		c.JSON(http.StatusBadRequest, gin.H{"error": fmt.Sprintf("Độ dài bản chép lời của audio không được vượt quá %d ký tự", capability.MaxTextLen)})
 		return
 	}
 	if len(capability.SupportedLangs) > 0 && !capability.SupportedLangs[transcriptLang] {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "transcript_lang不受该提供商支持"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nhà cung cấp này không hỗ trợ transcript_lang"})
 		return
 	}
 
@@ -230,7 +230,7 @@ func (vcc *VoiceCloneController) CreateVoiceClone(c *gin.Context) {
 	audioUUID := uuid.New().String()
 	filePath, size, err := vcc.AudioStorage.SaveVoiceCloneAudioFile(userID, audioUUID, header.Filename, file)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存复刻音频失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu audio clone thất bại: " + err.Error()})
 		return
 	}
 	if err = validateCloneAudioForProvider(provider, filePath); err != nil {
@@ -300,10 +300,10 @@ func (vcc *VoiceCloneController) CreateVoiceClone(c *gin.Context) {
 	if err != nil {
 		_ = vcc.AudioStorage.DeleteAudioFile(filePath)
 		if errors.Is(err, errVoiceCloneQuotaExceeded) {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "该 TTS 配置的声音复刻次数已用完，请联系管理员分配额度"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Số lượt clone giọng của cấu hình TTS này đã hết, vui lòng liên hệ quản trị viên để được cấp thêm hạn mức"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建复刻任务失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo tác vụ clone thất bại: " + err.Error()})
 		return
 	}
 
@@ -319,7 +319,7 @@ func (vcc *VoiceCloneController) CreateVoiceClone(c *gin.Context) {
 func (vcc *VoiceCloneController) GetVoiceClones(c *gin.Context) {
 	userIDAny, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 	userID := userIDAny.(uint)
@@ -332,7 +332,7 @@ func (vcc *VoiceCloneController) GetVoiceClones(c *gin.Context) {
 
 	var clones []models.VoiceClone
 	if err := query.Order("created_at DESC").Find(&clones).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询复刻音色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn giọng clone thất bại"})
 		return
 	}
 	if len(clones) == 0 {
@@ -351,7 +351,7 @@ func (vcc *VoiceCloneController) GetVoiceClones(c *gin.Context) {
 
 	var tasks []models.VoiceCloneTask
 	if err := vcc.DB.Where("user_id = ? AND voice_clone_id IN ?", userID, cloneIDs).Order("created_at DESC").Find(&tasks).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询复刻任务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn tác vụ clone thất bại"})
 		return
 	}
 	latestTaskByCloneID := make(map[uint]models.VoiceCloneTask, len(clones))
@@ -418,14 +418,14 @@ func (vcc *VoiceCloneController) GetVoiceClones(c *gin.Context) {
 func (vcc *VoiceCloneController) UpdateVoiceClone(c *gin.Context) {
 	userIDAny, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 	userID := userIDAny.(uint)
 
 	cloneID := strings.TrimSpace(c.Param("id"))
 	if cloneID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "复刻音色ID不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID giọng clone không được để trống"})
 		return
 	}
 
@@ -434,17 +434,17 @@ func (vcc *VoiceCloneController) UpdateVoiceClone(c *gin.Context) {
 		SharedToAll *bool   `json:"shared_to_all"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数格式错误"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Định dạng tham số yêu cầu không hợp lệ"})
 		return
 	}
 
 	var clone models.VoiceClone
 	if err := vcc.DB.Where("id = ? AND user_id = ? AND status != ?", cloneID, userID, "deleted").First(&clone).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "复刻音色不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Giọng clone không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询复刻音色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn giọng clone thất bại"})
 		return
 	}
 
@@ -452,11 +452,11 @@ func (vcc *VoiceCloneController) UpdateVoiceClone(c *gin.Context) {
 	if req.Name != nil {
 		name := strings.TrimSpace(*req.Name)
 		if name == "" {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "名称不能为空"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Tên không được để trống"})
 			return
 		}
 		if len([]rune(name)) > 100 {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "名称长度不能超过100个字符"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Độ dài tên không được vượt quá 100 ký tự"})
 			return
 		}
 		updateData["name"] = name
@@ -466,23 +466,23 @@ func (vcc *VoiceCloneController) UpdateVoiceClone(c *gin.Context) {
 		roleVal, hasRole := c.Get("role")
 		isAdmin := hasRole && strings.TrimSpace(fmt.Sprint(roleVal)) == "admin"
 		if !isAdmin {
-			c.JSON(http.StatusForbidden, gin.H{"error": "仅管理员可设置共享状态"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Chỉ quản trị viên mới có thể thiết lập trạng thái chia sẻ"})
 			return
 		}
 		if normalizeCloneStatusValue(clone.Status) != voiceCloneStatusActive {
-			c.JSON(http.StatusBadRequest, gin.H{"error": "仅成功状态的复刻音色允许设置共享状态"})
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Chỉ giọng clone ở trạng thái thành công mới được phép thiết lập chia sẻ"})
 			return
 		}
 		updateData["shared_to_all"] = *req.SharedToAll
 		clone.SharedToAll = *req.SharedToAll
 	}
 	if len(updateData) == 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "没有可更新的字段"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Không có trường nào để cập nhật"})
 		return
 	}
 
 	if err := vcc.DB.Model(&clone).Updates(updateData).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新复刻音色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật giọng clone thất bại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": clone})
@@ -491,24 +491,24 @@ func (vcc *VoiceCloneController) UpdateVoiceClone(c *gin.Context) {
 func (vcc *VoiceCloneController) DeleteVoiceClone(c *gin.Context) {
 	userIDAny, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 	userID := userIDAny.(uint)
 
 	cloneID := strings.TrimSpace(c.Param("id"))
 	if cloneID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "复刻音色ID不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID giọng clone không được để trống"})
 		return
 	}
 
 	var clone models.VoiceClone
 	if err := vcc.DB.Where("id = ? AND user_id = ? AND status != ?", cloneID, userID, "deleted").First(&clone).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "复刻音色不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Giọng clone không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询复刻音色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn giọng clone thất bại"})
 		return
 	}
 
@@ -523,24 +523,24 @@ func (vcc *VoiceCloneController) DeleteVoiceClone(c *gin.Context) {
 			"shared_to_all": false,
 			"meta_json":     cloneMetaJSON,
 		}).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除复刻音色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa giọng clone thất bại"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "删除成功"})
+	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
 func (vcc *VoiceCloneController) RetryVoiceClone(c *gin.Context) {
 	userIDAny, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 	userID := userIDAny.(uint)
 
 	cloneID := strings.TrimSpace(c.Param("id"))
 	if cloneID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "复刻音色ID不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID giọng clone không được để trống"})
 		return
 	}
 
@@ -594,7 +594,7 @@ func (vcc *VoiceCloneController) RetryVoiceClone(c *gin.Context) {
 	})
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "复刻任务不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Tác vụ clone không tồn tại"})
 			return
 		}
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -614,38 +614,38 @@ func (vcc *VoiceCloneController) RetryVoiceClone(c *gin.Context) {
 func (vcc *VoiceCloneController) AppendVoiceCloneAudio(c *gin.Context) {
 	userIDAny, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 	userID := userIDAny.(uint)
 
 	cloneID := strings.TrimSpace(c.Param("id"))
 	if cloneID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "复刻音色ID不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID giọng clone không được để trống"})
 		return
 	}
 
 	var clone models.VoiceClone
 	if err := vcc.DB.Where("id = ? AND user_id = ? AND status != ?", cloneID, userID, "deleted").First(&clone).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "复刻音色不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Giọng clone không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询复刻音色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn giọng clone thất bại"})
 		return
 	}
 	if normalizeCloneProvider(clone.Provider) != "indextts_vllm" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "仅 indextts_vllm 支持追加参考音频"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Chỉ indextts_vllm hỗ trợ thêm audio tham chiếu"})
 		return
 	}
 	if normalizeCloneStatusValue(clone.Status) != voiceCloneStatusActive {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "仅已成功的复刻音色允许追加参考音频"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Chỉ giọng clone đã thành công mới được phép thêm audio tham chiếu"})
 		return
 	}
 
 	sourceType := strings.TrimSpace(c.DefaultPostForm("source_type", "upload"))
 	if sourceType != "upload" && sourceType != "record" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "source_type仅支持upload或record"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "source_type chỉ hỗ trợ upload hoặc record"})
 		return
 	}
 	transcript := strings.TrimSpace(c.PostForm("transcript"))
@@ -661,7 +661,7 @@ func (vcc *VoiceCloneController) AppendVoiceCloneAudio(c *gin.Context) {
 	audioUUID := uuid.New().String()
 	filePath, size, err := vcc.AudioStorage.SaveVoiceCloneAudioFile(userID, audioUUID, header.Filename, file)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存追加音频失败: " + err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu audio bổ sung thất bại: " + err.Error()})
 		return
 	}
 	if err = validateCloneAudioForProvider("indextts_vllm", filePath); err != nil {
@@ -673,7 +673,7 @@ func (vcc *VoiceCloneController) AppendVoiceCloneAudio(c *gin.Context) {
 	var ttsCfg models.Config
 	if err := vcc.DB.Where("type = ? AND config_id = ?", "tts", clone.TTSConfigID).First(&ttsCfg).Error; err != nil {
 		_ = vcc.AudioStorage.DeleteAudioFile(filePath)
-		c.JSON(http.StatusBadRequest, gin.H{"error": "关联TTS配置不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cấu hình TTS liên kết không tồn tại"})
 		return
 	}
 
@@ -682,7 +682,7 @@ func (vcc *VoiceCloneController) AppendVoiceCloneAudio(c *gin.Context) {
 	result, err := vcc.cloneWithIndexTTSVLLMByVoice(ctx, ttsCfg, filePath, header.Filename, clone.ProviderVoiceID)
 	if err != nil {
 		_ = vcc.AudioStorage.DeleteAudioFile(filePath)
-		c.JSON(http.StatusBadGateway, gin.H{"error": "追加参考音频失败: " + err.Error()})
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Thêm audio tham chiếu thất bại: " + err.Error()})
 		return
 	}
 
@@ -699,7 +699,7 @@ func (vcc *VoiceCloneController) AppendVoiceCloneAudio(c *gin.Context) {
 	}
 	if err := vcc.DB.Create(&audio).Error; err != nil {
 		_ = vcc.AudioStorage.DeleteAudioFile(filePath)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存追加音频记录失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu bản ghi audio bổ sung thất bại"})
 		return
 	}
 
@@ -709,7 +709,7 @@ func (vcc *VoiceCloneController) AppendVoiceCloneAudio(c *gin.Context) {
 		"last_append_http_code": result.ResponseCode,
 	})
 	if err := vcc.DB.Model(&models.VoiceClone{}).Where("id = ? AND user_id = ?", clone.ID, userID).Update("meta_json", metaJSON).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "更新复刻元数据失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật metadata clone thất bại"})
 		return
 	}
 
@@ -717,46 +717,46 @@ func (vcc *VoiceCloneController) AppendVoiceCloneAudio(c *gin.Context) {
 		"id":                clone.ID,
 		"provider_voice_id": clone.ProviderVoiceID,
 		"audio_id":          audio.ID,
-		"message":           "追加参考音频成功",
+		"message":           "Thêm audio tham chiếu thành công",
 	}})
 }
 
 func (vcc *VoiceCloneController) PreviewClonedVoice(c *gin.Context) {
 	userIDAny, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 	userID := userIDAny.(uint)
 
 	cloneID := strings.TrimSpace(c.Param("id"))
 	if cloneID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "复刻音色ID不能为空"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID giọng clone không được để trống"})
 		return
 	}
 
 	var clone models.VoiceClone
 	if err := vcc.DB.Where("id = ? AND user_id = ? AND status != ?", cloneID, userID, "deleted").First(&clone).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			c.JSON(http.StatusNotFound, gin.H{"error": "复刻音色不存在"})
+			c.JSON(http.StatusNotFound, gin.H{"error": "Giọng clone không tồn tại"})
 			return
 		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询复刻音色失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn giọng clone thất bại"})
 		return
 	}
 	if normalizeCloneStatusValue(clone.Status) != voiceCloneStatusActive {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "仅已成功的复刻音色允许试听"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Chỉ giọng clone đã thành công mới được phép nghe thử"})
 		return
 	}
 	voiceID := strings.TrimSpace(clone.ProviderVoiceID)
 	if voiceID == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "复刻音色ID为空，无法试听"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID giọng clone đang trống, không thể nghe thử"})
 		return
 	}
 
 	var ttsCfg models.Config
 	if err := vcc.DB.Where("type = ? AND config_id = ?", "tts", clone.TTSConfigID).First(&ttsCfg).Error; err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "关联TTS配置不存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Cấu hình TTS liên kết không tồn tại"})
 		return
 	}
 	provider := normalizeCloneProvider(ttsCfg.Provider)
@@ -764,7 +764,7 @@ func (vcc *VoiceCloneController) PreviewClonedVoice(c *gin.Context) {
 	cfgMap := make(map[string]any)
 	if strings.TrimSpace(ttsCfg.JsonData) != "" {
 		if err := json.Unmarshal([]byte(ttsCfg.JsonData), &cfgMap); err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "解析TTS配置失败"})
+			c.JSON(http.StatusInternalServerError, gin.H{"error": "Phân tích cấu hình TTS thất bại"})
 			return
 		}
 	}
@@ -789,15 +789,15 @@ func (vcc *VoiceCloneController) PreviewClonedVoice(c *gin.Context) {
 	case "indextts_vllm":
 		audioBytes, contentType, err = vcc.previewIndexTTSClonedVoice(ctx, cfgMap, voiceID, voiceClonePreviewText)
 	default:
-		c.JSON(http.StatusBadRequest, gin.H{"error": "当前提供商不支持复刻试听"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Nhà cung cấp hiện tại không hỗ trợ nghe thử giọng clone"})
 		return
 	}
 	if err != nil {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "生成试听音频失败: " + err.Error()})
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Tạo audio nghe thử thất bại: " + err.Error()})
 		return
 	}
 	if len(audioBytes) == 0 {
-		c.JSON(http.StatusBadGateway, gin.H{"error": "生成试听音频失败: 返回音频为空"})
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Tạo audio nghe thử thất bại: audio trả về trống"})
 		return
 	}
 	if strings.TrimSpace(contentType) == "" {
@@ -811,7 +811,7 @@ func (vcc *VoiceCloneController) PreviewClonedVoice(c *gin.Context) {
 func (vcc *VoiceCloneController) GetVoiceCloneAudios(c *gin.Context) {
 	userIDAny, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 	userID := userIDAny.(uint)
@@ -819,13 +819,13 @@ func (vcc *VoiceCloneController) GetVoiceCloneAudios(c *gin.Context) {
 	cloneID := strings.TrimSpace(c.Param("id"))
 	var clone models.VoiceClone
 	if err := vcc.DB.Where("id = ? AND user_id = ?", cloneID, userID).First(&clone).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "复刻音色不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Giọng clone không tồn tại"})
 		return
 	}
 
 	var audios []models.VoiceCloneAudio
 	if err := vcc.DB.Where("voice_clone_id = ? AND user_id = ?", clone.ID, userID).Order("created_at DESC").Find(&audios).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "查询复刻音频失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn audio clone thất bại"})
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": audios})
@@ -834,7 +834,7 @@ func (vcc *VoiceCloneController) GetVoiceCloneAudios(c *gin.Context) {
 func (vcc *VoiceCloneController) GetVoiceCloneAudioFile(c *gin.Context) {
 	userIDAny, exists := c.Get("user_id")
 	if !exists {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "认证信息缺失"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 	userID := userIDAny.(uint)
@@ -842,11 +842,11 @@ func (vcc *VoiceCloneController) GetVoiceCloneAudioFile(c *gin.Context) {
 	audioID := strings.TrimSpace(c.Param("audio_id"))
 	var audio models.VoiceCloneAudio
 	if err := vcc.DB.Where("id = ? AND user_id = ?", audioID, userID).First(&audio).Error; err != nil {
-		c.JSON(http.StatusNotFound, gin.H{"error": "复刻音频不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "Audio clone không tồn tại"})
 		return
 	}
 	if !vcc.AudioStorage.FileExists(audio.FilePath) {
-		c.JSON(http.StatusNotFound, gin.H{"error": "音频文件不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "File audio không tồn tại"})
 		return
 	}
 
@@ -862,7 +862,7 @@ func (vcc *VoiceCloneController) GetVoiceCloneAudioFile(c *gin.Context) {
 func (vcc *VoiceCloneController) GetCloneProviderCapabilities(c *gin.Context) {
 	provider := strings.TrimSpace(c.Query("provider"))
 	if provider == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "provider参数必填"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tham số provider là bắt buộc"})
 		return
 	}
 	capability := GetCloneProviderCapability(provider)
@@ -1069,7 +1069,7 @@ func (vcc *VoiceCloneController) cloneWithIndexTTSVLLMByVoice(ctx context.Contex
 	cfgMap := make(map[string]any)
 	if ttsCfg.JsonData != "" {
 		if err := json.Unmarshal([]byte(ttsCfg.JsonData), &cfgMap); err != nil {
-			return nil, fmt.Errorf("解析TTS配置失败: %w", err)
+			return nil, fmt.Errorf("Phân tích cấu hình TTS thất bại: %w", err)
 		}
 	}
 	baseURL := normalizeIndexTTSBaseURL(getStringAny(cfgMap, "api_url"))
@@ -1336,7 +1336,7 @@ func (vcc *VoiceCloneController) previewAliyunQwenClonedVoice(ctx context.Contex
 		return nil, "", fmt.Errorf("解析千问试听响应失败: %w", err)
 	}
 	if code := strings.TrimSpace(getStringAny(parsed, "code")); code != "" {
-		return nil, "", fmt.Errorf("千问试听失败(code=%s, msg=%s)", code, strings.TrimSpace(getStringAny(parsed, "message")))
+		return nil, "", fmt.Errorf("Qwen nghe thử thất bại (code=%s, msg=%s)", code, strings.TrimSpace(getStringAny(parsed, "message")))
 	}
 	if statusCode, ok := getIntAny(parsed, "status_code"); ok && statusCode != 200 {
 		return nil, "", fmt.Errorf("千问试听失败(status_code=%d)", statusCode)
@@ -1385,7 +1385,7 @@ func (vcc *VoiceCloneController) cloneWithMinimax(ctx context.Context, ttsCfg mo
 	cfgMap := make(map[string]any)
 	if ttsCfg.JsonData != "" {
 		if err := json.Unmarshal([]byte(ttsCfg.JsonData), &cfgMap); err != nil {
-			return nil, fmt.Errorf("解析TTS配置失败: %w", err)
+			return nil, fmt.Errorf("Phân tích cấu hình TTS thất bại: %w", err)
 		}
 	}
 	apiKey := normalizeMinimaxAPIKey(getStringAny(cfgMap, "api_key"))
@@ -1604,7 +1604,7 @@ func (vcc *VoiceCloneController) cloneWithAliyunQwen(ctx context.Context, ttsCfg
 	cfgMap := make(map[string]any)
 	if ttsCfg.JsonData != "" {
 		if err := json.Unmarshal([]byte(ttsCfg.JsonData), &cfgMap); err != nil {
-			return nil, fmt.Errorf("解析TTS配置失败: %w", err)
+			return nil, fmt.Errorf("Phân tích cấu hình TTS thất bại: %w", err)
 		}
 	}
 

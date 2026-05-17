@@ -3,24 +3,24 @@
     <div class="login-shell">
       <section class="login-hero">
         <div class="login-brand">
-          <img class="login-brand-logo" :src="appLogo" alt="小智管理系统" />
+          <img class="login-brand-logo" :src="appLogo" :alt="t('app.name')" />
           <div>
-            <strong>小智管理系统</strong>
-            <span>AI 服务与设备管理平台</span>
+            <strong>{{ t('app.name') }}</strong>
+            <span>{{ t('app.platform') }}</span>
           </div>
         </div>
-        <p class="login-eyebrow">XIAOZHI CONTROL CENTER</p>
-        <h1>小智 AI Go 到起飞。</h1>
+        <p class="login-eyebrow">{{ t('app.controlCenter') }}</p>
+        <h1>{{ t('auth.heroTitle') }}</h1>
         <p>
-          统一管理智能体、声纹、知识库与服务接入，让设备、模型和语音能力在同一个工作台里协同运行。
+          {{ t('auth.heroDescription') }}
         </p>
         <div class="login-meta">
-          <span class="apple-chip is-primary">智能体编排</span>
-          <span class="apple-chip">设备接入</span>
-          <span class="apple-chip">声纹与知识库</span>
+          <span class="apple-chip is-primary">{{ t('auth.chips.agent') }}</span>
+          <span class="apple-chip">{{ t('auth.chips.device') }}</span>
+          <span class="apple-chip">{{ t('auth.chips.speakerKnowledge') }}</span>
           <span class="apple-chip">MCP / OpenClaw</span>
-          <span class="apple-chip">MCP 远程调用</span>
-          <span class="apple-chip">主动语音下发</span>
+          <span class="apple-chip">{{ t('auth.chips.remoteCall') }}</span>
+          <span class="apple-chip">{{ t('auth.chips.voicePush') }}</span>
         </div>
       </section>
 
@@ -28,36 +28,36 @@
         <template #header>
           <div class="card-header">
             <div>
-              <p class="card-eyebrow">WELCOME BACK</p>
-              <h2>登录或创建账户</h2>
+              <p class="card-eyebrow">{{ t('auth.welcomeBack') }}</p>
+              <h2>{{ t('auth.loginOrCreate') }}</h2>
             </div>
           </div>
         </template>
 
         <el-tabs v-model="activeTab" class="login-tabs">
-          <el-tab-pane label="登录" name="login">
+          <el-tab-pane :label="t('auth.login')" name="login">
             <el-form
               ref="loginFormRef"
               :model="loginForm"
               :rules="loginRules"
               label-position="top"
             >
-              <el-form-item label="用户名" prop="username">
-                <el-input v-model="loginForm.username" placeholder="请输入用户名" />
+              <el-form-item :label="t('auth.username')" prop="username">
+                <el-input v-model="loginForm.username" :placeholder="t('validation.usernameRequired')" />
               </el-form-item>
-              <el-form-item label="密码" prop="password">
+              <el-form-item :label="t('auth.password')" prop="password">
                 <el-input
                   v-model="loginForm.password"
                   type="password"
-                  placeholder="请输入密码"
+                  :placeholder="t('validation.passwordRequired')"
                   @keyup.enter="handleLogin"
                 />
               </el-form-item>
               <div v-if="loginCaptchaEnabled" class="captcha-strip">
                 <div class="captcha-copy">
-                  <span class="captcha-label">人机验证</span>
-                  <strong>{{ loginCaptchaPrompt || '正在生成题目...' }}</strong>
-                  <p>简单算术题，防止脚本批量登录。</p>
+                  <span class="captcha-label">{{ t('auth.captcha') }}</span>
+                  <strong>{{ loginCaptchaPrompt || t('auth.captchaLoading') }}</strong>
+                  <p>{{ t('auth.captchaHintLogin') }}</p>
                 </div>
                 <el-button
                   link
@@ -65,14 +65,14 @@
                   :loading="loginCaptchaLoading"
                   @click="refreshLoginCaptcha"
                 >
-                  换一题
+                  {{ t('auth.changeCaptcha') }}
                 </el-button>
               </div>
-              <el-form-item v-if="loginCaptchaEnabled" label="计算结果" prop="captchaAnswer">
+              <el-form-item v-if="loginCaptchaEnabled" :label="t('auth.captchaAnswer')" prop="captchaAnswer">
                 <el-input
                   v-model="loginForm.captchaAnswer"
                   inputmode="numeric"
-                  placeholder="请输入计算结果"
+                  :placeholder="t('validation.captchaAnswerRequired')"
                   @keyup.enter="handleLogin"
                 />
               </el-form-item>
@@ -84,45 +84,45 @@
                   @click="handleLogin"
                   style="width: 100%"
                 >
-                  登录
+                  {{ t('auth.login') }}
                 </el-button>
               </el-form-item>
             </el-form>
           </el-tab-pane>
 
-          <el-tab-pane label="注册" name="register">
+          <el-tab-pane :label="t('auth.register')" name="register">
             <el-form
               ref="registerFormRef"
               :model="registerForm"
               :rules="registerRules"
               label-position="top"
             >
-              <el-form-item label="用户名" prop="username">
-                <el-input v-model="registerForm.username" placeholder="请输入用户名" />
+              <el-form-item :label="t('auth.username')" prop="username">
+                <el-input v-model="registerForm.username" :placeholder="t('validation.usernameRequired')" />
               </el-form-item>
-              <el-form-item label="邮箱" prop="email">
-                <el-input v-model="registerForm.email" placeholder="请输入邮箱" />
+              <el-form-item :label="t('auth.email')" prop="email">
+                <el-input v-model="registerForm.email" :placeholder="t('validation.emailRequired')" />
               </el-form-item>
-              <el-form-item label="密码" prop="password">
+              <el-form-item :label="t('auth.password')" prop="password">
                 <el-input
                   v-model="registerForm.password"
                   type="password"
-                  placeholder="请输入密码"
+                  :placeholder="t('validation.passwordRequired')"
                 />
               </el-form-item>
-              <el-form-item label="确认密码" prop="confirmPassword">
+              <el-form-item :label="t('auth.confirmPassword')" prop="confirmPassword">
                 <el-input
                   v-model="registerForm.confirmPassword"
                   type="password"
-                  placeholder="请确认密码"
+                  :placeholder="t('validation.confirmPasswordRequired')"
                   @keyup.enter="handleRegister"
                 />
               </el-form-item>
               <div class="captcha-strip">
                 <div class="captcha-copy">
-                  <span class="captcha-label">人机验证</span>
-                  <strong>{{ registerCaptchaPrompt || '正在生成题目...' }}</strong>
-                  <p>完成简单算式后再提交注册。</p>
+                  <span class="captcha-label">{{ t('auth.captcha') }}</span>
+                  <strong>{{ registerCaptchaPrompt || t('auth.captchaLoading') }}</strong>
+                  <p>{{ t('auth.captchaHintRegister') }}</p>
                 </div>
                 <el-button
                   link
@@ -130,14 +130,14 @@
                   :loading="registerCaptchaLoading"
                   @click="refreshRegisterCaptcha"
                 >
-                  换一题
+                  {{ t('auth.changeCaptcha') }}
                 </el-button>
               </div>
-              <el-form-item label="计算结果" prop="captchaAnswer">
+              <el-form-item :label="t('auth.captchaAnswer')" prop="captchaAnswer">
                 <el-input
                   v-model="registerForm.captchaAnswer"
                   inputmode="numeric"
-                  placeholder="请输入计算结果"
+                  :placeholder="t('validation.captchaAnswerRequired')"
                   @keyup.enter="handleRegister"
                 />
               </el-form-item>
@@ -149,7 +149,7 @@
                   @click="handleRegister"
                   style="width: 100%"
                 >
-                  注册
+                  {{ t('auth.register') }}
                 </el-button>
               </el-form-item>
             </el-form>
@@ -163,6 +163,7 @@
 <script setup>
 import { ref, reactive, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { ElMessage } from 'element-plus'
 import { useAuthStore } from '../stores/auth'
 import api from '../utils/api'
@@ -171,6 +172,7 @@ import { checkNeedsSetup } from '../utils/setupStatus'
 import appLogo from '@/assets/brand/app-logo.webp'
 
 const router = useRouter()
+const { t } = useI18n()
 const authStore = useAuthStore()
 
 const activeTab = ref('login')
@@ -200,8 +202,8 @@ const registerForm = reactive({
 })
 
 const loginRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  username: [{ required: true, message: t('validation.usernameRequired'), trigger: 'blur' }],
+  password: [{ required: true, message: t('validation.passwordRequired'), trigger: 'blur' }],
   captchaAnswer: [
     {
       validator: (rule, value, callback) => {
@@ -209,7 +211,7 @@ const loginRules = {
           callback()
           return
         }
-        callback(new Error('请输入计算结果'))
+        callback(new Error(t('validation.captchaAnswerRequired')))
       },
       trigger: 'blur'
     }
@@ -217,21 +219,21 @@ const loginRules = {
 }
 
 const registerRules = {
-  username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
+  username: [{ required: true, message: t('validation.usernameRequired'), trigger: 'blur' }],
   email: [
-    { required: true, message: '请输入邮箱', trigger: 'blur' },
-    { type: 'email', message: '请输入正确的邮箱格式', trigger: 'blur' }
+    { required: true, message: t('validation.emailRequired'), trigger: 'blur' },
+    { type: 'email', message: t('validation.emailInvalid'), trigger: 'blur' }
   ],
   password: [
-    { required: true, message: '请输入密码', trigger: 'blur' },
-    { min: 6, message: '密码长度不能少于6位', trigger: 'blur' }
+    { required: true, message: t('validation.passwordRequired'), trigger: 'blur' },
+    { min: 6, message: t('validation.passwordMinLength'), trigger: 'blur' }
   ],
   confirmPassword: [
-    { required: true, message: '请确认密码', trigger: 'blur' },
+    { required: true, message: t('validation.confirmPasswordRequired'), trigger: 'blur' },
     {
       validator: (rule, value, callback) => {
         if (value !== registerForm.password) {
-          callback(new Error('两次输入密码不一致'))
+          callback(new Error(t('validation.passwordMismatch')))
         } else {
           callback()
         }
@@ -240,7 +242,7 @@ const registerRules = {
     }
   ],
   captchaAnswer: [
-    { required: true, message: '请输入计算结果', trigger: 'blur' }
+    { required: true, message: t('validation.captchaAnswerRequired'), trigger: 'blur' }
   ]
 }
 
@@ -255,7 +257,7 @@ const fetchCaptcha = async (form, promptRef, loadingRef, formRef) => {
   } catch (error) {
     form.captchaId = ''
     form.captchaAnswer = ''
-    promptRef.value = '题目加载失败，请换一题重试'
+    promptRef.value = t('auth.captchaLoadFailed')
   } finally {
     loadingRef.value = false
   }
@@ -303,7 +305,7 @@ const handleLogin = async () => {
   }
 
   if (loginCaptchaEnabled.value && !loginForm.captchaId) {
-    ElMessage.error('人机验证加载失败，请换一题重试')
+    ElMessage.error(t('auth.captchaLoadFailed'))
     await refreshLoginCaptcha()
     return
   }
@@ -321,7 +323,7 @@ const handleLogin = async () => {
   loading.value = false
 
   if (result.success) {
-    ElMessage.success('登录成功')
+    ElMessage.success(t('auth.loginSuccess'))
     router.push(getPostLoginRedirectPath(authStore.user))
   } else {
     ElMessage.error(result.message)
@@ -341,7 +343,7 @@ const handleRegister = async () => {
   }
 
   if (!registerForm.captchaId) {
-    ElMessage.error('人机验证加载失败，请换一题重试')
+    ElMessage.error(t('auth.captchaLoadFailed'))
     await refreshRegisterCaptcha()
     return
   }
@@ -357,7 +359,7 @@ const handleRegister = async () => {
   loading.value = false
 
   if (result.success) {
-    ElMessage.success('注册成功，请登录')
+    ElMessage.success(t('auth.registerSuccess'))
     activeTab.value = 'login'
     Object.assign(registerForm, {
       username: '',
@@ -384,7 +386,7 @@ const checkSystemStatus = async () => {
       router.push('/setup')
     }
   } catch (error) {
-    console.error('检查系统状态失败:', error)
+    console.error(`${t('setup.systemStatusCheckFailed')}:`, error)
   }
 }
 

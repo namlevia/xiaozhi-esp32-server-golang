@@ -54,7 +54,7 @@ func (uc *UserController) CreateAPIToken(c *gin.Context) {
 	userIDRaw, _ := c.Get("user_id")
 	userID, ok := userIDRaw.(uint)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "无效用户上下文"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Ngữ cảnh người dùng không hợp lệ"})
 		return
 	}
 
@@ -63,13 +63,13 @@ func (uc *UserController) CreateAPIToken(c *gin.Context) {
 		ExpiresIn int    `json:"expires_in_days"`
 	}
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数错误: " + err.Error()})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Lỗi tham số yêu cầu: " + err.Error()})
 		return
 	}
 
 	rawToken, prefix, hash, err := generateAPIToken()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "生成API Token失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo API Token thất bại"})
 		return
 	}
 
@@ -88,12 +88,12 @@ func (uc *UserController) CreateAPIToken(c *gin.Context) {
 		ExpiresAt:   expiresAt,
 	}
 	if err := uc.DB.Create(&token).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "保存API Token失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu API Token thất bại"})
 		return
 	}
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "API Token创建成功，请妥善保存明文，后续无法再次查看",
+		"message": "Tạo API Token thành công, vui lòng lưu lại bản rõ vì sau này sẽ không thể xem lại",
 		"data": gin.H{
 			"token": rawToken,
 			"meta":  toAPITokenResponse(token),
@@ -106,13 +106,13 @@ func (uc *UserController) ListAPITokens(c *gin.Context) {
 	userIDRaw, _ := c.Get("user_id")
 	userID, ok := userIDRaw.(uint)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "无效用户上下文"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Ngữ cảnh người dùng không hợp lệ"})
 		return
 	}
 
 	var tokens []models.APIToken
 	if err := uc.DB.Where("user_id = ?", userID).Order("id DESC").Find(&tokens).Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "获取API Token列表失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy danh sách API Token thất bại"})
 		return
 	}
 
@@ -129,7 +129,7 @@ func (uc *UserController) RevokeAPIToken(c *gin.Context) {
 	userIDRaw, _ := c.Get("user_id")
 	userID, ok := userIDRaw.(uint)
 	if !ok {
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "无效用户上下文"})
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Ngữ cảnh người dùng không hợp lệ"})
 		return
 	}
 
@@ -138,13 +138,13 @@ func (uc *UserController) RevokeAPIToken(c *gin.Context) {
 		Where("id = ? AND user_id = ?", tokenID, userID).
 		Updates(map[string]interface{}{"is_active": false})
 	if res.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "吊销API Token失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Thu hồi API Token thất bại"})
 		return
 	}
 	if res.RowsAffected == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"error": "API Token不存在"})
+		c.JSON(http.StatusNotFound, gin.H{"error": "API Token không tồn tại"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "API Token已吊销"})
+	c.JSON(http.StatusOK, gin.H{"message": "API Token đã được thu hồi"})
 }

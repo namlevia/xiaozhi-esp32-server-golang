@@ -65,24 +65,24 @@ func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// 添加调试日志
 		log.Printf("[JWTAuth] 处理请求: %s %s, 客户端IP: %s", c.Request.Method, c.Request.URL.Path, c.ClientIP())
-		
+
 		authHeader := c.GetHeader("Authorization")
 		log.Printf("[JWTAuth] Authorization头: %s", authHeader)
-		
+
 		if authHeader == "" {
-			log.Printf("[JWTAuth] ❌ 缺少认证头")
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "缺少认证头"})
+			log.Printf("[JWTAuth] ❌ Thiếu header xác thực")
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu header xác thực"})
 			c.Abort()
 			return
 		}
 
 		tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
 		log.Printf("[JWTAuth] 提取的token长度: %d, 前缀: %s", len(tokenString), tokenString[:min(20, len(tokenString))])
-		
+
 		claims, err := ParseToken(tokenString)
 		if err != nil {
 			log.Printf("[JWTAuth] ❌ token解析失败: %v", err)
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "无效的token"})
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token không hợp lệ"})
 			c.Abort()
 			return
 		}
@@ -100,7 +100,7 @@ func AdminAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")
 		if !exists || role != "admin" {
-			c.JSON(http.StatusForbidden, gin.H{"error": "需要管理员权限"})
+			c.JSON(http.StatusForbidden, gin.H{"error": "Yêu cầu quyền quản trị viên"})
 			c.Abort()
 			return
 		}

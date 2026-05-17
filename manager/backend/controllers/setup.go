@@ -25,7 +25,7 @@ func (sc *SetupController) CheckSetupStatus(c *gin.Context) {
 	if sc.DB == nil {
 		c.JSON(http.StatusOK, gin.H{
 			"needs_setup": true,
-			"message":     "数据库连接不可用",
+			"message":     "Kết nối cơ sở dữ liệu không khả dụng",
 		})
 		return
 	}
@@ -34,7 +34,7 @@ func (sc *SetupController) CheckSetupStatus(c *gin.Context) {
 	if !sc.DB.Migrator().HasTable(&models.User{}) {
 		c.JSON(http.StatusOK, gin.H{
 			"needs_setup": true,
-			"message":     "数据库表结构未初始化",
+			"message":     "Cấu trúc bảng cơ sở dữ liệu chưa được khởi tạo",
 		})
 		return
 	}
@@ -46,14 +46,14 @@ func (sc *SetupController) CheckSetupStatus(c *gin.Context) {
 	if count == 0 {
 		c.JSON(http.StatusOK, gin.H{
 			"needs_setup": true,
-			"message":     "需要创建管理员账户",
+			"message":     "Cần tạo tài khoản quản trị viên",
 		})
 		return
 	}
 
 	c.JSON(http.StatusOK, gin.H{
 		"needs_setup": false,
-		"message":     "系统已初始化",
+		"message":     "Hệ thống đã được khởi tạo",
 	})
 }
 
@@ -66,14 +66,14 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 	}
 
 	if sc.DB == nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "数据库连接不可用"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Kết nối cơ sở dữ liệu không khả dụng"})
 		return
 	}
 
 	// 开始事务
 	tx := sc.DB.Begin()
 	if tx.Error != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "启动数据库事务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Khởi tạo transaction cơ sở dữ liệu thất bại"})
 		return
 	}
 
@@ -98,8 +98,8 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 	)
 	if err != nil {
 		tx.Rollback()
-		log.Printf("数据库表结构迁移失败: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "数据库表结构迁移失败: " + err.Error()})
+		log.Printf("Migration cấu trúc bảng cơ sở dữ liệu thất bại: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Migration cấu trúc bảng cơ sở dữ liệu thất bại: " + err.Error()})
 		return
 	}
 	log.Println("数据库表结构迁移成功")
@@ -108,7 +108,7 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 	var existingAdmin models.User
 	if err := tx.Where("role = ?", "admin").First(&existingAdmin).Error; err == nil {
 		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"error": "管理员用户已存在，无法重复初始化"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Người dùng quản trị đã tồn tại, không thể khởi tạo lại"})
 		return
 	}
 
@@ -116,14 +116,14 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 	var existingUser models.User
 	if err := tx.Where("username = ?", req.AdminUsername).First(&existingUser).Error; err == nil {
 		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"error": "用户名已存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên đăng nhập đã tồn tại"})
 		return
 	}
 
 	// 4. 检查邮箱是否已存在
 	if err := tx.Where("email = ?", req.AdminEmail).First(&existingUser).Error; err == nil {
 		tx.Rollback()
-		c.JSON(http.StatusBadRequest, gin.H{"error": "邮箱已存在"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email đã tồn tại"})
 		return
 	}
 
@@ -131,7 +131,7 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.AdminPassword), bcrypt.DefaultCost)
 	if err != nil {
 		tx.Rollback()
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "密码加密失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Mã hóa mật khẩu thất bại"})
 		return
 	}
 
@@ -145,8 +145,8 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 
 	if err := tx.Create(&admin).Error; err != nil {
 		tx.Rollback()
-		log.Printf("创建管理员用户失败: %v", err)
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "创建管理员用户失败: " + err.Error()})
+		log.Printf("Tạo người dùng quản trị thất bại: %v", err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo người dùng quản trị thất bại: " + err.Error()})
 		return
 	}
 
@@ -181,13 +181,13 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 
 	// 提交事务
 	if err := tx.Commit().Error; err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "提交数据库事务失败"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Commit transaction cơ sở dữ liệu thất bại"})
 		return
 	}
 
-	log.Printf("数据库初始化成功，管理员用户: %s", req.AdminUsername)
+	log.Printf("Khởi tạo cơ sở dữ liệu thành công，管理员用户: %s", req.AdminUsername)
 	c.JSON(http.StatusOK, gin.H{
-		"message": "数据库初始化成功",
+		"message": "Khởi tạo cơ sở dữ liệu thành công",
 		"admin": gin.H{
 			"username": admin.Username,
 			"email":    admin.Email,

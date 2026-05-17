@@ -8,24 +8,24 @@
         @click="testAllConfigs"
         :disabled="!getEnabledConfigs().length"
       >
-        测试全部
+        Kiểm tra tất cả
       </el-button>
       <el-button type="primary" @click="showDialog = true">
         <el-icon><Plus /></el-icon>
-        添加配置
+        Thêm cấu hình
       </el-button>
     </div>
 
     <el-table :data="configs" style="width: 100%" v-loading="loading">
       <el-table-column prop="id" label="ID" width="80" />
-      <el-table-column prop="name" label="配置名称" />
-      <el-table-column prop="config_id" label="配置ID" width="150" />
-      <el-table-column prop="provider" label="提供商">
+      <el-table-column prop="name" label="Tên cấu hình" />
+      <el-table-column prop="config_id" label="ID cấu hình" width="150" />
+      <el-table-column prop="provider" label="Nhà cung cấp">
         <template #default="scope">
           {{ scope.row.provider }}
         </template>
       </el-table-column>
-      <el-table-column prop="enabled" label="启用状态" width="80" align="center">
+      <el-table-column prop="enabled" label="Trạng thái bật" width="80" align="center">
         <template #default="scope">
           <el-switch 
             v-model="scope.row.enabled" 
@@ -33,7 +33,7 @@
           />
         </template>
       </el-table-column>
-      <el-table-column prop="is_default" label="默认配置" width="80" align="center">
+      <el-table-column prop="is_default" label="Cấu hình mặc định" width="80" align="center">
         <template #default="scope">
           <el-switch 
             v-model="scope.row.is_default" 
@@ -42,50 +42,50 @@
           />
         </template>
       </el-table-column>
-      <el-table-column label="测试结果" width="120" align="center">
+      <el-table-column label="Kết quả kiểm tra" width="120" align="center">
         <template #default="scope">
           <template v-if="testResults[scope.row.config_id]">
             <el-tooltip v-if="testResults[scope.row.config_id].ok" :content="formatTestResultTip(testResults[scope.row.config_id])" placement="top">
               <span class="test-result test-ok">{{ formatTestResultLabel(testResults[scope.row.config_id]) }}</span>
             </el-tooltip>
             <el-tooltip v-else :content="testResults[scope.row.config_id].message" placement="top" :show-after="200">
-              <span class="test-result test-err">错误</span>
+              <span class="test-result test-err">Lỗi</span>
             </el-tooltip>
           </template>
           <span v-else class="test-result test-none">-</span>
         </template>
       </el-table-column>
-      <el-table-column prop="created_at" label="创建时间" width="180">
+      <el-table-column prop="created_at" label="Thời gian tạo" width="180">
         <template #default="scope">
           {{ formatDate(scope.row.created_at) }}
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="260">
+      <el-table-column label="Thao tác" width="260">
         <template #default="scope">
-          <el-button size="small" @click="editConfig(scope.row)">编辑</el-button>
+          <el-button size="small" @click="editConfig(scope.row)">Sửa</el-button>
           <el-button
             size="small"
             type="warning"
             :loading="testingId === scope.row.config_id"
             @click="testConfig(scope.row, 'tts')"
           >
-            测试
+            Kiểm tra
           </el-button>
           <el-button
             size="small"
             type="danger"
             @click="deleteConfig(scope.row.id)"
           >
-            删除
+            Xóa
           </el-button>
         </template>
       </el-table-column>
     </el-table>
 
-    <!-- 添加/编辑配置弹窗 -->
+    <!-- Hộp thoại thêm/chỉnh sửa cấu hình -->
     <el-dialog
       v-model="showDialog"
-      :title="editingConfig ? '编辑TTS配置' : '添加TTS配置'"
+      :title="editingConfig ? 'Chỉnh sửa cấu hình TTS' : 'Thêm cấu hình TTS'"
       width="600px"
       @close="handleDialogClose"
     >
@@ -99,12 +99,12 @@
       />
       
       <template #footer>
-        <el-button @click="handleDialogClose">取消</el-button>
+        <el-button @click="handleDialogClose">Hủy</el-button>
         <el-button type="warning" plain @click="testCurrentConfig" :loading="testingCurrent">
-          测试
+          Kiểm tra
         </el-button>
         <el-button type="primary" @click="handleSave" :loading="saving">
-          保存
+          Lưu
         </el-button>
       </template>
     </el-dialog>
@@ -132,7 +132,7 @@ const showDialog = ref(false)
 const editingConfig = ref(null)
 const formRef = ref()
 
-// 音色列表相关
+// Giọng列表相关
 const voiceOptions = ref([])
 const voiceLoading = ref(false)
 
@@ -276,50 +276,50 @@ const form = reactive({
 })
 
 const rules = {
-  name: [{ required: true, message: '请输入配置名称', trigger: 'blur' }],
-  config_id: [{ required: true, message: '请输入配置ID', trigger: 'blur' }],
-  provider: [{ required: true, message: '请选择提供商', trigger: 'change' }],
+  name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
+  config_id: [{ required: true, message: 'Vui lòng nhập ID cấu hình', trigger: 'blur' }],
+  provider: [{ required: true, message: 'Vui lòng chọn nhà cung cấp', trigger: 'change' }],
   // CosyVoice 验证规则
-  'cosyvoice.api_url': [{ required: true, message: '请输入API URL', trigger: 'blur' }],
-  'cosyvoice.spk_id': [{ required: true, message: '请输入说话人ID', trigger: 'blur' }],
+  'cosyvoice.api_url': [{ required: true, message: 'Vui lòng nhập API URL', trigger: 'blur' }],
+  'cosyvoice.spk_id': [{ required: true, message: 'Vui lòng nhập speaker ID', trigger: 'blur' }],
   // 豆包 TTS 验证规则
-  'doubao.appid': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-  'doubao.access_token': [{ required: true, message: '请输入访问令牌', trigger: 'blur' }],
-  'doubao.model': [{ required: true, message: '请选择模型', trigger: 'change' }],
-  'doubao.voice': [{ required: true, message: '请输入音色', trigger: 'blur' }],
-  'doubao.api_url': [{ required: true, message: '请输入API URL', trigger: 'blur' }],
+  'doubao.appid': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+  'doubao.access_token': [{ required: true, message: 'Vui lòng nhập access token', trigger: 'blur' }],
+  'doubao.model': [{ required: true, message: 'Vui lòng chọn model', trigger: 'change' }],
+  'doubao.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
+  'doubao.api_url': [{ required: true, message: 'Vui lòng nhập API URL', trigger: 'blur' }],
   // 豆包 WebSocket 验证规则
-  'doubao_ws.appid': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-  'doubao_ws.access_token': [{ required: true, message: '请输入访问令牌', trigger: 'blur' }],
-  'doubao_ws.model': [{ required: true, message: '请选择模型', trigger: 'change' }],
-  'doubao_ws.voice': [{ required: true, message: '请输入音色', trigger: 'blur' }],
-  'doubao_ws.ws_url': [{ required: true, message: '请输入WebSocket URL', trigger: 'blur' }],
+  'doubao_ws.appid': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+  'doubao_ws.access_token': [{ required: true, message: 'Vui lòng nhập access token', trigger: 'blur' }],
+  'doubao_ws.model': [{ required: true, message: 'Vui lòng chọn model', trigger: 'change' }],
+  'doubao_ws.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
+  'doubao_ws.ws_url': [{ required: true, message: 'Vui lòng nhập WebSocket URL', trigger: 'blur' }],
   // Edge TTS 验证规则
-  'edge.voice': [{ required: true, message: '请输入音色', trigger: 'blur' }],
-  'edge.rate': [{ required: true, message: '请输入语速', trigger: 'blur' }],
-  'edge.volume': [{ required: true, message: '请输入音量', trigger: 'blur' }],
+  'edge.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
+  'edge.rate': [{ required: true, message: 'Vui lòng nhập tốc độ nói', trigger: 'blur' }],
+  'edge.volume': [{ required: true, message: 'Vui lòng nhập âm lượng', trigger: 'blur' }],
   // Edge 离线验证规则
-  'edge_offline.server_url': [{ required: true, message: '请输入服务器URL', trigger: 'blur' }],
+  'edge_offline.server_url': [{ required: true, message: 'Vui lòng nhập Server URL', trigger: 'blur' }],
   // OpenAI TTS 验证规则
-  'openai.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
+  'openai.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
   // 讯飞 TTS 验证规则
-  'xunfei.app_id': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-  'xunfei.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
-  'xunfei.api_secret': [{ required: true, message: '请输入API Secret', trigger: 'blur' }],
-  'xunfei.ws_url': [{ required: true, message: '请输入WebSocket URL', trigger: 'blur' }],
-  'xunfei.voice': [{ required: true, message: '请输入音色', trigger: 'blur' }],
-  'xunfei_super_tts.app_id': [{ required: true, message: '请输入应用ID', trigger: 'blur' }],
-  'xunfei_super_tts.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
-  'xunfei_super_tts.api_secret': [{ required: true, message: '请输入API Secret', trigger: 'blur' }],
-  'xunfei_super_tts.ws_url': [{ required: true, message: '请输入WebSocket URL', trigger: 'blur' }],
-  'xunfei_super_tts.voice': [{ required: true, message: '请输入音色', trigger: 'blur' }],
+  'xunfei.app_id': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+  'xunfei.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
+  'xunfei.api_secret': [{ required: true, message: 'Vui lòng nhập API Secret', trigger: 'blur' }],
+  'xunfei.ws_url': [{ required: true, message: 'Vui lòng nhập WebSocket URL', trigger: 'blur' }],
+  'xunfei.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
+  'xunfei_super_tts.app_id': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
+  'xunfei_super_tts.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
+  'xunfei_super_tts.api_secret': [{ required: true, message: 'Vui lòng nhập API Secret', trigger: 'blur' }],
+  'xunfei_super_tts.ws_url': [{ required: true, message: 'Vui lòng nhập WebSocket URL', trigger: 'blur' }],
+  'xunfei_super_tts.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
   // 智谱 TTS 验证规则
-  'zhipu.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
+  'zhipu.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
   // Minimax TTS 验证规则
-  'minimax.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
+  'minimax.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
   // 千问 TTS 验证规则
-  'qwen_tts.api_key': [{ required: true, message: '请输入API Key', trigger: 'blur' }],
-  'indextts_vllm.api_url': [{ required: true, message: '请输入API URL', trigger: 'blur' }]
+  'qwen_tts.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
+  'indextts_vllm.api_url': [{ required: true, message: 'Vui lòng nhập API URL', trigger: 'blur' }]
 }
 
 const loadConfigs = async () => {
@@ -328,7 +328,7 @@ const loadConfigs = async () => {
     const response = await api.get('/admin/tts-configs')
     configs.value = (response.data.data || []).map(normalizeTTSConfigRow)
   } catch (error) {
-    ElMessage.error('加载配置失败')
+    ElMessage.error('Tải cấu hình thất bại')
   } finally {
     loading.value = false
   }
@@ -352,10 +352,10 @@ const editConfig = (config) => {
   form.enabled = config.enabled
   form.double_stream = false
 
-  // IndexTTS 改为点击音色下拉时再请求
+  // IndexTTS 改为点击Giọng下拉时再请求
   loadVoiceOptions(config.provider)
 
-  // 解析配置JSON并填充到对应的表单字段
+  // 解析配置JSON并填充 đến 对应的表单字段
   try {
     const configData = JSON.parse(config.json_data || '{}')
     form.double_stream = configData.double_stream === true
@@ -468,7 +468,7 @@ const editConfig = (config) => {
         form.indextts_vllm.frame_duration = configData.frame_duration || 60
         break
       case 'zhipu':
-        // 智谱配置从 json_data 中读取
+        // 智谱配置从 json_data Trung bình读取
         form.zhipu.api_key = configData.api_key || ''
         form.zhipu.api_url = configData.api_url || 'https://open.bigmodel.cn/api/paas/v4/audio/speech'
         form.zhipu.model = configData.model || 'glm-tts'
@@ -494,7 +494,7 @@ const editConfig = (config) => {
         break
     }
   } catch (error) {
-    console.error('解析配置JSON失败:', error)
+    console.error('Parse JSON cấu hình thất bại:', error)
   }
   
   showDialog.value = true
@@ -507,30 +507,30 @@ const handleSave = async () => {
     if (valid) {
       saving.value = true
       try {
-        // 如果是新增配置且当前没有任何配置，则自动设为默认配置
+        // 如果是新增配置且当前没有任何配置，则Tự động设为Cấu hình mặc định
         const isFirstConfig = !editingConfig.value && configs.value.length === 0
         
         const configData = {
           name: form.name,
           config_id: form.config_id,
           provider: form.provider,
-          is_default: isFirstConfig || form.is_default, // 首次添加时自动设为默认
+          is_default: isFirstConfig || form.is_default, // 首次添加时Tự động设为Mặc định
           enabled: form.enabled !== undefined ? form.enabled : true,
           json_data: formRef.value.getJsonData()
         }
         
         if (editingConfig.value) {
           await api.put(`/admin/tts-configs/${editingConfig.value.id}`, configData)
-          ElMessage.success('配置更新成功')
+          ElMessage.success('Cập nhật cấu hình thành công')
         } else {
           await api.post('/admin/tts-configs', configData)
-          ElMessage.success('配置创建成功')
+          ElMessage.success('Tạo cấu hình thành công')
         }
         
         showDialog.value = false
         loadConfigs()
       } catch (error) {
-        ElMessage.error('保存失败: ' + (error.response?.data?.message || error.message))
+        ElMessage.error('Lưu thất bại: ' + (error.response?.data?.message || error.message))
       } finally {
         saving.value = false
       }
@@ -541,18 +541,18 @@ const handleSave = async () => {
 const toggleEnable = async (config) => {
   try {
     await api.post(`/admin/configs/${config.id}/toggle`)
-    ElMessage.success(`${config.enabled ? '启用' : '禁用'}成功`)
+    ElMessage.success(`${config.enabled ? 'Bật' : 'Tắt'}thành công`)
   } catch (error) {
-    // 恢复开关状态
+    // Khôi phục trạng thái switch
     config.enabled = !config.enabled
-    ElMessage.error('操作失败')
+    ElMessage.error('Thao tác thất bại')
   }
 }
 
 const toggleDefault = async (config) => {
   try {
     if (!config.enabled) {
-      ElMessage.warning('请先启用该配置才能设为默认')
+      ElMessage.warning('Vui lòng bật cấu hình trước khi đặt làm mặc định')
       config.is_default = false
       return
     }
@@ -567,14 +567,14 @@ const toggleDefault = async (config) => {
     }
     
     await api.put(`/admin/tts-configs/${config.id}`, configData)
-    ElMessage.success(config.is_default ? '设为默认成功' : '取消默认成功')
+    ElMessage.success(config.is_default ? 'Đặt làm mặc định thành công' : 'HủyMặc địnhthành công')
     
-    // 刷新列表以更新其他配置的默认状态
+    // Làm mới列表以更新其他配置的Mặc định状态
     loadConfigs()
   } catch (error) {
-    // 恢复开关状态
+    // Khôi phục trạng thái switch
     config.is_default = !config.is_default
-    ElMessage.error('操作失败')
+    ElMessage.error('Thao tác thất bại')
   }
 }
 
@@ -583,12 +583,12 @@ const getEnabledConfigs = () => {
 }
 
 function formatTestResultLabel(r) {
-  if (!r?.ok) return '错误'
-  return r.first_packet_ms != null ? `正确 ${r.first_packet_ms}ms` : '正确'
+  if (!r?.ok) return 'Lỗi'
+  return r.first_packet_ms != null ? `Đạt ${r.first_packet_ms}ms` : 'Đạt'
 }
 function formatTestResultTip(r) {
   if (!r?.ok) return ''
-  return r.first_packet_ms != null ? `通过，耗时 ${r.first_packet_ms}ms` : '通过'
+  return r.first_packet_ms != null ? `Đạt，Thời gian ${r.first_packet_ms}ms` : 'Đạt'
 }
 function formatTestMessage(result) {
   const base = result.message || ''
@@ -606,7 +606,7 @@ const testConfig = async (row, type) => {
       ElMessage.warning(`${row.name || row.config_id}：${result.message}`)
     }
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || '测试请求失败')
+    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
   } finally {
     testingId.value = null
   }
@@ -615,7 +615,7 @@ const testConfig = async (row, type) => {
 const testAllConfigs = async () => {
   const list = getEnabledConfigs()
   if (!list.length) {
-    ElMessage.warning('没有已启用的配置')
+    ElMessage.warning('Không có cấu hình nào đang bật')
     return
   }
   testingAll.value = true
@@ -628,12 +628,12 @@ const testAllConfigs = async () => {
         testResults.value = { ...testResults.value, [row.config_id]: result }
         if (result.ok) okCount++
       } catch (_) {
-        testResults.value = { ...testResults.value, [row.config_id]: { ok: false, message: '请求失败' } }
+        testResults.value = { ...testResults.value, [row.config_id]: { ok: false, message: 'Yêu cầu thất bại' } }
       }
     }
-    ElMessage.success(`全部测试完成：${okCount}/${list.length} 通过`)
+    ElMessage.success(`Đã hoàn tất kiểm tra tất cả: ${okCount}/${list.length} Đạt`)
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || '测试请求失败')
+    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
   } finally {
     testingAll.value = false
   }
@@ -648,7 +648,7 @@ const testCurrentConfig = async () => {
   }
   const configId = form.config_id?.trim()
   if (!configId) {
-    ElMessage.warning('请填写配置ID')
+    ElMessage.warning('Vui lòng nhập ID cấu hình')
     return
   }
   const payload = {
@@ -662,12 +662,12 @@ const testCurrentConfig = async () => {
   try {
     const result = await testWithData('tts', { [configId]: payload })
     if (result.ok) {
-      ElMessage.success(formatTestMessage(result) || '测试通过')
+      ElMessage.success(formatTestMessage(result) || 'Kiểm traĐạt')
     } else {
-      ElMessage.warning(result.message || '测试未通过')
+      ElMessage.warning(result.message || 'Kiểm tra chưa đạt')
     }
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || '测试请求失败')
+    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
   } finally {
     testingCurrent.value = false
   }
@@ -675,18 +675,18 @@ const testCurrentConfig = async () => {
 
 const deleteConfig = async (id) => {
   try {
-    await ElMessageBox.confirm('确定要删除这个配置吗？', '提示', {
-      confirmButtonText: '确定',
-      cancelButtonText: '取消',
+    await ElMessageBox.confirm('Bạn có chắc muốn xóa cấu hình này không?', 'Gợi ý', {
+      confirmButtonText: 'Xác nhận',
+      cancelButtonText: 'Hủy',
       type: 'warning'
     })
     
     await api.delete(`/admin/tts-configs/${id}`)
-    ElMessage.success('删除成功')
+    ElMessage.success('Xóathành công')
     loadConfigs()
   } catch (error) {
     if (error !== 'cancel') {
-      ElMessage.error('删除失败')
+      ElMessage.error('Xóa thất bại')
     }
   }
 }
@@ -843,7 +843,7 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleString('zh-CN')
 }
 
-// 加载音色列表
+// 加载Giọng列表
 const loadVoiceOptions = async (provider, options = {}) => {
   const trigger = options?.trigger || 'auto'
   if (!provider) {
@@ -857,7 +857,7 @@ const loadVoiceOptions = async (provider, options = {}) => {
     return
   }
   
-  // 只有这些 provider 需要从后端获取音色列表
+  // 只有这些 provider 需要从后端获取Giọng列表
   if (!TTS_PROVIDERS_WITH_VOICES.includes(provider)) {
     voiceOptions.value = []
     return
@@ -881,7 +881,7 @@ const loadVoiceOptions = async (provider, options = {}) => {
     })
     voiceOptions.value = response.data.data || []
   } catch (error) {
-    console.error('加载音色列表失败:', error)
+    console.error('Tải danh sách giọng thất bại:', error)
     voiceOptions.value = []
   } finally {
     voiceLoading.value = false
@@ -893,14 +893,14 @@ const handleVoiceOptionsRequest = (provider) => {
   loadVoiceOptions(provider || form.provider, { trigger: 'dropdown' })
 }
 
-// 监听 provider 变化，自动加载对应的音色列表
+// 监听 provider 变化，Tự động加载对应的Giọng列表
 watch(() => form.provider, (newProvider) => {
   if (showDialog.value) {
     loadVoiceOptions(newProvider)
   }
 }, { immediate: false })
 
-// 监听对话框打开，加载当前 provider 的音色列表（nextTick 确保弹窗已渲染后再请求）
+// 监听对话框打开，加载当前 provider 的Giọng列表（nextTick 确保弹窗已渲染后再请求）
 watch(showDialog, (isOpen) => {
   if (isOpen && form.provider) {
     nextTick(() => loadVoiceOptions(form.provider))

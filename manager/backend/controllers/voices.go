@@ -79,7 +79,8 @@ var ModelVoiceMap = map[string][]VoiceInfo{
 
 // normalizeModel 将具体模型名归一化为模型家族键
 // 例如：qwen3-tts-flash-2025-11-27 -> qwen3-tts-flash
-//       qwen-tts-2025-05-22       -> qwen-tts
+//
+//	qwen-tts-2025-05-22       -> qwen-tts
 func normalizeModel(model string) string {
 	model = strings.TrimSpace(model)
 	if model == "" {

@@ -1,30 +1,30 @@
 <template>
   <div class="config-page">
     <div class="page-actions">
-      <el-button type="primary" @click="openDialog()">新增知识库</el-button>
+      <el-button type="primary" @click="openDialog()">Thêm Knowledge Base</el-button>
     </div>
 
     <el-table :data="items" v-loading="loading" stripe table-layout="fixed" style="width: 100%">
       <el-table-column prop="id" label="ID" width="56" />
-      <el-table-column prop="name" label="名称" width="124" show-overflow-tooltip />
-      <el-table-column label="描述" min-width="180" show-overflow-tooltip>
+      <el-table-column prop="name" label="Tên" width="124" show-overflow-tooltip />
+      <el-table-column label="Mô tả" min-width="180" show-overflow-tooltip>
         <template #default="scope">
           <span class="kb-desc-text" :class="{ 'is-empty': !(scope.row.description || '').trim() }">
             {{ (scope.row.description || '').trim() || '-' }}
           </span>
         </template>
       </el-table-column>
-      <el-table-column label="提供商" width="88" show-overflow-tooltip>
+      <el-table-column label="Nhà cung cấp" width="88" show-overflow-tooltip>
         <template #default="scope">
           <el-tag size="small" effect="plain">{{ formatProviderText(scope.row.sync_provider) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="文档数" width="72" align="center">
+      <el-table-column label="Số tài liệu" width="72" align="center">
         <template #default="scope">
           <el-tag size="small" type="info">{{ formatDocCount(scope.row.doc_count) }}</el-tag>
         </template>
       </el-table-column>
-      <el-table-column label="同步状态" width="132">
+      <el-table-column label="Trạng thái sync" width="132">
         <template #default="scope">
           <div class="kb-sync-status-cell">
             <el-tag :type="getSyncStatusTagType(scope.row.sync_status)" size="small">{{ getSyncStatusText(scope.row.sync_status) }}</el-tag>
@@ -37,35 +37,35 @@
           </div>
         </template>
       </el-table-column>
-      <el-table-column label="最近同步" width="168" show-overflow-tooltip>
+      <el-table-column label="Sync gần nhất" width="168" show-overflow-tooltip>
         <template #default="scope">
           <span>{{ formatDateTimeCell(scope.row.last_synced_at) }}</span>
         </template>
       </el-table-column>
-      <el-table-column label="状态" width="92" align="center">
+      <el-table-column label="Trạng thái" width="92" align="center">
         <template #default="scope">
           <el-switch
             :model-value="String(scope.row.status || '').trim() === 'active'"
             inline-prompt
-            active-text="开"
-            inactive-text="关"
+            active-text="Bật"
+            inactive-text="Tắt"
             :loading="isStatusSwitchLoading(scope.row.id)"
             @change="(checked) => toggleKnowledgeBaseStatus(scope.row, checked)"
           />
         </template>
       </el-table-column>
-      <el-table-column label="操作" width="176">
+      <el-table-column label="Thao tác" width="176">
         <template #default="scope">
           <div class="action-buttons">
-            <el-button size="small" type="primary" plain @click="openDocuments(scope.row)">文档</el-button>
-            <el-button size="small" type="success" plain @click="openSearchTestDialog(scope.row)">测试</el-button>
+            <el-button size="small" type="primary" plain @click="openDocuments(scope.row)">Tài liệu</el-button>
+            <el-button size="small" type="success" plain @click="openSearchTestDialog(scope.row)">Kiểm tra</el-button>
             <el-dropdown trigger="click" @command="(cmd) => handleKnowledgeBaseAction(cmd, scope.row)">
-              <el-button size="small">更多</el-button>
+              <el-button size="small">Thêm</el-button>
               <template #dropdown>
                 <el-dropdown-menu>
-                  <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                  <el-dropdown-item command="sync">重试同步</el-dropdown-item>
-                  <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
+                  <el-dropdown-item command="edit">Sửa</el-dropdown-item>
+                  <el-dropdown-item command="sync">Sync lại</el-dropdown-item>
+                  <el-dropdown-item command="delete" divided>Xóa</el-dropdown-item>
                 </el-dropdown-menu>
               </template>
             </el-dropdown>
@@ -74,28 +74,28 @@
       </el-table-column>
     </el-table>
 
-    <el-dialog v-model="dialogVisible" :title="editing ? '编辑知识库' : '新增知识库'" width="680px">
+    <el-dialog v-model="dialogVisible" :title="editing ? 'Sửa Knowledge Base' : 'Thêm Knowledge Base'" width="680px">
       <el-form :model="form" label-width="90px">
-        <el-form-item label="名称">
+        <el-form-item label="Tên">
           <el-input v-model="form.name" maxlength="100" show-word-limit />
         </el-form-item>
-        <el-form-item label="描述">
+        <el-form-item label="Mô tả">
           <el-input v-model="form.description" />
         </el-form-item>
-        <el-form-item label="同步说明">
-          <div class="kb-helper-text">保存后会自动异步同步到管理员配置的知识库提供商（如 Dify / RAGFlow / WeKnora）。文档请在“文档管理”中新增。</div>
+        <el-form-item label="Ghi chú sync">
+          <div class="kb-helper-text">Sau khi lưu, hệ thống sẽ tự động sync bất đồng bộ lên nhà cung cấp Knowledge Base do quản trị viên cấu hình (như Dify / RAGFlow / WeKnora). Tài liệu được thêm trong phần “Quản lý tài liệu”.</div>
         </el-form-item>
-        <el-form-item label="检索阈值">
+        <el-form-item label="Ngưỡng retrieval">
           <el-input
             v-model="form.retrieval_threshold_text"
-            placeholder="请输入 0~1 之间的小数，如 0.2"
+            placeholder="Nhập số thập phân từ 0 đến 1, ví dụ 0.2"
             clearable
           />
           <div class="kb-helper-text is-spaced">
-            默认填充提供商全局阈值。当前提供商：{{ form.threshold_provider || '-' }}，全局阈值：{{ formatKnowledgeThreshold(form.global_threshold) }}。
+            Mặc định dùng ngưỡng toàn cục của nhà cung cấp. Nhà cung cấp hiện tại: {{ form.threshold_provider || '-' }}, ngưỡng toàn cục: {{ formatKnowledgeThreshold(form.global_threshold) }}.
           </div>
         </el-form-item>
-        <el-form-item label="状态">
+        <el-form-item label="Trạng thái">
           <el-select v-model="form.status" style="width: 100%">
             <el-option value="active" label="active" />
             <el-option value="inactive" label="inactive" />
@@ -103,15 +103,15 @@
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submit">保存</el-button>
+        <el-button @click="dialogVisible = false">Hủy</el-button>
+        <el-button type="primary" @click="submit">Lưu</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="documentsVisible" title="文档管理" width="900px">
+    <el-dialog v-model="documentsVisible" title="Quản lý tài liệu" width="900px">
       <div class="dialog-toolbar">
         <div>
-          当前知识库: <strong>{{ currentKb?.name || '-' }}</strong>
+          Knowledge Base hiện tại: <strong>{{ currentKb?.name || '-' }}</strong>
         </div>
         <div class="dialog-toolbar-actions">
           <el-upload
@@ -120,9 +120,9 @@
             :accept="uploadAcceptByProvider"
             :disabled="!isUploadProviderSupported"
           >
-            <el-button type="success" plain>上传文件</el-button>
+            <el-button type="success" plain>Upload file</el-button>
           </el-upload>
-          <el-button type="primary" @click="openDocumentDialog()">新增文档</el-button>
+          <el-button type="primary" @click="openDocumentDialog()">Thêm tài liệu</el-button>
         </div>
       </div>
       <div class="kb-helper-text is-bottom">
@@ -130,92 +130,92 @@
       </div>
       <el-table :data="documentItems" v-loading="documentsLoading" style="width: 100%">
         <el-table-column prop="id" label="ID" width="80" />
-        <el-table-column prop="name" label="文档名" width="180" />
+        <el-table-column prop="name" label="Tên tài liệu" width="180" />
         <el-table-column prop="external_doc_id" label="Document ID" width="220" />
-        <el-table-column label="内容预览">
+        <el-table-column label="Xem trước nội dung">
           <template #default="scope">
             {{ getDocumentPreview(scope.row) }}
           </template>
         </el-table-column>
-        <el-table-column label="同步状态" width="110">
+        <el-table-column label="Trạng thái sync" width="110">
           <template #default="scope">
             <el-tag :type="getSyncStatusTagType(scope.row.sync_status)">{{ getSyncStatusText(scope.row.sync_status) }}</el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="last_synced_at" label="最近同步时间" width="170" />
-        <el-table-column label="操作" width="250">
+        <el-table-column prop="last_synced_at" label="Thời gian sync gần nhất" width="170" />
+        <el-table-column label="Thao tác" width="250">
           <template #default="scope">
             <div class="action-buttons">
-              <el-button size="small" :disabled="isUploadedFileDocument(scope.row)" @click="openDocumentDialog(scope.row)">编辑</el-button>
-              <el-button size="small" type="primary" plain @click="syncDocument(scope.row.id)">重试同步</el-button>
-              <el-button size="small" type="danger" @click="removeDocument(scope.row.id)">删除</el-button>
+              <el-button size="small" :disabled="isUploadedFileDocument(scope.row)" @click="openDocumentDialog(scope.row)">Sửa</el-button>
+              <el-button size="small" type="primary" plain @click="syncDocument(scope.row.id)">Sync lại</el-button>
+              <el-button size="small" type="danger" @click="removeDocument(scope.row.id)">Xóa</el-button>
             </div>
           </template>
         </el-table-column>
       </el-table>
     </el-dialog>
 
-    <el-dialog v-model="documentDialogVisible" :title="documentEditing ? '编辑文档' : '新增文档'" width="700px">
+    <el-dialog v-model="documentDialogVisible" :title="documentEditing ? 'Sửa tài liệu' : 'Thêm tài liệu'" width="700px">
       <el-form :model="documentForm" label-width="90px">
-        <el-form-item label="文档名">
+        <el-form-item label="Tên tài liệu">
           <el-input v-model="documentForm.name" maxlength="200" show-word-limit />
         </el-form-item>
-        <el-form-item label="内容">
-          <el-input v-model="documentForm.content" type="textarea" :rows="12" placeholder="请输入文档内容" />
+        <el-form-item label="Nội dung">
+          <el-input v-model="documentForm.content" type="textarea" :rows="12" placeholder="Nhập nội dung tài liệu" />
         </el-form-item>
       </el-form>
       <template #footer>
-        <el-button @click="documentDialogVisible = false">取消</el-button>
-        <el-button type="primary" @click="submitDocument">保存</el-button>
+        <el-button @click="documentDialogVisible = false">Hủy</el-button>
+        <el-button type="primary" @click="submitDocument">Lưu</el-button>
       </template>
     </el-dialog>
 
-    <el-dialog v-model="searchTestVisible" title="召回测试" width="960px">
+    <el-dialog v-model="searchTestVisible" title="Kiểm tra retrieval" width="960px">
       <div style="display: flex; justify-content: space-between; gap: 12px; margin-bottom: 12px; flex-wrap: wrap;">
         <div>
-          当前知识库: <strong>{{ searchTestKb?.name || '-' }}</strong>
+          Knowledge Base hiện tại: <strong>{{ searchTestKb?.name || '-' }}</strong>
           <el-tag size="small" style="margin-left: 8px;">{{ searchTestKb?.sync_provider || '-' }}</el-tag>
         </div>
         <div style="display: flex; gap: 8px; flex: 1; min-width: 420px; justify-content: flex-end;">
           <el-input
             v-model="searchTestForm.query"
-            placeholder="输入测试关键词或问题，如：退款流程/接口鉴权"
+            placeholder="Nhập từ khóa hoặc câu hỏi kiểm tra, ví dụ: quy trình hoàn tiền / xác thực API"
             clearable
             @keyup.enter="runSearchTest"
           />
-          <el-tooltip content="TopK：返回前 K 条召回结果" placement="top">
+          <el-tooltip content="TopK: trả về K kết quả retrieval đầu tiên" placement="top">
             <span style="display:inline-flex;align-items:center;color:#909399;font-size:12px;white-space:nowrap;">TopK</span>
           </el-tooltip>
           <el-select v-model="searchTestForm.top_k" style="width: 110px;">
             <el-option v-for="k in topKOptions" :key="k" :value="k" :label="String(k)" />
           </el-select>
-          <el-tooltip content="仅本次召回测试生效；为空则使用知识库当前阈值（或全局阈值）" placement="top">
-            <span style="display:inline-flex;align-items:center;color:#909399;font-size:12px;white-space:nowrap;">阈值</span>
+          <el-tooltip content="Chỉ áp dụng cho lần kiểm tra retrieval này; để trống sẽ dùng ngưỡng hiện tại của Knowledge Base (hoặc ngưỡng toàn cục)" placement="top">
+            <span style="display:inline-flex;align-items:center;color:#909399;font-size:12px;white-space:nowrap;">Ngưỡng</span>
           </el-tooltip>
           <el-input
             v-model="searchTestForm.threshold_text"
-            placeholder="如 0.2"
+            placeholder="Ví dụ 0.2"
             clearable
             style="width: 120px;"
           />
-          <el-button type="primary" :loading="searchTestLoading" @click="runSearchTest">开始测试</el-button>
+          <el-button type="primary" :loading="searchTestLoading" @click="runSearchTest">Bắt đầu kiểm tra</el-button>
         </div>
       </div>
       <div class="kb-helper-text is-bottom">
-        召回测试会直接调用当前知识库对应 provider 的检索接口（Dify / RAGFlow / WeKnora），用于验证关键词召回效果。
+        Kiểm tra retrieval sẽ gọi trực tiếp API tìm kiếm của provider tương ứng với Knowledge Base hiện tại (Dify / RAGFlow / WeKnora) để xác minh hiệu quả retrieval theo từ khóa.
       </div>
       <div v-if="searchTestElapsedMs !== null" class="kb-helper-text is-bottom is-regular">
-        响应耗时：{{ searchTestElapsedMs }} ms
+        Thời gian phản hồi: {{ searchTestElapsedMs }} ms
       </div>
       <el-table :data="searchTestResult.hits" v-loading="searchTestLoading" style="width: 100%" max-height="420">
         <el-table-column type="index" label="#" width="60" />
-        <el-table-column prop="title" label="来源" width="200" />
-        <el-table-column label="分数" width="110">
+        <el-table-column prop="title" label="Nguồn" width="200" />
+        <el-table-column label="Điểm" width="110">
           <template #default="scope">
             {{ formatHitScore(scope.row.score) }}
           </template>
         </el-table-column>
-        <el-table-column prop="content" label="命中内容" min-width="480">
+        <el-table-column prop="content" label="Nội dung khớp" min-width="480">
           <template #default="scope">
             <div class="search-hit-content">
               {{ scope.row.content }}
@@ -224,7 +224,7 @@
         </el-table-column>
       </el-table>
       <div v-if="!searchTestLoading && hasRunSearchTest && searchTestResult.hits.length === 0" class="kb-helper-text is-empty">
-        未命中内容，可尝试更换关键词或检查该知识库是否已同步完成。
+        Không có nội dung khớp; hãy thử đổi từ khóa hoặc kiểm tra Knowledge Base đã sync xong chưa.
       </div>
     </el-dialog>
   </div>
@@ -306,15 +306,15 @@ const uploadAcceptByProvider = computed(() => {
 const isUploadProviderSupported = computed(() => currentKBProvider.value === 'dify' || currentKBProvider.value === 'ragflow' || currentKBProvider.value === 'weknora')
 const uploadTipText = computed(() => {
   if (currentKBProvider.value === 'dify') {
-    return '按 Dify 支持格式限制上传（txt/md/pdf/html/xlsx/docx/csv/eml/msg/pptx/xml/epub），上传后自动创建文档并异步同步。'
+    return 'Upload theo các định dạng Dify hỗ trợ (txt/md/pdf/html/xlsx/docx/csv/eml/msg/pptx/xml/epub); sau khi upload sẽ tự tạo tài liệu và sync bất đồng bộ.'
   }
   if (currentKBProvider.value === 'ragflow') {
-    return '按 RAGFlow 支持格式限制上传（如 txt/md/pdf/docx/xlsx/pptx/jpg/png/eml 等），上传后自动创建文档并异步同步。'
+    return 'Upload theo các định dạng RAGFlow hỗ trợ (như txt/md/pdf/docx/xlsx/pptx/jpg/png/eml...); sau khi upload sẽ tự tạo tài liệu và sync bất đồng bộ.'
   }
   if (currentKBProvider.value === 'weknora') {
-    return '按 WeKnora 支持格式限制上传（如 txt/md/pdf/docx/xlsx/pptx/jpg/png/eml 等），上传后自动创建文档并异步同步。'
+    return 'Upload theo các định dạng WeKnora hỗ trợ (như txt/md/pdf/docx/xlsx/pptx/jpg/png/eml...); sau khi upload sẽ tự tạo tài liệu và sync bất đồng bộ.'
   }
-  return `当前提供商 ${currentKBProvider.value} 暂不支持上传建文档。`
+  return `Nhà cung cấp hiện tại ${currentKBProvider.value} chưa hỗ trợ upload để tạo tài liệu.`
 })
 
 const applyKnowledgeGlobalConfig = (knowledge) => {
@@ -383,13 +383,13 @@ const openDialog = (row = null) => {
 
 const submit = async () => {
   if (!form.name.trim()) {
-    ElMessage.error('名称不能为空')
+    ElMessage.error('Tên không được để trống')
     return
   }
   const rawThreshold = String(form.retrieval_threshold_text || '').trim()
   const threshold = Number(rawThreshold)
   if (!rawThreshold || Number.isNaN(threshold) || threshold < 0 || threshold > 1) {
-    ElMessage.error('检索阈值必须在 0~1 之间')
+    ElMessage.error('Ngưỡng retrieval phải nằm trong khoảng 0~1')
     return
   }
   const globalThreshold = Number(form.global_threshold)
@@ -412,22 +412,22 @@ const submit = async () => {
     } else {
       res = await api.post('/user/knowledge-bases', payload)
     }
-    ElMessage.success('保存成功')
+    ElMessage.success('Lưu thành công')
     if (res?.data?.warning) {
       ElMessage.warning(res.data.warning)
     }
     dialogVisible.value = false
     await loadData()
   } catch (e) {
-    ElMessage.error('保存失败')
+    ElMessage.error('Lưu thất bại')
   }
 }
 
 const removeItem = async (id) => {
   try {
-    await ElMessageBox.confirm('确认删除该知识库及其全部文档吗？', '提示', { type: 'warning' })
+    await ElMessageBox.confirm('Xác nhận xóa Knowledge Base này và toàn bộ tài liệu của nó?', 'Xác nhận', { type: 'warning' })
     const res = await api.delete(`/user/knowledge-bases/${id}`)
-    ElMessage.success('删除成功')
+    ElMessage.success('Xóa thành công')
     if (res?.data?.warning) {
       ElMessage.warning(res.data.warning)
     }
@@ -461,12 +461,12 @@ const toggleKnowledgeBaseStatus = async (row, checked) => {
     if (res?.data?.warning) {
       ElMessage.warning(res.data.warning)
     } else {
-      ElMessage.success(`已${nextStatus === 'active' ? '启用' : '停用'}`)
+      ElMessage.success(nextStatus === 'active' ? 'Đã bật' : 'Đã tắt')
     }
     await loadData()
   } catch (e) {
     row.status = prevStatus
-    const msg = e?.response?.data?.error || '状态更新失败'
+    const msg = e?.response?.data?.error || 'Cập nhật trạng thái thất bại'
     ElMessage.error(msg)
   } finally {
     statusSwitchLoadingMap.value = {
@@ -494,10 +494,10 @@ const handleKnowledgeBaseAction = async (command, row) => {
 const syncItem = async (id) => {
   try {
     const res = await api.post(`/user/knowledge-bases/${id}/sync`)
-    ElMessage.success(res?.data?.message || '同步任务已提交')
+    ElMessage.success(res?.data?.message || 'Đã gửi tác vụ sync')
     await loadData()
   } catch (e) {
-    const msg = e?.response?.data?.error || '同步失败'
+    const msg = e?.response?.data?.error || 'Sync thất bại'
     ElMessage.error(msg)
     await loadData()
   }
@@ -522,12 +522,12 @@ const openSearchTestDialog = (row) => {
 
 const runSearchTest = async () => {
   if (!searchTestKb.value?.id) {
-    ElMessage.error('请先选择知识库')
+    ElMessage.error('Vui lòng chọn Knowledge Base trước')
     return
   }
   const query = (searchTestForm.query || '').trim()
   if (!query) {
-    ElMessage.error('请输入测试关键词')
+    ElMessage.error('Vui lòng nhập từ khóa kiểm tra')
     return
   }
   searchTestLoading.value = true
@@ -538,7 +538,7 @@ const runSearchTest = async () => {
     if (rawThreshold !== '') {
       const parsed = Number(rawThreshold)
       if (Number.isNaN(parsed) || parsed < 0 || parsed > 1) {
-        ElMessage.error('阈值必须在 0~1 之间')
+        ElMessage.error('Ngưỡng phải nằm trong khoảng 0~1')
         return
       }
       threshold = parsed
@@ -556,9 +556,9 @@ const runSearchTest = async () => {
     const elapsed = Number(data.elapsed_ms)
     searchTestElapsedMs.value = Number.isNaN(elapsed) ? Date.now() - startedAt : elapsed
     hasRunSearchTest.value = true
-    ElMessage.success(`召回完成，共返回 ${searchTestResult.count} 条`)
+    ElMessage.success(`Retrieval hoàn tất, trả về ${searchTestResult.count} kết quả`)
   } catch (e) {
-    const msg = e?.response?.data?.error || '测试失败'
+    const msg = e?.response?.data?.error || 'Kiểm tra thất bại'
     ElMessage.error(msg)
   } finally {
     searchTestLoading.value = false
@@ -584,7 +584,7 @@ const loadDocuments = async () => {
 
 const openDocumentDialog = (row = null) => {
   if (row && isUploadedFileDocument(row)) {
-    ElMessage.warning('文件型文档不支持在线编辑，请删除后重新上传')
+    ElMessage.warning('Tài liệu dạng file không hỗ trợ sửa trực tuyến; hãy xóa rồi upload lại')
     return
   }
   documentEditing.value = !!row
@@ -597,11 +597,11 @@ const openDocumentDialog = (row = null) => {
 const submitDocument = async () => {
   if (!currentKb.value?.id) return
   if (!documentForm.name.trim()) {
-    ElMessage.error('文档名不能为空')
+    ElMessage.error('Tên tài liệu không được để trống')
     return
   }
   if (!documentForm.content.trim()) {
-    ElMessage.error('文档内容不能为空')
+    ElMessage.error('Nội dung tài liệu không được để trống')
     return
   }
   try {
@@ -611,7 +611,7 @@ const submitDocument = async () => {
     } else {
       res = await api.post(`/user/knowledge-bases/${currentKb.value.id}/documents`, documentForm)
     }
-    ElMessage.success('文档保存成功')
+    ElMessage.success('Đã lưu tài liệu')
     if (res?.data?.warning) {
       ElMessage.warning(res.data.warning)
     }
@@ -619,7 +619,7 @@ const submitDocument = async () => {
     await loadDocuments()
     await loadData()
   } catch (e) {
-    const msg = e?.response?.data?.error || '文档保存失败'
+    const msg = e?.response?.data?.error || 'Lưu tài liệu thất bại'
     ElMessage.error(msg)
   }
 }
@@ -627,9 +627,9 @@ const submitDocument = async () => {
 const removeDocument = async (docId) => {
   if (!currentKb.value?.id) return
   try {
-    await ElMessageBox.confirm('确认删除该文档吗？', '提示', { type: 'warning' })
+    await ElMessageBox.confirm('Xác nhận xóa tài liệu này?', 'Xác nhận', { type: 'warning' })
     const res = await api.delete(`/user/knowledge-bases/${currentKb.value.id}/documents/${docId}`)
-    ElMessage.success('删除成功')
+    ElMessage.success('Xóa thành công')
     if (res?.data?.warning) {
       ElMessage.warning(res.data.warning)
     }
@@ -642,29 +642,29 @@ const syncDocument = async (docId) => {
   if (!currentKb.value?.id) return
   try {
     const res = await api.post(`/user/knowledge-bases/${currentKb.value.id}/documents/${docId}/sync`)
-    ElMessage.success(res?.data?.message || '同步任务已提交')
+    ElMessage.success(res?.data?.message || 'Đã gửi tác vụ sync')
     await loadDocuments()
     await loadData()
   } catch (e) {
-    const msg = e?.response?.data?.error || '同步失败'
+    const msg = e?.response?.data?.error || 'Sync thất bại'
     ElMessage.error(msg)
   }
 }
 
 const uploadDocumentFile = async (options) => {
   if (!currentKb.value?.id) {
-    ElMessage.error('请先选择知识库')
+    ElMessage.error('Vui lòng chọn Knowledge Base trước')
     options?.onError?.(new Error('missing knowledge base'))
     return
   }
   if (!isUploadProviderSupported.value) {
-    ElMessage.error(`当前知识库提供商为 ${currentKBProvider.value}，暂不支持文件上传创建文档`)
+    ElMessage.error(`Nhà cung cấp Knowledge Base hiện tại là ${currentKBProvider.value}, chưa hỗ trợ upload file để tạo tài liệu`)
     options?.onError?.(new Error('provider not supported'))
     return
   }
   const file = options?.file
   if (!file) {
-    ElMessage.error('请选择上传文件')
+    ElMessage.error('Vui lòng chọn file upload')
     options?.onError?.(new Error('missing file'))
     return
   }
@@ -678,7 +678,7 @@ const uploadDocumentFile = async (options) => {
 
   try {
     const res = await api.post(`/user/knowledge-bases/${currentKb.value.id}/documents/upload`, formData)
-    ElMessage.success(res?.data?.message || '文件上传成功')
+    ElMessage.success(res?.data?.message || 'Upload file thành công')
     if (res?.data?.warning) {
       ElMessage.warning(res.data.warning)
     }
@@ -686,7 +686,7 @@ const uploadDocumentFile = async (options) => {
     await loadData()
     options?.onSuccess?.(res?.data)
   } catch (e) {
-    const msg = e?.response?.data?.error || '文件上传失败'
+    const msg = e?.response?.data?.error || 'Upload file thất bại'
     ElMessage.error(msg)
     options?.onError?.(e)
   }
@@ -702,10 +702,10 @@ const getDocumentPreview = (doc) => {
   if (isUploadedFileDocument(doc)) {
     try {
       const payload = JSON.parse(content.slice(FILE_UPLOAD_CONTENT_PREFIX.length))
-      const fileName = payload?.file_name || doc?.name || '上传文件'
-      return `[文件] ${fileName}`
+      const fileName = payload?.file_name || doc?.name || 'File upload'
+      return `[File] ${fileName}`
     } catch {
-      return `[文件] ${doc?.name || '上传文件'}`
+      return `[File] ${doc?.name || 'File upload'}`
     }
   }
   const text = String(content)
@@ -713,14 +713,14 @@ const getDocumentPreview = (doc) => {
 }
 
 const getSyncStatusText = (status) => {
-  if (status === 'uploading') return '上传中'
-  if (status === 'uploaded') return '已上传'
-  if (status === 'parsing') return '解析中'
-  if (status === 'upload_failed') return '上传失败'
-  if (status === 'parse_failed') return '解析失败'
-  if (status === 'synced') return '已同步'
-  if (status === 'failed') return '失败'
-  return '待同步'
+  if (status === 'uploading') return 'Đang upload'
+  if (status === 'uploaded') return 'Đã upload'
+  if (status === 'parsing') return 'Đang phân tích'
+  if (status === 'upload_failed') return 'Upload thất bại'
+  if (status === 'parse_failed') return 'Phân tích thất bại'
+  if (status === 'synced') return 'Đã sync'
+  if (status === 'failed') return 'Thất bại'
+  return 'Chờ sync'
 }
 
 const getSyncStatusTagType = (status) => {
@@ -733,7 +733,7 @@ const getSyncStatusTagType = (status) => {
 }
 
 const getKnowledgeStatusText = (status) => {
-  return String(status || '').trim() === 'active' ? '启用' : '停用'
+  return String(status || '').trim() === 'active' ? 'Bật' : 'Tắt'
 }
 
 const formatProviderText = (provider) => {
@@ -771,9 +771,9 @@ const formatDateTimeCell = (value) => {
 }
 
 const formatKnowledgeThreshold = (value) => {
-  if (value === null || value === undefined || value === '') return '全局'
+  if (value === null || value === undefined || value === '') return 'Toàn cục'
   const n = Number(value)
-  if (Number.isNaN(n)) return '全局'
+  if (Number.isNaN(n)) return 'Toàn cục'
   return n.toFixed(2)
 }
 
