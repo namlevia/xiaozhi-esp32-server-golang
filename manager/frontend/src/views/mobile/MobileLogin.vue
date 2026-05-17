@@ -1,35 +1,35 @@
 <template>
   <div class="mobile-login-container">
     <div class="mobile-login-header">
-      <img class="mobile-login-logo" :src="appLogo" alt="小智管理系统" />
-      <h1>小智管理系统</h1>
-      <p>智能语音助手管理平台</p>
+      <img class="mobile-login-logo" :src="appLogo" alt="Hệ thống quản lý Xiaozhi" />
+      <h1>Hệ thống quản lý Xiaozhi</h1>
+      <p>Nền tảng quản lý trợ lý giọng nói thông minh</p>
     </div>
     
     <van-tabs v-model:active="activeTab" class="mobile-login-tabs">
-      <van-tab title="登录" name="login">
+      <van-tab title="Đăng nhập" name="login">
         <van-form @submit="handleLogin" class="mobile-login-form">
           <van-cell-group inset>
             <van-field
               v-model="loginForm.username"
               name="username"
-              label="用户名"
-              placeholder="请输入用户名"
-              :rules="[{ required: true, message: '请输入用户名' }]"
+              label="Tên đăng nhập"
+              placeholder="Vui lòng nhập tên đăng nhập"
+              :rules="[{ required: true, message: 'Vui lòng nhập tên đăng nhập' }]"
             />
             <van-field
               v-model="loginForm.password"
               type="password"
               name="password"
-              label="密码"
-              placeholder="请输入密码"
-              :rules="[{ required: true, message: '请输入密码' }]"
+              label="Mật khẩu"
+              placeholder="Vui lòng nhập mật khẩu"
+              :rules="[{ required: true, message: 'Vui lòng nhập mật khẩu' }]"
             />
             <div v-if="loginCaptchaEnabled" class="mobile-captcha-panel">
               <div class="mobile-captcha-copy">
-                <span>人机验证</span>
-                <strong>{{ loginCaptchaPrompt || '正在生成题目...' }}</strong>
-                <p>简单算术题，防止脚本批量登录。</p>
+                <span>Xác minh người dùng</span>
+                <strong>{{ loginCaptchaPrompt || 'Đang tạo câu hỏi...' }}</strong>
+                <p>Bài toán số học đơn giản để hạn chế đăng nhập hàng loạt bằng script.</p>
               </div>
               <van-button
                 size="small"
@@ -39,17 +39,17 @@
                 :loading="loginCaptchaLoading"
                 @click="refreshLoginCaptcha"
               >
-                换一题
+                Đổi câu khác
               </van-button>
             </div>
             <van-field
               v-if="loginCaptchaEnabled"
               v-model="loginForm.captchaAnswer"
               name="captchaAnswer"
-              label="计算结果"
-              placeholder="请输入计算结果"
+              label="Kết quả"
+              placeholder="Vui lòng nhập kết quả"
               input-align="left"
-              :rules="[{ required: true, message: '请输入计算结果' }]"
+              :rules="[{ required: true, message: 'Vui lòng nhập kết quả' }]"
             />
           </van-cell-group>
           
@@ -61,62 +61,62 @@
               native-type="submit"
               :loading="loading"
               :disabled="loginCaptchaEnabled && (loginCaptchaLoading || !loginForm.captchaId)"
-              loading-text="登录中..."
+              loading-text="Đang đăng nhập..."
               class="mobile-login-button"
             >
-              登录
+              Đăng nhập
             </van-button>
           </div>
         </van-form>
       </van-tab>
       
-      <van-tab title="注册" name="register">
+      <van-tab title="Đăng ký" name="register">
         <van-form @submit="handleRegister" class="mobile-login-form">
           <van-cell-group inset>
             <van-field
               v-model="registerForm.username"
               name="username"
-              label="用户名"
-              placeholder="请输入用户名"
-              :rules="[{ required: true, message: '请输入用户名' }]"
+              label="Tên đăng nhập"
+              placeholder="Vui lòng nhập tên đăng nhập"
+              :rules="[{ required: true, message: 'Vui lòng nhập tên đăng nhập' }]"
             />
             <van-field
               v-model="registerForm.email"
               name="email"
-              label="邮箱"
-              placeholder="请输入邮箱"
+              label="Email"
+              placeholder="Vui lòng nhập email"
               :rules="[
-                { required: true, message: '请输入邮箱' },
-                { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: '请输入正确的邮箱格式' }
+                { required: true, message: 'Vui lòng nhập email' },
+                { pattern: /^[^\s@]+@[^\s@]+\.[^\s@]+$/, message: 'Vui lòng nhập đúng định dạng email' }
               ]"
             />
             <van-field
               v-model="registerForm.password"
               type="password"
               name="password"
-              label="密码"
-              placeholder="请输入密码（至少6位）"
+              label="Mật khẩu"
+              placeholder="Vui lòng nhập mật khẩu (ít nhất 6 ký tự)"
               :rules="[
-                { required: true, message: '请输入密码' },
-                { pattern: /^.{6,}$/, message: '密码长度不能少于6位' }
+                { required: true, message: 'Vui lòng nhập mật khẩu' },
+                { pattern: /^.{6,}$/, message: 'Mật khẩu phải có ít nhất 6 ký tự' }
               ]"
             />
             <van-field
               v-model="registerForm.confirmPassword"
               type="password"
               name="confirmPassword"
-              label="确认密码"
-              placeholder="请确认密码"
+              label="Xác nhận mật khẩu"
+              placeholder="Vui lòng xác nhận mật khẩu"
               :rules="[
-                { required: true, message: '请确认密码' },
+                { required: true, message: 'Vui lòng xác nhận mật khẩu' },
                 { validator: validateConfirmPassword }
               ]"
             />
             <div class="mobile-captcha-panel">
               <div class="mobile-captcha-copy">
-                <span>人机验证</span>
-                <strong>{{ registerCaptchaPrompt || '正在生成题目...' }}</strong>
-                <p>完成简单算式后再提交注册。</p>
+                <span>Xác minh người dùng</span>
+                <strong>{{ registerCaptchaPrompt || 'Đang tạo câu hỏi...' }}</strong>
+                <p>Hoàn thành phép tính đơn giản trước khi gửi đăng ký.</p>
               </div>
               <van-button
                 size="small"
@@ -126,16 +126,16 @@
                 :loading="registerCaptchaLoading"
                 @click="refreshRegisterCaptcha"
               >
-                换一题
+                Đổi câu khác
               </van-button>
             </div>
             <van-field
               v-model="registerForm.captchaAnswer"
               name="captchaAnswer"
-              label="计算结果"
-              placeholder="请输入计算结果"
+              label="Kết quả"
+              placeholder="Vui lòng nhập kết quả"
               input-align="left"
-              :rules="[{ required: true, message: '请输入计算结果' }]"
+              :rules="[{ required: true, message: 'Vui lòng nhập kết quả' }]"
             />
           </van-cell-group>
           
@@ -147,10 +147,10 @@
               native-type="submit"
               :loading="loading"
               :disabled="registerCaptchaLoading || !registerForm.captchaId"
-              loading-text="注册中..."
+              loading-text="Đang đăng ký..."
               class="mobile-login-button"
             >
-              注册
+              Đăng ký
             </van-button>
           </div>
         </van-form>
@@ -196,10 +196,10 @@ const registerForm = reactive({
   captchaAnswer: ''
 })
 
-// 自定义验证器：确认密码
+// Bộ kiểm tra tùy chỉnh: xác nhận mật khẩu
 const validateConfirmPassword = (val) => {
   if (val !== registerForm.password) {
-    return '两次输入密码不一致'
+    return 'Hai lần nhập mật khẩu không khớp'
   }
   return true
 }
@@ -214,7 +214,7 @@ const fetchCaptcha = async (form, promptRef, loadingRef) => {
   } catch (error) {
     form.captchaId = ''
     form.captchaAnswer = ''
-    promptRef.value = '题目加载失败，请换一题重试'
+    promptRef.value = 'Tải câu hỏi thất bại, vui lòng đổi câu khác và thử lại'
   } finally {
     loadingRef.value = false
   }
@@ -253,7 +253,7 @@ const refreshRegisterCaptcha = async () => {
 
 const handleLogin = async () => {
   if (loginCaptchaEnabled.value && !loginForm.captchaId) {
-    showFailToast('人机验证加载失败，请换一题重试')
+    showFailToast('Tải xác minh người dùng thất bại, vui lòng đổi câu khác và thử lại')
     await refreshLoginCaptcha()
     return
   }
@@ -271,10 +271,10 @@ const handleLogin = async () => {
   loading.value = false
   
   if (result.success) {
-    showSuccessToast('登录成功')
+    showSuccessToast('Đăng nhập thành công')
     router.push(getPostLoginRedirectPath(authStore.user))
   } else {
-    showFailToast(result.message || '登录失败')
+    showFailToast(result.message || 'Đăng nhập thất bại')
     if (loginCaptchaEnabled.value) {
       await refreshLoginCaptcha()
     }
@@ -283,7 +283,7 @@ const handleLogin = async () => {
 
 const handleRegister = async () => {
   if (!registerForm.captchaId) {
-    showFailToast('人机验证加载失败，请换一题重试')
+    showFailToast('Tải xác minh người dùng thất bại, vui lòng đổi câu khác và thử lại')
     await refreshRegisterCaptcha()
     return
   }
@@ -299,9 +299,9 @@ const handleRegister = async () => {
   loading.value = false
   
   if (result.success) {
-    showSuccessToast('注册成功，请登录')
+    showSuccessToast('Đăng ký thành công, vui lòng đăng nhập')
     activeTab.value = 'login'
-    // 清空注册表单
+    // Xóa trắng biểu mẫu đăng ký
     Object.assign(registerForm, {
       username: '',
       email: '',
@@ -315,19 +315,19 @@ const handleRegister = async () => {
       refreshRegisterCaptcha()
     ])
   } else {
-    showFailToast(result.message || '注册失败')
+    showFailToast(result.message || 'Đăng ký thất bại')
     await refreshRegisterCaptcha()
   }
 }
 
-// 检查系统状态，如果未初始化则跳转到引导页面
+// Kiểm tra trạng thái hệ thống, nếu chưa khởi tạo thì chuyển tới trang hướng dẫn
 const checkSystemStatus = async () => {
   try {
     if (await checkNeedsSetup()) {
       router.push('/setup')
     }
   } catch (error) {
-    console.error('检查系统状态失败:', error)
+    console.error('Kiểm tra trạng thái hệ thống thất bại:', error)
   }
 }
 

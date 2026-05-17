@@ -96,7 +96,7 @@ const form = reactive({
 })
 
 const rules = {
-  name: [{ required: true, message: '请输入 Token 名称', trigger: 'blur' }]
+  name: [{ required: true, message: 'Vui lòng nhập tên Token', trigger: 'blur' }]
 }
 
 const formatTime = (val) => {
@@ -130,7 +130,7 @@ const handleCreate = async () => {
     latestToken.value = res.data?.data?.token || ''
     showCreate.value = false
     showPlainToken.value = true
-    ElMessage.success('Token 创建成功')
+    ElMessage.success('Tạo Token thành công')
     await loadTokens()
   } finally {
     creating.value = false
@@ -138,20 +138,20 @@ const handleCreate = async () => {
 }
 
 const handleRevoke = async (row) => {
-  await ElMessageBox.confirm(`确定吊销 Token「${row.name}」吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
+  await ElMessageBox.confirm(`Bạn có chắc muốn thu hồi Token "${row.name}" không?`, 'Xác nhận', {
+    confirmButtonText: 'Xác nhận',
+    cancelButtonText: 'Hủy',
     type: 'warning'
   })
   await api.delete(`/user/api-tokens/${row.id}`)
-  ElMessage.success('Token 已吊销')
+  ElMessage.success('Đã thu hồi Token')
   await loadTokens()
 }
 
 const copyToken = async () => {
   if (!latestToken.value) return
   await navigator.clipboard.writeText(latestToken.value)
-  ElMessage.success('Token 已复制')
+  ElMessage.success('Đã sao chép Token')
 }
 
 onMounted(loadTokens)

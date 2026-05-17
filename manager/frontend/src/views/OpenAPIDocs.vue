@@ -31,200 +31,200 @@ X-API-Token: &lt;api-token&gt;</code></pre>
       </section>
 
       <section id="profile" class="vp-section">
-        <h2>1. 获取当前用户信息</h2>
+        <h2>1. Lấy thông tin người dùng hiện tại</h2>
         <div class="api-line"><span class="method get">GET</span><code>/api/open/v1/profile</code></div>
-        <h4>入参</h4><p>无（仅需认证头）。</p>
-        <h4>出参示例</h4>
+        <h4>Tham số đầu vào</h4><p>Không có, chỉ cần gửi header xác thực.</p>
+        <h4>Ví dụ phản hồi</h4>
         <pre><code>{
   "user": {"id": 1, "username": "demo", "email": "demo@example.com", "role": "user"}
 }</code></pre>
       </section>
 
       <section id="devices" class="vp-section">
-        <h2>2. 设备接口</h2>
+        <h2>2. API thiết bị</h2>
 
-        <h3>2.1 获取设备列表</h3>
+        <h3>2.1 Lấy danh sách thiết bị</h3>
         <div class="api-line"><span class="method get">GET</span><code>/api/open/v1/devices</code></div>
-        <h4>入参</h4><p>无（仅需认证头）。</p>
-        <h4>出参示例</h4>
+        <h4>Tham số đầu vào</h4><p>Không có, chỉ cần gửi header xác thực.</p>
+        <h4>Ví dụ phản hồi</h4>
         <pre><code>{"data":[{"id":1,"device_name":"bedroom","device_code":"123456","agent_id":2,"activated":true}]}</code></pre>
 
-        <h3>2.2 创建设备</h3>
+        <h3>2.2 Tạo thiết bị</h3>
         <div class="api-line"><span class="method post">POST</span><code>/api/open/v1/devices</code></div>
-        <h4>Body 参数</h4>
-        <table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>device_name</td><td>string</td><td>是</td><td>设备名称，2-50 字符</td></tr>
-          <tr><td>agent_id</td><td>number</td><td>是</td><td>绑定智能体 ID</td></tr>
+        <h4>Tham số Body</h4>
+        <table><thead><tr><th>Trường</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>device_name</td><td>string</td><td>Có</td><td>Tên thiết bị, dài 2-50 ký tự</td></tr>
+          <tr><td>agent_id</td><td>number</td><td>Có</td><td>ID trợ lý được gán</td></tr>
         </tbody></table>
-        <h4>出参示例</h4>
-        <pre><code>{"success":true,"message":"设备创建成功","data":{"device_code":"654321","device":{"id":8,"device_name":"bedroom"}}}</code></pre>
+        <h4>Ví dụ phản hồi</h4>
+        <pre><code>{"success":true,"message":"Tạo thiết bị thành công","data":{"device_code":"654321","device":{"id":8,"device_name":"bedroom"}}}</code></pre>
       </section>
 
       <section id="agents" class="vp-section">
-        <h2>3. 智能体接口</h2>
+        <h2>3. API trợ lý</h2>
 
-        <h3>3.1 获取智能体列表</h3>
+        <h3>3.1 Lấy danh sách trợ lý</h3>
         <div class="api-line"><span class="method get">GET</span><code>/api/open/v1/agents</code></div>
-        <h4>入参</h4><p>无（仅需认证头）。</p>
-        <h4>出参示例</h4>
-        <pre><code>{"data":[{"id":2,"name":"家庭助手","nickname":"小辉","llm_config_id":"llm_default"}]}</code></pre>
+        <h4>Tham số đầu vào</h4><p>Không có, chỉ cần gửi header xác thực.</p>
+        <h4>Ví dụ phản hồi</h4>
+        <pre><code>{"data":[{"id":2,"name":"Trợ lý gia đình","nickname":"Xiao Huy","llm_config_id":"llm_default"}]}</code></pre>
 
-        <h3>3.2 创建智能体</h3>
+        <h3>3.2 Tạo trợ lý</h3>
         <div class="api-line"><span class="method post">POST</span><code>/api/open/v1/agents</code></div>
-        <h4>Body 参数</h4>
-        <table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>name</td><td>string</td><td>是</td><td>名称，2-50 字符</td></tr>
-          <tr><td>nickname</td><td>string</td><td>否</td><td>昵称，给大模型/Prompt 使用；空则默认等于 name</td></tr>
-          <tr><td>custom_prompt</td><td>string</td><td>否</td><td>提示词</td></tr>
-          <tr><td>llm_config_id</td><td>string</td><td>否</td><td>LLM 配置 ID</td></tr>
-          <tr><td>tts_config_id</td><td>string</td><td>否</td><td>TTS 配置 ID</td></tr>
-          <tr><td>voice</td><td>string</td><td>否</td><td>音色标识</td></tr>
-          <tr><td>asr_speed</td><td>string</td><td>否</td><td>默认 normal</td></tr>
-          <tr><td>memory_mode</td><td>string</td><td>否</td><td>short/long/none</td></tr>
+        <h4>Tham số Body</h4>
+        <table><thead><tr><th>Trường</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>name</td><td>string</td><td>Có</td><td>Tên, dài 2-50 ký tự</td></tr>
+          <tr><td>nickname</td><td>string</td><td>Không</td><td>Biệt danh dùng cho mô hình / prompt; để trống sẽ mặc định bằng name</td></tr>
+          <tr><td>custom_prompt</td><td>string</td><td>Không</td><td>Prompt tùy chỉnh</td></tr>
+          <tr><td>llm_config_id</td><td>string</td><td>Không</td><td>ID cấu hình LLM</td></tr>
+          <tr><td>tts_config_id</td><td>string</td><td>Không</td><td>ID cấu hình TTS</td></tr>
+          <tr><td>voice</td><td>string</td><td>Không</td><td>Mã giọng nói</td></tr>
+          <tr><td>asr_speed</td><td>string</td><td>Không</td><td>Mặc định là normal</td></tr>
+          <tr><td>memory_mode</td><td>string</td><td>Không</td><td>short / long / none</td></tr>
         </tbody></table>
-        <h4>出参示例</h4>
-        <pre><code>{"success":true,"data":{"id":3,"name":"客厅助手","nickname":"小辉"}}</code></pre>
+        <h4>Ví dụ phản hồi</h4>
+        <pre><code>{"success":true,"data":{"id":3,"name":"Trợ lý phòng khách","nickname":"Xiao Huy"}}</code></pre>
 
-        <h3>3.3 获取智能体详情</h3>
+        <h3>3.3 Lấy chi tiết trợ lý</h3>
         <div class="api-line"><span class="method get">GET</span><code>/api/open/v1/agents/:id</code></div>
-        <h4>Path 参数</h4>
-        <table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>id</td><td>number</td><td>是</td><td>智能体 ID</td></tr>
+        <h4>Tham số Path</h4>
+        <table><thead><tr><th>Tham số</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>id</td><td>number</td><td>Có</td><td>ID trợ lý</td></tr>
         </tbody></table>
-        <h4>出参示例</h4>
-        <pre><code>{"data":{"id":2,"name":"家庭助手","nickname":"小辉","custom_prompt":"..."}}</code></pre>
+        <h4>Ví dụ phản hồi</h4>
+        <pre><code>{"data":{"id":2,"name":"Trợ lý gia đình","nickname":"Xiao Huy","custom_prompt":"..."}}</code></pre>
 
-        <h3>3.4 更新智能体</h3>
+        <h3>3.4 Cập nhật trợ lý</h3>
         <div class="api-line"><span class="method put">PUT</span><code>/api/open/v1/agents/:id</code></div>
-        <h4>Path 参数</h4>
-        <table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>id</td><td>number</td><td>是</td><td>智能体 ID</td></tr>
+        <h4>Tham số Path</h4>
+        <table><thead><tr><th>Tham số</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>id</td><td>number</td><td>Có</td><td>ID trợ lý</td></tr>
         </tbody></table>
-        <h4>Body 参数</h4>
-        <table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>name</td><td>string</td><td>是</td><td>名称，2-50 字符</td></tr>
-          <tr><td>nickname</td><td>string</td><td>否</td><td>昵称，给大模型/Prompt 使用；空则默认等于 name</td></tr>
-          <tr><td>custom_prompt</td><td>string</td><td>否</td><td>提示词</td></tr>
-          <tr><td>llm_config_id</td><td>string</td><td>否</td><td>LLM 配置 ID（可置空）</td></tr>
-          <tr><td>tts_config_id</td><td>string</td><td>否</td><td>TTS 配置 ID（可置空）</td></tr>
-          <tr><td>voice</td><td>string</td><td>否</td><td>音色标识</td></tr>
-          <tr><td>asr_speed</td><td>string</td><td>否</td><td>空则 normal</td></tr>
-          <tr><td>memory_mode</td><td>string</td><td>否</td><td>short/long/none</td></tr>
+        <h4>Tham số Body</h4>
+        <table><thead><tr><th>Trường</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>name</td><td>string</td><td>Có</td><td>Tên, dài 2-50 ký tự</td></tr>
+          <tr><td>nickname</td><td>string</td><td>Không</td><td>Biệt danh dùng cho mô hình / prompt; để trống sẽ mặc định bằng name</td></tr>
+          <tr><td>custom_prompt</td><td>string</td><td>Không</td><td>Prompt tùy chỉnh</td></tr>
+          <tr><td>llm_config_id</td><td>string</td><td>Không</td><td>ID cấu hình LLM, có thể để trống</td></tr>
+          <tr><td>tts_config_id</td><td>string</td><td>Không</td><td>ID cấu hình TTS, có thể để trống</td></tr>
+          <tr><td>voice</td><td>string</td><td>Không</td><td>Mã giọng nói</td></tr>
+          <tr><td>asr_speed</td><td>string</td><td>Không</td><td>Để trống sẽ dùng normal</td></tr>
+          <tr><td>memory_mode</td><td>string</td><td>Không</td><td>short / long / none</td></tr>
         </tbody></table>
-        <h4>出参示例</h4>
-        <pre><code>{"data":{"id":2,"name":"家庭助手-更新后","nickname":"小辉"}}</code></pre>
+        <h4>Ví dụ phản hồi</h4>
+        <pre><code>{"data":{"id":2,"name":"Trợ lý gia đình - sau cập nhật","nickname":"Xiao Huy"}}</code></pre>
 
-        <h3>3.5 删除智能体</h3>
+        <h3>3.5 Xóa trợ lý</h3>
         <div class="api-line"><span class="method delete">DELETE</span><code>/api/open/v1/agents/:id</code></div>
-        <h4>Path 参数</h4>
-        <table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>id</td><td>number</td><td>是</td><td>智能体 ID</td></tr>
+        <h4>Tham số Path</h4>
+        <table><thead><tr><th>Tham số</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>id</td><td>number</td><td>Có</td><td>ID trợ lý</td></tr>
         </tbody></table>
-        <h4>出参示例</h4>
-        <pre><code>{"message":"删除成功"}</code></pre>
+        <h4>Ví dụ phản hồi</h4>
+        <pre><code>{"message":"Xóa thành công"}</code></pre>
       </section>
 
       <section id="history" class="vp-section">
-        <h2>4. 聊天记录接口</h2>
+        <h2>4. API lịch sử trò chuyện</h2>
 
-        <h3>4.1 查询消息（分页）</h3>
+        <h3>4.1 Tra cứu tin nhắn theo trang</h3>
         <div class="api-line"><span class="method get">GET</span><code>/api/open/v1/history/messages</code></div>
-        <h4>Query 参数</h4>
-        <table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>agent_id</td><td>string</td><td>否</td><td>智能体 ID</td></tr>
-          <tr><td>device_id</td><td>string</td><td>否</td><td>设备标识（device_name）</td></tr>
-          <tr><td>session_id</td><td>string</td><td>否</td><td>会话 ID</td></tr>
-          <tr><td>role</td><td>string</td><td>否</td><td>user/assistant</td></tr>
-          <tr><td>page</td><td>number</td><td>否</td><td>默认 1</td></tr>
-          <tr><td>page_size</td><td>number</td><td>否</td><td>默认 50</td></tr>
+        <h4>Tham số Query</h4>
+        <table><thead><tr><th>Tham số</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>agent_id</td><td>string</td><td>Không</td><td>ID trợ lý</td></tr>
+          <tr><td>device_id</td><td>string</td><td>Không</td><td>Mã thiết bị (device_name)</td></tr>
+          <tr><td>session_id</td><td>string</td><td>Không</td><td>ID phiên hội thoại</td></tr>
+          <tr><td>role</td><td>string</td><td>Không</td><td>user / assistant</td></tr>
+          <tr><td>page</td><td>number</td><td>Không</td><td>Mặc định là 1</td></tr>
+          <tr><td>page_size</td><td>number</td><td>Không</td><td>Mặc định là 50</td></tr>
         </tbody></table>
-        <h4>出参示例</h4>
-        <pre><code>{"total":120,"page":1,"page_size":50,"data":[{"id":1,"role":"user","content":"你好"}]}</code></pre>
+        <h4>Ví dụ phản hồi</h4>
+        <pre><code>{"total":120,"page":1,"page_size":50,"data":[{"id":1,"role":"user","content":"Xin chào"}]}</code></pre>
 
-        <h3>4.2 导出消息</h3>
+        <h3>4.2 Xuất tin nhắn</h3>
         <div class="api-line"><span class="method get">GET</span><code>/api/open/v1/history/export</code></div>
-        <h4>Query 参数</h4>
-        <table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>agent_id</td><td>string</td><td>否</td><td>智能体 ID</td></tr>
-          <tr><td>device_id</td><td>string</td><td>否</td><td>设备标识（device_name）</td></tr>
-          <tr><td>start_date</td><td>string</td><td>否</td><td>YYYY-MM-DD</td></tr>
-          <tr><td>end_date</td><td>string</td><td>否</td><td>YYYY-MM-DD</td></tr>
+        <h4>Tham số Query</h4>
+        <table><thead><tr><th>Tham số</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>agent_id</td><td>string</td><td>Không</td><td>ID trợ lý</td></tr>
+          <tr><td>device_id</td><td>string</td><td>Không</td><td>Mã thiết bị (device_name)</td></tr>
+          <tr><td>start_date</td><td>string</td><td>Không</td><td>YYYY-MM-DD</td></tr>
+          <tr><td>end_date</td><td>string</td><td>Không</td><td>YYYY-MM-DD</td></tr>
         </tbody></table>
-        <h4>出参示例</h4>
+        <h4>Ví dụ phản hồi</h4>
         <pre><code>{"export_time":"2026-03-17 10:00:00","total":20,"messages":[...]}</code></pre>
       </section>
 
       <section id="inject" class="vp-section">
-        <h2>5. 语音推送接口</h2>
+        <h2>5. API đẩy giọng nói</h2>
         <div class="api-line"><span class="method post">POST</span><code>/api/open/v1/devices/inject-message</code></div>
-        <h4>Body 参数</h4>
-        <table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>device_id</td><td>string</td><td>是</td><td>设备标识（device_name）</td></tr>
-          <tr><td>message</td><td>string</td><td>是</td><td>推送内容</td></tr>
-          <tr><td>skip_llm</td><td>boolean</td><td>否</td><td>是否跳过 LLM，默认 false</td></tr>
-          <tr><td>auto_listen</td><td>boolean</td><td>否</td><td>播报完成后是否自动进入监听，默认 true</td></tr>
+        <h4>Tham số Body</h4>
+        <table><thead><tr><th>Trường</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>device_id</td><td>string</td><td>Có</td><td>Mã thiết bị (device_name)</td></tr>
+          <tr><td>message</td><td>string</td><td>Có</td><td>Nội dung cần đẩy</td></tr>
+          <tr><td>skip_llm</td><td>boolean</td><td>Không</td><td>Có bỏ qua LLM hay không, mặc định là false</td></tr>
+          <tr><td>auto_listen</td><td>boolean</td><td>Không</td><td>Sau khi phát xong có tự chuyển sang nghe hay không, mặc định là true</td></tr>
         </tbody></table>
-        <h4>出参示例</h4>
-        <pre><code>{"success":true,"message":"语音推送请求已发送","data":{"device_id":"bedroom","message":"hello","skip_llm":false,"auto_listen":true}}</code></pre>
+        <h4>Ví dụ phản hồi</h4>
+        <pre><code>{"success":true,"message":"Đã gửi yêu cầu đẩy giọng nói","data":{"device_id":"bedroom","message":"hello","skip_llm":false,"auto_listen":true}}</code></pre>
       </section>
 
       <section id="mcp" class="vp-section">
-        <h2>6. MCP 工具接口</h2>
+        <h2>6. API công cụ MCP</h2>
 
-        <h3>6.1 获取智能体工具列表</h3>
+        <h3>6.1 Lấy danh sách công cụ của trợ lý</h3>
         <div class="api-line"><span class="method get">GET</span><code>/api/open/v1/agents/:id/mcp-tools</code></div>
-        <h4>Path 参数</h4>
-        <table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>id</td><td>number</td><td>是</td><td>智能体 ID</td></tr>
+        <h4>Tham số Path</h4>
+        <table><thead><tr><th>Tham số</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>id</td><td>number</td><td>Có</td><td>ID trợ lý</td></tr>
         </tbody></table>
-        <h4>出参示例</h4>
+        <h4>Ví dụ phản hồi</h4>
         <pre><code>{"data":{"tools":[{"name":"tool_a","description":"..."}]}}</code></pre>
 
-        <h3>6.2 调用智能体工具</h3>
+        <h3>6.2 Gọi công cụ của trợ lý</h3>
         <div class="api-line"><span class="method post">POST</span><code>/api/open/v1/agents/:id/mcp-call</code></div>
-        <h4>Path 参数</h4>
-        <table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>id</td><td>number</td><td>是</td><td>智能体 ID</td></tr>
+        <h4>Tham số Path</h4>
+        <table><thead><tr><th>Tham số</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>id</td><td>number</td><td>Có</td><td>ID trợ lý</td></tr>
         </tbody></table>
-        <h4>Body 参数</h4>
-        <table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>tool_name</td><td>string</td><td>是</td><td>工具名称</td></tr>
-          <tr><td>arguments</td><td>object</td><td>否</td><td>工具参数对象</td></tr>
+        <h4>Tham số Body</h4>
+        <table><thead><tr><th>Trường</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>tool_name</td><td>string</td><td>Có</td><td>Tên công cụ</td></tr>
+          <tr><td>arguments</td><td>object</td><td>Không</td><td>Đối tượng tham số của công cụ</td></tr>
         </tbody></table>
-        <h4>出参示例</h4>
+        <h4>Ví dụ phản hồi</h4>
         <pre><code>{"data":{"result":"ok"}}</code></pre>
 
-        <h3>6.3 获取设备工具列表</h3>
+        <h3>6.3 Lấy danh sách công cụ của thiết bị</h3>
         <div class="api-line"><span class="method get">GET</span><code>/api/open/v1/devices/:id/mcp-tools</code></div>
-        <h4>Path 参数</h4>
-        <table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>id</td><td>number</td><td>是</td><td>设备 ID</td></tr>
+        <h4>Tham số Path</h4>
+        <table><thead><tr><th>Tham số</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>id</td><td>number</td><td>Có</td><td>ID thiết bị</td></tr>
         </tbody></table>
-        <h4>说明</h4>
+        <h4>Ghi chú</h4>
         <ul>
-          <li>仅返回当前在线 transport 对应的设备侧 IoT over MCP 工具。</li>
-          <li>不会混入其它 transport 的历史工具，也不会混入智能体 ws-endpoint 工具。</li>
+          <li>Chỉ trả về công cụ IoT over MCP của thiết bị tương ứng với transport đang online.</li>
+          <li>Không trộn lẫn công cụ lịch sử của transport khác, cũng không trộn công cụ ws-endpoint của trợ lý.</li>
         </ul>
-        <h4>出参示例</h4>
+        <h4>Ví dụ phản hồi</h4>
         <pre><code>{"data":{"tools":[{"name":"device_tool","description":"..."}]}}</code></pre>
 
-        <h3>6.4 调用设备工具</h3>
+        <h3>6.4 Gọi công cụ của thiết bị</h3>
         <div class="api-line"><span class="method post">POST</span><code>/api/open/v1/devices/:id/mcp-call</code></div>
-        <h4>Path 参数</h4>
-        <table><thead><tr><th>参数</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>id</td><td>number</td><td>是</td><td>设备 ID</td></tr>
+        <h4>Tham số Path</h4>
+        <table><thead><tr><th>Tham số</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>id</td><td>number</td><td>Có</td><td>ID thiết bị</td></tr>
         </tbody></table>
-        <h4>Body 参数</h4>
-        <table><thead><tr><th>字段</th><th>类型</th><th>必填</th><th>说明</th></tr></thead><tbody>
-          <tr><td>tool_name</td><td>string</td><td>是</td><td>工具名称</td></tr>
-          <tr><td>arguments</td><td>object</td><td>否</td><td>工具参数对象</td></tr>
+        <h4>Tham số Body</h4>
+        <table><thead><tr><th>Trường</th><th>Kiểu</th><th>Bắt buộc</th><th>Mô tả</th></tr></thead><tbody>
+          <tr><td>tool_name</td><td>string</td><td>Có</td><td>Tên công cụ</td></tr>
+          <tr><td>arguments</td><td>object</td><td>Không</td><td>Đối tượng tham số của công cụ</td></tr>
         </tbody></table>
-        <h4>说明</h4>
+        <h4>Ghi chú</h4>
         <ul>
-          <li>优先按当前设备工具列表匹配调用。</li>
-          <li>当工具暂未出现在列表中，但当前 runtime 仍可用时，服务端会自动尝试 raw call 兜底。</li>
+          <li>Ưu tiên khớp và gọi theo danh sách công cụ hiện tại của thiết bị.</li>
+          <li>Nếu công cụ chưa xuất hiện trong danh sách nhưng runtime hiện tại vẫn dùng được, server sẽ tự thử raw call để dự phòng.</li>
         </ul>
-        <h4>出参示例</h4>
+        <h4>Ví dụ phản hồi</h4>
         <pre><code>{"data":{"device_id":"bedroom","tool_name":"device_tool","result":"ok"}}</code></pre>
       </section>
     </main>
