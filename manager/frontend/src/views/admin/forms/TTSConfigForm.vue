@@ -473,12 +473,12 @@ import { TTS_PROVIDER_OPTIONS } from './ttsProviderOptions'
 import XunfeiCommonConfig from './XunfeiCommonConfig.vue'
 
 const DOUBAO_MODEL_OPTIONS = [
-  { label: '豆包语音合成 1.1', value: 'seed-tts-1.1' },
-  { label: '豆包语音合成 2.0 Standard', value: 'seed-tts-2.0-standard' },
-  { label: '豆包语音合成 2.0 Expressive', value: 'seed-tts-2.0-expressive' },
-  { label: '豆包声音复刻 1.0', value: 'seed-icl-1.0' },
-  { label: '豆包声音复刻 2.0 Standard', value: 'seed-icl-2.0-standard' },
-  { label: '豆包声音复刻 2.0 Expressive', value: 'seed-icl-2.0-expressive' }
+  { label: 'Doubao Tổng hợp giọng nói 1.1', value: 'seed-tts-1.1' },
+  { label: 'Doubao Tổng hợp giọng nói 2.0 Standard', value: 'seed-tts-2.0-standard' },
+  { label: 'Doubao Tổng hợp giọng nói 2.0 Expressive', value: 'seed-tts-2.0-expressive' },
+  { label: 'Doubao Nhân bản giọng nói 1.0', value: 'seed-icl-1.0' },
+  { label: 'Doubao Nhân bản giọng nói 2.0 Standard', value: 'seed-icl-2.0-standard' },
+  { label: 'Doubao Nhân bản giọng nói 2.0 Expressive', value: 'seed-icl-2.0-expressive' }
 ]
 
 const props = defineProps({

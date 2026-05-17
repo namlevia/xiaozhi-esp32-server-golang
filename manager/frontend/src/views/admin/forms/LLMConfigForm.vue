@@ -6,11 +6,11 @@
         <el-option label="Ollama" value="ollama" />
         <el-option label="Azure OpenAI" value="azure" />
         <el-option label="Anthropic" value="anthropic" />
-        <el-option label="智谱AI" value="zhipu" />
-        <el-option label="阿里云" value="aliyun" />
-        <el-option label="豆包" value="doubao" />
-        <el-option label="硅基流动" value="siliconflow" />
-        <el-option label="DeepSeek（深度求索）" value="deepseek" />
+        <el-option label="Zhipu AI" value="zhipu" />
+        <el-option label="Aliyun" value="aliyun" />
+        <el-option label="Doubao" value="doubao" />
+        <el-option label="SiliconFlow" value="siliconflow" />
+        <el-option label="DeepSeek" value="deepseek" />
         <el-option label="Dify" value="dify" />
         <el-option label="Coze" value="coze" />
       </el-select>

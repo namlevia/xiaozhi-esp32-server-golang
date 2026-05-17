@@ -178,7 +178,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus } from '@element-plus/icons-vue'
 import api from '../../utils/api'
 
-// 数据状态
+// Trạng thái dữ liệu
 const userList = ref([])
 const tableLoading = ref(false)
 const userDialogVisible = ref(false)
@@ -195,22 +195,22 @@ const isEditMode = ref(false)
 const currentUser = ref({})
 const searchKeyword = ref('')
 
-// 计算属性
+// Thuộc tính tính toán
 const filteredUserList = computed(() => {
   if (!searchKeyword.value) {
     return userList.value
   }
-  return userList.value.filter(user => 
+  return userList.value.filter(user =>
     user.username.toLowerCase().includes(searchKeyword.value.toLowerCase()) ||
     user.email.toLowerCase().includes(searchKeyword.value.toLowerCase())
   )
 })
 
-// 表单引用
+// Tham chiếu form
 const userFormRef = ref()
 const passwordFormRef = ref()
 
-// 用户表单数据
+// Dữ liệu form người dùng
 const userForm = reactive({
   username: '',
   email: '',
@@ -218,13 +218,13 @@ const userForm = reactive({
   role: ''
 })
 
-// 密码表单数据
+// Dữ liệu form mật khẩu
 const passwordForm = reactive({
   newPassword: '',
   confirmPassword: ''
 })
 
-// 用户表单验证规则
+// Quy tắc kiểm tra form người dùng
 const userFormRules = {
   username: [
     { required: true, message: 'Vui lòng nhập tên đăng nhập', trigger: 'blur' }
@@ -262,7 +262,7 @@ const passwordFormRules = {
   ]
 }
 
-// 加载用户列表
+// Tải danh sách người dùng
 const loadUserList = async () => {
   tableLoading.value = true
   try {
@@ -275,13 +275,13 @@ const loadUserList = async () => {
   }
 }
 
-// 打开添加用户对话框
+// Mở hộp thoại thêm người dùng
 const openAddDialog = () => {
   isEditMode.value = false
   userDialogVisible.value = true
 }
 
-// 打开编辑用户对话框
+// Mở hộp thoại sửa người dùng
 const openEditDialog = (user) => {
   isEditMode.value = true
   currentUser.value = user
@@ -291,7 +291,7 @@ const openEditDialog = (user) => {
   userDialogVisible.value = true
 }
 
-// 重置用户表单
+// Đặt lại form người dùng
 const resetUserForm = () => {
   userForm.username = ''
   userForm.email = ''
@@ -303,7 +303,7 @@ const resetUserForm = () => {
   }
 }
 
-// 处理用户提交
+// Xử lý gửi form người dùng
 const handleUserSubmit = async () => {
   if (!userFormRef.value) return
   
@@ -338,7 +338,7 @@ const handleUserSubmit = async () => {
   }
 }
 
-// 删除用户
+// Xóa người dùng
 const handleDeleteUser = async (user) => {
   try {
     await ElMessageBox.confirm(
@@ -361,13 +361,13 @@ const handleDeleteUser = async (user) => {
   }
 }
 
-// 打开重置密码对话框
+// Mở hộp thoại đặt lại mật khẩu
 const openResetPasswordDialog = (user) => {
   currentUser.value = user
   resetPasswordDialogVisible.value = true
 }
 
-// 打开复刻额度设置
+// Mở phần thiết lập hạn mức clone
 const openQuotaDialog = async (user) => {
   quotaUser.value = user
   quotaDialogVisible.value = true
@@ -439,7 +439,7 @@ const resetQuotaDialog = () => {
   quotaOriginalMaxMap.value = {}
 }
 
-// 重置密码表单
+// Đặt lại form mật khẩu
 const resetPasswordForm = () => {
   passwordForm.newPassword = ''
   passwordForm.confirmPassword = ''
@@ -448,7 +448,7 @@ const resetPasswordForm = () => {
   }
 }
 
-// 处理重置密码
+// Xử lý đặt lại mật khẩu
 const handleResetPassword = async () => {
   if (!passwordFormRef.value) return
   
@@ -482,13 +482,13 @@ const handleResetPassword = async () => {
   }
 }
 
-// 格式化日期时间
+// Định dạng ngày giờ
 const formatDateTime = (dateString) => {
   if (!dateString) return '--'
   return new Date(dateString).toLocaleString('zh-CN')
 }
 
-// 组件挂载时加载数据
+// Tải dữ liệu khi component được mount
 onMounted(() => {
   loadUserList()
 })

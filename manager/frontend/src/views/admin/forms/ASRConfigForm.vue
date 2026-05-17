@@ -4,9 +4,9 @@
       <el-select v-model="model.provider" placeholder="Vui lòng chọn nhà cung cấp" style="width: 100%" @change="onProviderChange">
         <el-option label="FunASR" value="funasr" />
         <el-option label="Aliyun FunASR" value="aliyun_funasr" />
-        <el-option label="豆包" value="doubao" />
+        <el-option label="Doubao" value="doubao" />
         <el-option label="Aliyun Qwen3" value="aliyun_qwen3" />
-        <el-option label="讯飞" value="xunfei" />
+        <el-option label="Xunfei" value="xunfei" />
       </el-select>
     </el-form-item>
     <el-form-item label="Tên cấu hình" prop="name">
@@ -111,10 +111,10 @@
       </el-form-item>
       <el-form-item label="Quy cách tài nguyên" prop="doubao.resource_id">
         <el-select v-model="model.doubao.resource_id" placeholder="Vui lòng chọn quy cách tài nguyên" style="width: 100%">
-          <el-option label="豆包流式语音识别Model1.0 小时版" value="volc.bigasr.sauc.duration" />
-          <el-option label="豆包流式语音识别Model1.0 并发版" value="volc.bigasr.sauc.concurrent" />
-          <el-option label="豆包流式语音识别Model2.0 小时版" value="volc.seedasr.sauc.duration" />
-          <el-option label="豆包流式语音识别Model2.0 并发版" value="volc.seedasr.sauc.concurrent" />
+          <el-option label="Doubao Streaming ASR Model 1.0 bản theo giờ" value="volc.bigasr.sauc.duration" />
+          <el-option label="Doubao Streaming ASR Model 1.0 bản theo số kết nối" value="volc.bigasr.sauc.concurrent" />
+          <el-option label="Doubao Streaming ASR Model 2.0 bản theo giờ" value="volc.seedasr.sauc.duration" />
+          <el-option label="Doubao Streaming ASR Model 2.0 bản theo số kết nối" value="volc.seedasr.sauc.concurrent" />
         </el-select>
       </el-form-item>
       <el-form-item label="Kích thước cửa sổ kết thúc" prop="doubao.end_window_size">
@@ -251,7 +251,7 @@ const ASR_PROVIDER_DEFAULTS = {
     }
   },
   aliyun_funasr: {
-    name: '阿里云 FunASR ASR',
+    name: 'Aliyun FunASR ASR',
     config_id: 'aliyun_funasr_default',
     data: {
       api_key: '',
@@ -265,7 +265,7 @@ const ASR_PROVIDER_DEFAULTS = {
     }
   },
   doubao: {
-    name: '豆包 ASR',
+    name: 'Doubao ASR',
     config_id: 'doubao_default',
     data: {
       appid: '',
@@ -282,7 +282,7 @@ const ASR_PROVIDER_DEFAULTS = {
     }
   },
   aliyun_qwen3: {
-    name: '阿里云 Qwen3 ASR',
+    name: 'Aliyun Qwen3 ASR',
     config_id: 'aliyun_qwen3_default',
     data: {
       api_key: '',
@@ -298,7 +298,7 @@ const ASR_PROVIDER_DEFAULTS = {
     }
   },
   xunfei: {
-    name: '讯飞 ASR',
+    name: 'Xunfei ASR',
     config_id: 'xunfei_default',
     data: {
       appid: '',
