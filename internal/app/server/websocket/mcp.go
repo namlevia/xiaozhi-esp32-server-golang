@@ -10,7 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-// MCPClaims JWT claims结构
+// MCPClaims là cấu trúc JWT claims
 type MCPClaims struct {
 	UserID     uint   `json:"userId"`
 	AgentID    string `json:"agentId"`
@@ -19,34 +19,34 @@ type MCPClaims struct {
 	jwt.RegisteredClaims
 }
 
-// handleMCPWebSocket 处理MCP WebSocket连接
+// handleMCPWebSocket xử lý kết nối MCP WebSocket
 func (s *WebSocketServer) handleMCPWebSocket(w http.ResponseWriter, r *http.Request) {
 	var agentId string
 
-	// 首先尝试从URL参数中获取token
+	// Trước tiên thử lấy token từ tham số URL
 	token := r.URL.Query().Get("token")
 	if token != "" {
-		// 从token中解析设备ID
+		// Parse device ID từ token
 		claims, err := s.parseMCPToken(token)
 		if err != nil {
-			log.Warnf("解析token失败: %v", err)
+			log.Warnf("Parse token thất bại: %v", err)
 			http.Error(w, "Token không hợp lệ", http.StatusUnauthorized)
 			return
 		}
-		log.Infof("解析token成功: %v", claims)
+		log.Infof("Parse token thành công: %v", claims)
 
 		agentId = claims.AgentID
 	} else {
-		log.Errorf("缺少token")
+		log.Errorf("Thiếu token")
 		return
 	}
 
-	log.Infof("收到MCP服务器的WebSocket连接请求，Agent ID: %s", agentId)
+	log.Infof("Nhận yêu cầu kết nối WebSocket từ MCP server, Agent ID: %s", agentId)
 
-	// 升级WebSocket连接
+	// Upgrade kết nối WebSocket
 	conn, err := s.upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Errorf("升级WebSocket连接失败: %v", err)
+		log.Errorf("Upgrade kết nối WebSocket thất bại: %v", err)
 		return
 	}
 
@@ -56,32 +56,32 @@ func (s *WebSocketServer) handleMCPWebSocket(w http.ResponseWriter, r *http.Requ
 		mcp.AddDeviceMcpClient(agentId, mcpClientSession)
 	}
 
-	// 创建MCP客户端
+	// Tạo MCP client
 	mcpClient := mcp.NewWsEndPointMcpClient(mcpClientSession.Ctx, agentId, conn)
 	if mcpClient == nil {
-		log.Errorf("创建MCP客户端失败")
+		log.Errorf("Tạo MCP client thất bại")
 		conn.Close()
 		return
 	}
 	mcpClientSession.AddWsEndPointMcp(mcpClient)
 
-	// 当 mcp server断开时, 清理 ws endpoint mcp client
+	// Khi MCP server ngắt kết nối, dọn ws endpoint MCP client
 	go func() {
 		<-mcpClient.Ctx.Done()
-		log.Infof("server %s 的MCP连接已断开", mcpClient.GetServerName())
+		log.Infof("Kết nối MCP của server %s đã ngắt", mcpClient.GetServerName())
 	}()
 
-	log.Infof("server %s 的MCP连接已建立", mcpClient.GetServerName()) // todo
+	log.Infof("Kết nối MCP của server %s đã thiết lập", mcpClient.GetServerName()) // todo
 }
 
-// parseMCPToken 解析MCP JWT token
+// parseMCPToken parse MCP JWT token
 func (s *WebSocketServer) parseMCPToken(tokenString string) (*MCPClaims, error) {
-	// 移除 "Bearer " 前缀
+	// Xóa prefix "Bearer "
 	if len(tokenString) > 7 && tokenString[:7] == "Bearer " {
 		tokenString = tokenString[7:]
 	}
 
-	// 使用与生成token相同的密钥
+	// Dùng cùng secret với lúc tạo token
 	jwtSecret := []byte(util.GetManagerEndpointAuthToken())
 
 	token, err := jwt.ParseWithClaims(tokenString, &MCPClaims{}, func(token *jwt.Token) (interface{}, error) {
@@ -99,10 +99,10 @@ func (s *WebSocketServer) parseMCPToken(tokenString string) (*MCPClaims, error) 
 	return nil, jwt.ErrInvalidKey
 }
 
-// handleMCPAPI 处理MCP REST API请求
+// handleMCPAPI xử lý request MCP REST API
 func (s *WebSocketServer) handleMCPAPI(w http.ResponseWriter, r *http.Request) {
-	// 从URL路径中提取deviceId
-	// URL格式: /xiaozhi/api/mcp/tools/{deviceId}
+	// Lấy deviceId từ URL path
+	// Định dạng URL: /xiaozhi/api/mcp/tools/{deviceId}
 	path := strings.TrimPrefix(r.URL.Path, "/xiaozhi/api/mcp/tools/")
 	if path == "" || path == r.URL.Path {
 		http.Error(w, "Thiếu tham số ID thiết bị", http.StatusBadRequest)

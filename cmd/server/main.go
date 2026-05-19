@@ -18,50 +18,55 @@ import (
 )
 
 func main() {
-	// 解析命令行参数
-	configFile := flag.String("c", defaultConfigFilePath, "配置文件路径")
-	managerEnable := flag.Bool("manager-enable", defaultManagerEnable, "是否启用内嵌 manager")
-	managerConfig := flag.String("manager-config", "", "manager 配置文件路径，启用时可选，默认 manager/backend/config/config.json")
-	asrEnable := flag.Bool("asr-enable", defaultAsrEnable, "是否启用内嵌 asr_server")
-	asrConfig := flag.String("asr-config", "", "asr_server 配置文件路径，启用时可选，默认 asr_server/config.json")
+	// Phân tích tham số dòng lệnh.
+	configFile := flag.String("c", defaultConfigFilePath, "đường dẫn file cấu hình")
+	managerEnable := flag.Bool("manager-enable", defaultManagerEnable, "có bật manager nhúng hay không")
+	managerConfig := flag.String("manager-config", "", "đường dẫn file cấu hình manager, tùy chọn khi bật; mặc định manager/backend/config/config.json")
+	asrEnable := flag.Bool("asr-enable", defaultAsrEnable, "có bật asr_server nhúng hay không")
+	asrConfig := flag.String("asr-config", "", "đường dẫn file cấu hình asr_server, tùy chọn khi bật; mặc định asr_server/config.json")
+	ttsEnable := flag.Bool("tts-enable", defaultTtsEnable, "có bật tts_server nhúng hay không")
+	ttsConfig := flag.String("tts-config", "", "đường dẫn file cấu hình tts_server, tùy chọn khi bật; mặc định tts_server.json")
 	flag.Parse()
 
 	if *configFile == "" {
-		fmt.Println("配置文件路径不能为空")
+		fmt.Println("Đường dẫn file cấu hình không được để trống")
 		return
 	}
 
-	// 先启动 manager，再 Init，否则 Init 里 updateConfigFromAPI 会一直连不上 manager 导致卡死
+	// Khởi động manager trước Init, nếu không updateConfigFromAPI trong Init sẽ không kết nối được manager và bị kẹt.
 	if *managerEnable {
 		StartManagerHTTP(*managerConfig)
 	}
 	if *asrEnable {
 		StartAsrServerHTTP(*asrConfig)
 	}
+	if *ttsEnable {
+		StartTtsServerHTTP(*ttsConfig)
+	}
 	err := Init(*configFile)
 	if err != nil {
 		return
 	}
 
-	// 根据配置启动 pprof 服务
+	// Khởi động dịch vụ pprof theo cấu hình.
 	if viper.GetBool("server.pprof.enable") {
 		pprofPort := viper.GetInt("server.pprof.port")
 		go func() {
-			log.Infof("启动 pprof 服务，端口: %d", pprofPort)
+			log.Infof("Khởi động dịch vụ pprof, cổng: %d", pprofPort)
 			if err := http.ListenAndServe(fmt.Sprintf(":%d", pprofPort), nil); err != nil {
-				log.Errorf("pprof 服务启动失败: %v", err)
+				log.Errorf("Khởi động dịch vụ pprof thất bại: %v", err)
 			}
 		}()
-		log.Infof("pprof 地址: http://localhost:%d/debug/pprof/", pprofPort)
+		log.Infof("Địa chỉ pprof: http://localhost:%d/debug/pprof/", pprofPort)
 	} else {
-		log.Info("pprof 服务已禁用")
+		log.Info("Dịch vụ pprof đã tắt")
 	}
 
-	// 创建服务器
+	// Tạo server.
 	appInstance := server.NewApp()
 
 	var lock sync.RWMutex
-	// 注册 system_config 热更：用 viper 当前配置与推送配置对比，仅当内容变更时合并并触发热更
+	// Đăng ký hot reload system_config: so sánh cấu hình hiện tại trong viper với cấu hình được đẩy, chỉ merge và reload khi nội dung thay đổi.
 	user_config.RegisterManagerSystemConfigHandler(func(data map[string]interface{}) {
 		lock.Lock()
 		defer lock.Unlock()
@@ -121,7 +126,7 @@ func main() {
 			go func() {
 				defer wg.Done()
 				if err := appInstance.ReloadMCP(); err != nil {
-					log.Errorf("ReloadMCP failed: %v", err)
+					log.Errorf("ReloadMCP thất bại: %v", err)
 				}
 			}()
 		}
@@ -129,16 +134,16 @@ func main() {
 	})
 	appInstance.Run()
 
-	// 阻塞监听退出信号
+	// Chặn tiến trình để lắng nghe tín hiệu thoát.
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
-	log.Info("服务器已启动，按 Ctrl+C 退出")
+	log.Info("Server đã khởi động, nhấn Ctrl+C để thoát")
 	<-quit
 
-	log.Info("正在关闭服务器...")
+	log.Info("Đang tắt server...")
 
-	// 停止周期性配置更新服务
+	// Dừng dịch vụ cập nhật cấu hình định kỳ.
 	StopPeriodicConfigUpdate()
 	if *managerEnable {
 		StopManagerHTTP()
@@ -146,8 +151,11 @@ func main() {
 	if *asrEnable {
 		StopAsrServerHTTP()
 	}
+	if *ttsEnable {
+		StopTtsServerHTTP()
+	}
 
-	log.Info("服务器已关闭")
+	log.Info("Server đã tắt")
 }
 
 func udpListenChanged(newUdpCfg interface{}, oldUdpCfg interface{}) bool {

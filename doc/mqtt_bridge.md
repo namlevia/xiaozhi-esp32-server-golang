@@ -1,13 +1,13 @@
-# MQTT UDP Bridge 配置指南
+# Hướng dẫn cấu hình MQTT UDP Bridge
 
 ---
 
-### 名词解析
+### Giải thích thuật ngữ
 
-- **xiaozhi-mqtt-gateway:** 虾哥官方 mqtt udp bridge项目，实现了MQTT和UDP协议到WebSocket的转换。该服务允许设备通过MQTT协议进行控制消息传输，同时通过UDP协议高效传输音频数据，并将这些数据桥接到WebSocket服务。[xiaozhi-mqtt-gateway](https://github.com/78/xiaozhi-mqtt-gateway) 
-- **xiaozhi-esp32-server-golang:** 本项目
+- **xiaozhi-mqtt-gateway:** dự án MQTT UDP Bridge chính thức của Xiage, dùng để chuyển đổi giao thức MQTT và UDP sang WebSocket. Service này cho phép thiết bị truyền control message qua MQTT, đồng thời truyền dữ liệu audio hiệu quả qua UDP, rồi bridge các dữ liệu đó tới WebSocket service. [xiaozhi-mqtt-gateway](https://github.com/78/xiaozhi-mqtt-gateway)
+- **xiaozhi-esp32-server-golang:** dự án hiện tại
 
-### 整体架构
+### Kiến trúc tổng thể
 
 ```mermaid
 flowchart TD
@@ -18,43 +18,53 @@ flowchart TD
         B["MQTT Server"]
         C["UDP Server"]
     end
-    subgraph Backend["xiaozhi-esp32-server-golang (WebSocket 后端)"]
+    subgraph Backend["xiaozhi-esp32-server-golang (WebSocket backend)"]
         D["WebSocket Server"]
     end
-    A -- "信令 (MQTT)" --> B
-    A -- "音频数据 (UDP)" --> C
-    B -- "信令转发 (WebSocket)" --> D
-    C -- "音频数据转发 (WebSocket)" --> D
+    A -- "Signaling (MQTT)" --> B
+    A -- "Dữ liệu audio (UDP)" --> C
+    B -- "Chuyển tiếp signaling (WebSocket)" --> D
+    C -- "Chuyển tiếp dữ liệu audio (WebSocket)" --> D
     style MQTT_UDP_Gateway fill:#f9f,stroke:#333,stroke-width:2
     style Backend fill:#bbf,stroke:#333,stroke-width:2
     style Device fill:#bfb,stroke:#333,stroke-width:2
 ```
 
+## 1. Hướng dẫn cấu hình MQTT UDP Bridge
 
-## 一、MQTT UDP Bridge 配置指南
+### Các bước cài đặt
 
-### 安装步骤
 ---
-1. 克隆仓库
-```
+
+1. Clone repo
+
+```bash
 git clone 'https://github.com/78/xiaozhi-mqtt-gateway'
 cd xiaozhi-mqtt-gateway
 ```
-2. 安装依赖
-```
+
+2. Cài dependency
+
+```bash
 npm install
 ```
-3. 创建配置文件
-```
+
+3. Tạo file cấu hình
+
+```bash
 mkdir -p config
 cp config/mqtt.json.example config/mqtt.json
 ```
-4. 编辑配置文件 config/mqtt.json，设置适当的参数
 
-### 配置说明
-配置文件 config/mqtt.json 需要包含以下内容:
-- `chat_servers`：填写 小智golang服务器ip和端口，***path必须为/xiaozhi/mqtt_udp/v1/***
-```
+4. Sửa file cấu hình `config/mqtt.json` và thiết lập tham số phù hợp
+
+### Mô tả cấu hình
+
+File cấu hình `config/mqtt.json` cần chứa nội dung sau:
+
+- `chat_servers`: điền IP và cổng của Xiaozhi Golang server, ***path bắt buộc là /xiaozhi/mqtt_udp/v1/***
+
+```json
 {
   "debug": false,
   "development": {
@@ -67,37 +77,38 @@ cp config/mqtt.json.example config/mqtt.json
 }
 ```
 
-### 环境变量
-创建 .env 文件并设置以下环境变量:
+### Biến môi trường
+
+Tạo file `.env` và thiết lập các biến môi trường sau:
+
+```dotenv
+MQTT_PORT=1883              # Cổng MQTT server
+UDP_PORT=8884               # Cổng UDP server
+PUBLIC_IP=192.168.0.100     # IP public của server
+
+#MQTT_SIGNATURE_KEY=mqtt_key # mqtt key, tùy chọn; nếu cấu hình thì bật xác thực MQTT, cần giống key cấu hình trong WebSocket server
 ```
-MQTT_PORT=1883              # MQTT服务器端口
-UDP_PORT=8884               # UDP服务器端口
-PUBLIC_IP=192.168.0.100     # 服务器公网IP
 
-#MQTT_SIGNATURE_KEY=mqtt_key # mqtt key, 可选，如果配置则进行mqtt认证，需与 websocket服务器配置的key相同
-```
+### Chạy
 
-### 运行
+##### Môi trường development
 
-##### 开发环境
-
-```
-# 直接运行
+```bash
+# Chạy trực tiếp
 node app.js
 
-# 调试模式运行
+# Chạy ở chế độ debug
 DEBUG=mqtt-server node app.js
 ```
 
 ---
 
-## 二、小智golang后端服务配置指南
+## 2. Hướng dẫn cấu hình backend Xiaozhi Golang
 
+### 1. Mô tả các mục cấu hình quan trọng
 
+#### Tắt MQTT và UDP server local
 
-### 1. 关键配置项说明
-
-#### 关闭 本地 MQTT 和 UDP服务器
 ```yaml
 mqtt:
   enable: false
@@ -109,13 +120,13 @@ mqtt:
   password: "test!@#"
 ```
 
-#### OTA 配置（设备通过 OTA 获取连接参数）
-- `ota.signature_key`: 需要与xiaozhi-mqtt-bridge中的 .env文件中***MQTT_SIGNATURE_KEY***相同
-- `test`/`external`：内外网环境区分
-- `websocket.url`：返回的WebSocket 服务地址
-- `mqtt.endpoint`：MQTT 服务地址和端口
-- `mqtt.enable`：是否启用 MQTT（true 时设备优先用 MQTT+UDP）
+#### Cấu hình OTA (thiết bị lấy tham số kết nối qua OTA)
 
+- `ota.signature_key`: cần giống ***MQTT_SIGNATURE_KEY*** trong file `.env` của `xiaozhi-mqtt-bridge`
+- `test` / `external`: phân biệt môi trường mạng nội bộ và bên ngoài
+- `websocket.url`: địa chỉ WebSocket service được trả về
+- `mqtt.endpoint`: địa chỉ và cổng MQTT service
+- `mqtt.enable`: có bật MQTT hay không; khi là `true`, thiết bị ưu tiên dùng MQTT + UDP
 
 ```yaml
 ota:
@@ -133,9 +144,11 @@ ota:
       enable: true
       endpoint: "mqtt.youdomain.cn"
 ```
+
 ---
 
-## 三、参考文档
-- [mqtt_udp.md](./mqtt_udp.md)（详细架构、配置、流程）
-- [mqtt_udp_protocol.md](./mqtt_udp_protocol.md)（协议与数据流程）
-- [config.md](./config.md)（配置项详细说明）
+## 3. Tài liệu tham khảo
+
+- [mqtt_udp.md](./mqtt_udp.md) (kiến trúc, cấu hình và luồng chi tiết)
+- [mqtt_udp_protocol.md](./mqtt_udp_protocol.md) (giao thức và luồng dữ liệu)
+- [config.md](./config.md) (mô tả chi tiết các mục cấu hình)

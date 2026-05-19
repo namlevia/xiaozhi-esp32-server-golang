@@ -3,8 +3,7 @@ package request
 import (
 	"bytes"
 	"encoding/binary"
-
-	"github.com/bytedance/sonic"
+	"encoding/json"
 
 	"xiaozhi-esp32-server-golang/internal/domain/asr/doubao/common"
 )
@@ -110,7 +109,7 @@ func NewFullClientRequest(opts FullClientRequestOptions) []byte {
 			EnableNonstream:   opts.EnableNonstream,
 		},
 	}
-	payloadArr, _ := sonic.Marshal(payload)
+	payloadArr, _ := json.Marshal(payload)
 	payloadArr = common.GzipCompress(payloadArr)
 	payloadSize := len(payloadArr)
 	payloadSizeArr := make([]byte, 4)

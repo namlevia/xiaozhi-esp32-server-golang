@@ -55,14 +55,14 @@ func isLoginCaptchaEnabledFromDB(db *gorm.DB) bool {
 	return defaultLoginCaptchaEnabled
 }
 
-// 获取登录数字验证开关状态
+// Lấy trạng thái bật/tắt xác minh số khi đăng nhập
 func (ac *AuthController) GetCaptchaStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"enabled": isLoginCaptchaEnabledFromDB(ac.DB),
 	})
 }
 
-// 获取简单人机验证码
+// Lấy captcha người-máy đơn giản
 func (ac *AuthController) GetSimpleCaptcha(c *gin.Context) {
 	captchaID, prompt, err := authCaptchaStore.NewChallenge()
 	if err != nil {
@@ -76,7 +76,7 @@ func (ac *AuthController) GetSimpleCaptcha(c *gin.Context) {
 	})
 }
 
-// 用户登录
+// Đăng nhập người dùng
 func (ac *AuthController) Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -89,21 +89,21 @@ func (ac *AuthController) Login(c *gin.Context) {
 		return
 	}
 
-	// 添加登录调试日志
-	log.Printf("[Login] 尝试登录用户: %s, 客户端IP: %s", req.Username, c.ClientIP())
-	log.Printf("[Login] 接收到的密码长度: %d", len(req.Password))
+	// Thêm log debug đăng nhập
+	log.Printf("[Login] Thử đăng nhập người dùng: %s, IP client: %s", req.Username, c.ClientIP())
+	log.Printf("[Login] Độ dài mật khẩu nhận được: %d", len(req.Password))
 
-	// 如果数据库可用，尝试从数据库验证
+	// Nếu cơ sở dữ liệu khả dụng, thử xác thực từ cơ sở dữ liệu
 	if ac.DB != nil {
-		log.Printf("[Login] 数据库连接可用，开始数据库验证")
+		log.Printf("[Login] Kết nối cơ sở dữ liệu khả dụng, bắt đầu xác thực cơ sở dữ liệu")
 		var user models.User
 		if err := ac.DB.Where("username = ?", req.Username).First(&user).Error; err == nil {
-			log.Printf("[Login] 找到用户: ID=%d, Username=%s, Role=%s, Email=%s", user.ID, user.Username, user.Role, user.Email)
-			log.Printf("[Login] 数据库中密码哈希长度: %d, 哈希前缀: %s", len(user.Password), user.Password[:10])
-			log.Printf("[Login] 开始bcrypt密码比较验证")
+			log.Printf("[Login] Tìm thấy người dùng: ID=%d, Username=%s, Role=%s, Email=%s", user.ID, user.Username, user.Role, user.Email)
+			log.Printf("[Login] Độ dài hash mật khẩu trong cơ sở dữ liệu: %d, Tiền tố hash: %s", len(user.Password), user.Password[:10])
+			log.Printf("[Login] Bắt đầu so sánh mật khẩu bcrypt")
 
 			if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err == nil {
-				log.Printf("[Login] ✅ 密码验证成功 - 用户: %s", req.Username)
+				log.Printf("[Login] ✅ Xác thực mật khẩu thành công - Người dùng: %s", req.Username)
 				token, err := middleware.GenerateToken(user.ID, user.Username, user.Role)
 				if err != nil {
 					log.Printf("[Login] ❌ Tạo token thất bại: %v", err)
@@ -111,7 +111,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 					return
 				}
 
-				log.Printf("[Login] ✅ 登录成功，返回token - 用户: %s, 角色: %s", user.Username, user.Role)
+				log.Printf("[Login] ✅ Đăng nhập thành công, trả về token - Người dùng: %s, Vai trò: %s", user.Username, user.Role)
 				c.JSON(http.StatusOK, gin.H{
 					"token": token,
 					"user": gin.H{
@@ -123,17 +123,17 @@ func (ac *AuthController) Login(c *gin.Context) {
 				})
 				return
 			} else {
-				log.Printf("[Login] ❌ 密码验证失败 - 用户: %s, bcrypt错误: %v", req.Username, err)
-				log.Printf("[Login] 调试信息 - 输入密码: '%s', 哈希: '%s'", req.Password, user.Password)
+				log.Printf("[Login] ❌ Xác thực mật khẩu thất bại - Người dùng: %s, Lỗi bcrypt: %v", req.Username, err)
+				log.Printf("[Login] Thông tin debug - mật khẩu nhập vào: '%s', Hash: '%s'", req.Password, user.Password)
 			}
 		} else {
-			log.Printf("[Login] ❌ Người dùng không tồn tại - 用户名: %s, 数据库错误: %v", req.Username, err)
+			log.Printf("[Login] ❌ Người dùng không tồn tại - Tên đăng nhập: %s, Lỗi cơ sở dữ liệu: %v", req.Username, err)
 		}
 	} else {
-		log.Printf("[Login] ❌ 数据库连接不可用")
+		log.Printf("[Login] ❌ Kết nối cơ sở dữ liệu không khả dụng")
 	}
 
-	// Fallback: 硬编码的admin用户验证（当数据库不可用时）
+	// Fallback: xác thực người dùng admin hard-code (khi cơ sở dữ liệu không khả dụng)
 	if req.Username == "admin" && req.Password == "admin123" {
 		token, err := middleware.GenerateToken(1, "admin", "admin")
 		if err != nil {
@@ -156,7 +156,7 @@ func (ac *AuthController) Login(c *gin.Context) {
 	c.JSON(http.StatusUnauthorized, gin.H{"error": "Tên đăng nhập hoặc mật khẩu không đúng"})
 }
 
-// 用户注册
+// Đăng ký người dùng
 func (ac *AuthController) Register(c *gin.Context) {
 	var req RegisterRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -169,14 +169,14 @@ func (ac *AuthController) Register(c *gin.Context) {
 		return
 	}
 
-	// 检查用户名是否已存在
+	// Kiểm tra tên đăng nhập đã tồn tại hay chưa
 	var existingUser models.User
 	if err := ac.DB.Where("username = ?", req.Username).First(&existingUser).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên đăng nhập đã tồn tại"})
 		return
 	}
 
-	// 加密密码
+	// Mã hóa mật khẩu
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Mã hóa mật khẩu thất bại"})
@@ -206,27 +206,27 @@ func (ac *AuthController) Register(c *gin.Context) {
 	})
 }
 
-// 获取当前用户信息
+// Lấy thông tin người dùng hiện tại
 func (ac *AuthController) GetProfile(c *gin.Context) {
-	log.Printf("[GetProfile] 开始处理获取用户信息请求, 客户端IP: %s", c.ClientIP())
+	log.Printf("[GetProfile] Bắt đầu xử lý yêu cầu lấy thông tin người dùng, IP client: %s", c.ClientIP())
 
 	userID, exists := c.Get("user_id")
 	if !exists {
-		log.Printf("[GetProfile] ❌ 无法获取用户ID，认证中间件可能未正确设置")
+		log.Printf("[GetProfile] ❌ Không thể lấy ID người dùng, middleware xác thực có thể chưa được thiết lập đúng")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Thiếu thông tin xác thực"})
 		return
 	}
 
-	log.Printf("[GetProfile] 从上下文获取用户ID: %v", userID)
+	log.Printf("[GetProfile] Lấy ID người dùng từ context: %v", userID)
 
 	var user models.User
 	if err := ac.DB.First(&user, userID).Error; err != nil {
-		log.Printf("[GetProfile] ❌ 数据库查询用户失败: %v, 用户ID: %v", err, userID)
+		log.Printf("[GetProfile] ❌ Truy vấn người dùng trong cơ sở dữ liệu thất bại: %v, Người dùngID: %v", err, userID)
 		c.JSON(http.StatusNotFound, gin.H{"error": "Người dùng không tồn tại"})
 		return
 	}
 
-	log.Printf("[GetProfile] ✅ 成功获取用户信息 - ID: %d, 用户名: %s, 角色: %s", user.ID, user.Username, user.Role)
+	log.Printf("[GetProfile] ✅ Lấy thông tin người dùng thành công - ID: %d, Tên đăng nhập: %s, Vai trò: %s", user.ID, user.Username, user.Role)
 	c.JSON(http.StatusOK, gin.H{
 		"user": gin.H{
 			"id":       user.ID,

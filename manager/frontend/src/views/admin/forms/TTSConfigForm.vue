@@ -34,7 +34,7 @@
           <el-option v-for="option in DOUBAO_MODEL_OPTIONS" :key="option.value" :label="option.label" :value="option.value" />
         </el-select>
       </el-form-item>
-      <el-form-item label="Resource ID" prop="doubao_ws.resource_id">
+      <el-form-item label="ID tài nguyên" prop="doubao_ws.resource_id">
         <el-input v-model="model.doubao_ws.resource_id" placeholder="Không bắt buộc; ví dụ TTS-SeedTTS2.xxxxx, ưu tiên dùng instance ID trong console" />
       </el-form-item>
       <el-form-item label="Giọng" prop="doubao_ws.voice">
@@ -103,6 +103,78 @@
       </el-form-item>
       <el-form-item label="Thời lượng frame" prop="edge_offline.frame_duration">
         <el-input-number v-model="model.edge_offline.frame_duration" :min="1" :max="100" style="width: 100%" />
+      </el-form-item>
+    </template>
+
+    <template v-if="model.provider === 'piper'">
+      <el-form-item label-width="0" class="indextts-help-item">
+        <div class="indextts-help">
+          <div class="indextts-help-head">
+            <div class="indextts-help-title">Piper TTS offline</div>
+            <div class="indextts-help-subtitle">Dùng service Piper local và model trong tts_server/tts-model; Edge TTS hiện tại không bị thay đổi.</div>
+          </div>
+          <div class="indextts-help-tags">
+            <el-tag size="small" effect="plain" type="success">offline</el-tag>
+            <el-tag size="small" effect="plain" type="info">ONNX</el-tag>
+            <el-tag size="small" effect="plain" type="warning">Piper/VITS</el-tag>
+          </div>
+        </div>
+      </el-form-item>
+      <el-form-item label="API URL" prop="piper.api_url">
+        <el-input v-model="model.piper.api_url" placeholder="http://main-server:9001/piper/tts" />
+      </el-form-item>
+      <el-form-item label="Giọng" prop="piper.voice">
+        <el-select
+          v-model="model.piper.voice"
+          placeholder="Vui lòng chọn giọng Piper"
+          style="width: 100%"
+          filterable
+          :loading="voiceLoading"
+          :disabled="voiceLoading"
+          @change="handlePiperVoiceChange"
+          @visible-change="handlePiperVoiceVisibleChange"
+        >
+          <el-option v-for="option in voiceOptionsList" :key="option.value" :label="option.label" :value="option.value" />
+        </el-select>
+        <div class="form-tip">
+          <el-icon><InfoFilled /></el-icon>
+          Mở danh sách để tải giọng từ /piper/voices. Nếu danh sách trống, hãy kiểm tra thư mục model và file .onnx.json.
+        </div>
+      </el-form-item>
+      <el-form-item label="Model ONNX" prop="piper.model_path">
+        <el-input v-model="model.piper.model_path" placeholder="/workspace/tts-model/banmai.onnx" />
+      </el-form-item>
+      <el-form-item label="Metadata JSON" prop="piper.model_config_path">
+        <el-input v-model="model.piper.model_config_path" placeholder="/workspace/tts-model/banmai.onnx.json" />
+        <div class="form-tip">
+          <el-icon><InfoFilled /></el-icon>
+          Model ONNX và metadata sẽ tự điền khi chọn giọng; chỉ sửa thủ công khi cần cấu hình nâng cao.
+        </div>
+      </el-form-item>
+      <el-form-item label="Định dạng âm thanh" prop="piper.response_format">
+        <el-select v-model="model.piper.response_format" placeholder="Vui lòng chọn định dạng âm thanh" style="width: 100%">
+          <el-option label="WAV" value="wav" />
+          <el-option label="PCM" value="pcm" />
+          <el-option label="MP3" value="mp3" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="Sample rate" prop="piper.sample_rate">
+        <el-input-number v-model="model.piper.sample_rate" :min="8000" :max="48000" style="width: 100%" />
+      </el-form-item>
+      <el-form-item label="Thời lượng frame" prop="piper.frame_duration">
+        <el-input-number v-model="model.piper.frame_duration" :min="1" :max="1000" style="width: 100%" />
+      </el-form-item>
+      <el-form-item label="Timeout" prop="piper.timeout">
+        <el-input-number v-model="model.piper.timeout" :min="1" :max="300" style="width: 100%" />
+      </el-form-item>
+      <el-form-item label="Length scale" prop="piper.length_scale">
+        <el-input-number v-model="model.piper.length_scale" :min="0.1" :max="3" :step="0.1" style="width: 100%" />
+      </el-form-item>
+      <el-form-item label="Noise scale" prop="piper.noise_scale">
+        <el-input-number v-model="model.piper.noise_scale" :min="0" :max="2" :step="0.01" style="width: 100%" />
+      </el-form-item>
+      <el-form-item label="Noise W" prop="piper.noise_w">
+        <el-input-number v-model="model.piper.noise_w" :min="0" :max="2" :step="0.01" style="width: 100%" />
       </el-form-item>
     </template>
 
@@ -501,6 +573,23 @@ function handleIndexTTSVoiceVisibleChange(visible) {
   }
 }
 
+function handlePiperVoiceVisibleChange(visible) {
+  if (visible) {
+    emit('request-voice-options', 'piper')
+  }
+}
+
+function handlePiperVoiceChange(value) {
+  const selected = voiceOptionsList.value.find(option => option.value === value)
+  if (!selected) return
+  props.model.piper.model_path = selected.model_path || props.model.piper.model_path
+  props.model.piper.model_config_path = selected.model_config_path || props.model.piper.model_config_path
+  props.model.piper.sample_rate = selected.sample_rate || props.model.piper.sample_rate
+  props.model.piper.length_scale = selected.length_scale ?? props.model.piper.length_scale
+  props.model.piper.noise_scale = selected.noise_scale ?? props.model.piper.noise_scale
+  props.model.piper.noise_w = selected.noise_w ?? props.model.piper.noise_w
+}
+
 function getJsonData() {
   const form = props.model
   const config = {}
@@ -535,6 +624,20 @@ function getJsonData() {
       config.sample_rate = form.edge_offline?.sample_rate
       config.channels = form.edge_offline?.channels
       config.frame_duration = form.edge_offline?.frame_duration
+      break
+    case 'piper':
+      config.provider = 'piper'
+      config.api_url = form.piper?.api_url
+      config.voice = form.piper?.voice
+      config.model_path = form.piper?.model_path
+      config.model_config_path = form.piper?.model_config_path
+      config.response_format = form.piper?.response_format || 'wav'
+      config.sample_rate = form.piper?.sample_rate || 22050
+      config.frame_duration = form.piper?.frame_duration || 20
+      config.timeout = form.piper?.timeout || 60
+      config.length_scale = form.piper?.length_scale ?? 1.0
+      config.noise_scale = form.piper?.noise_scale ?? 0.667
+      config.noise_w = form.piper?.noise_w ?? 0.8
       break
     case 'aliyun_qwen':
       config.provider = 'aliyun_qwen'

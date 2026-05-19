@@ -18,7 +18,7 @@ type DeviceActivationController struct {
 	DB *gorm.DB
 }
 
-// 生成6位随机数字代码
+// Tạo mã số ngẫu nhiên 6 chữ số
 func generateCode() string {
 	randomBytes := make([]byte, 3)
 	rand.Read(randomBytes)
@@ -29,12 +29,12 @@ func generateCode() string {
 	return fmt.Sprintf("%06d", code%1000000)
 }
 
-// 生成UUID格式的挑战码
+// Tạo mã challenge định dạng UUID
 func generateChallenge() string {
 	randomBytes := make([]byte, 16)
 	rand.Read(randomBytes)
 
-	// 设置版本 (4) 和变体位
+	// Thiết lập version (4) và variant bit
 	randomBytes[6] = (randomBytes[6] & 0x0f) | 0x40
 	randomBytes[8] = (randomBytes[8] & 0x3f) | 0x80
 
@@ -46,7 +46,7 @@ func generateChallenge() string {
 		randomBytes[10:16])
 }
 
-// 1. 判断设备是否已激活
+// 1. Kiểm tra thiết bị đã kích hoạt hay chưa
 // GET /api/internal/device/check-activation?device_id=xxx&client_id=xxx
 func (dac *DeviceActivationController) CheckDeviceActivation(c *gin.Context) {
 	deviceId := c.Query("device_id")
@@ -61,7 +61,7 @@ func (dac *DeviceActivationController) CheckDeviceActivation(c *gin.Context) {
 	}
 
 	var device models.Device
-	// 使用device_id (对应device_name字段) 查找设备
+	// Dùng device_id (tương ứng trường device_name) để tìm thiết bị
 	if err := dac.DB.Where("device_name = ?", deviceId).First(&device).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, gin.H{
@@ -83,12 +83,12 @@ func (dac *DeviceActivationController) CheckDeviceActivation(c *gin.Context) {
 			if device.Activated {
 				return "Thiết bị đã được kích hoạt"
 			}
-			return "设备未激活"
+			return "Thiết bị chưa được kích hoạt"
 		}(),
 	})
 }
 
-// 2. 获取激活信息
+// 2. Lấy thông tin kích hoạt
 // GET /api/internal/device/activation-info?device_id=xxx&client_id=xxx
 func (dac *DeviceActivationController) GetActivationInfo(c *gin.Context) {
 	deviceId := c.Query("device_id")
@@ -102,13 +102,13 @@ func (dac *DeviceActivationController) GetActivationInfo(c *gin.Context) {
 	var device models.Device
 	var isNewDevice bool
 
-	// 使用device_id (对应device_name字段) 查找设备
+	// Dùng device_id (tương ứng trường device_name) để tìm thiết bị
 	if err := dac.DB.Where("device_name = ?", deviceId).First(&device).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// Thiết bị không tồn tại，创建新设备记录
+			// Thiết bị không tồn tại, tạo bản ghi thiết bị mới
 			device = models.Device{
 				DeviceName: deviceId,
-				UserID:     0, // user_id置为0
+				UserID:     0, // Đặt user_id là 0
 				DeviceCode: generateCode(),
 				Challenge:  generateChallenge(),
 				Activated:  false,
@@ -125,7 +125,7 @@ func (dac *DeviceActivationController) GetActivationInfo(c *gin.Context) {
 		}
 	}
 
-	// 如果Thiết bị đã được kích hoạt，直接返回状态
+	// Nếu thiết bị đã được kích hoạt, trả về trạng thái trực tiếp
 	if device.Activated {
 		c.JSON(http.StatusOK, gin.H{
 			"activated": true,
@@ -134,28 +134,28 @@ func (dac *DeviceActivationController) GetActivationInfo(c *gin.Context) {
 		return
 	}
 
-	// 如果设备未激活，生成或返回激活信息
+	// Nếu thiết bị chưa được kích hoạt, tạo hoặc trả về thông tin kích hoạt
 	needUpdate := false
 
-	// 如果没有激活码，生成新的激活码
+	// Nếu chưa có mã kích hoạt, tạo mã kích hoạt mới
 	if device.DeviceCode == "" {
 		device.DeviceCode = generateCode()
 		needUpdate = true
 	}
 
-	// 如果没有挑战码，生成新的挑战码
+	// Nếu chưa có mã challenge, tạo mã challenge mới
 	if device.Challenge == "" {
 		device.Challenge = generateChallenge()
 		needUpdate = true
 	}
 
-	// 确保user_id为0（如果不是新设备且未激活）
+	// Đảm bảo user_id là 0 (nếu không phải thiết bị mới và chưa kích hoạt)
 	if !isNewDevice && device.UserID != 0 {
 		device.UserID = 0
 		needUpdate = true
 	}
 
-	// 更新数据库
+	// Cập nhật cơ sở dữ liệu
 	if needUpdate {
 		updates := map[string]interface{}{}
 		if device.DeviceCode != "" {
@@ -181,10 +181,10 @@ func (dac *DeviceActivationController) GetActivationInfo(c *gin.Context) {
 	})
 }
 
-// 验证HMAC-SHA256
+// Xác thực HMAC-SHA256
 func verifyHMAC(challenge, secretKey, providedHmac string) bool {
 	if secretKey == "" {
-		return true // 如果pre_secret_key为空，直接通过验证
+		return true // Nếu pre_secret_key trống, cho qua xác thực trực tiếp
 	}
 
 	mac := hmac.New(sha256.New, []byte(secretKey))
@@ -194,7 +194,7 @@ func verifyHMAC(challenge, secretKey, providedHmac string) bool {
 	return expectedHmac == providedHmac
 }
 
-// 3. 设备激活接口
+// 3. Endpoint kích hoạt thiết bị
 // POST /api/internal/device/activate
 func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 	var req struct {
@@ -212,7 +212,7 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 	}
 
 	var device models.Device
-	// 使用device_id (对应device_name字段) 查找设备
+	// Dùng device_id (tương ứng trường device_name) để tìm thiết bị
 	if err := dac.DB.Where("device_name = ?", req.DeviceId).First(&device).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			c.JSON(http.StatusOK, gin.H{
@@ -228,7 +228,7 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 		return
 	}
 
-	// 检查设备是否已经激活
+	// Kiểm tra thiết bị đã được kích hoạt chưa
 	if device.Activated {
 		c.JSON(http.StatusOK, gin.H{
 			"success": true,
@@ -253,7 +253,7 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 		return
 	}
 
-	// 验证HMAC（如果pre_secret_key为空则直接通过）
+	// Xác thực HMAC (nếu pre_secret_key trống thì cho qua trực tiếp)
 	if !verifyHMAC(req.Challenge, device.PreSecretKey, req.Hmac) {
 		c.JSON(http.StatusOK, gin.H{
 			"success": false,
@@ -262,7 +262,7 @@ func (dac *DeviceActivationController) ActivateDevice(c *gin.Context) {
 		return
 	}
 
-	// 激活设备
+	// Kích hoạt thiết bị
 	device.Activated = true
 	if err := updateDeviceColumns(dac.DB, device.ID, map[string]interface{}{
 		"activated": device.Activated,

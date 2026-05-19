@@ -300,14 +300,14 @@ const handleSave = async () => {
     if (valid) {
       saving.value = true
       try {
-        // 检查是否是首次Thêm cấu hình
+        // Kiểm tra xem đây có phải lần thêm cấu hình đầu tiên hay không
         const isFirstConfig = !editingConfig.value && configs.value.length === 0
         
         const configData = {
           name: form.name,
           config_id: form.config_id,
           provider: form.provider,
-          is_default: isFirstConfig || form.is_default, // 首次添加Tự động设为Mặc định
+          is_default: isFirstConfig || form.is_default, // Khi thêm bản ghi đầu tiên thì tự đặt làm mặc định
           enabled: form.enabled !== undefined ? form.enabled : true,
           json_data: formRef.value.getJsonData()
         }
@@ -362,7 +362,7 @@ const toggleDefault = async (config) => {
     await api.put(`/admin/llm-configs/${config.id}`, configData)
     ElMessage.success(config.is_default ? 'Đặt làm mặc định thành công' : 'HủyMặc địnhthành công')
     
-    // Làm mới列表以更新其他配置的Mặc định状态
+    // Làm mới danh sách để cập nhật trạng thái mặc định của các cấu hình khác
     loadConfigs()
   } catch (error) {
     // Khôi phục trạng thái switch
@@ -384,7 +384,7 @@ function formatTestResultTip(r) {
   const parts = []
   if (r.first_packet_ms != null) parts.push(`First packet ${r.first_packet_ms}ms`)
   if (r.reasoning_content_returned) parts.push('Phát hiện upstream trả về nội dung suy luận')
-  return parts.length ? parts.join('，') : 'Đạt'
+  return parts.length ? parts.join(', ') : 'Đạt'
 }
 function formatTestMessage(result) {
   const base = result.message || ''
@@ -415,11 +415,11 @@ function getProviderLabel(provider) {
   const labels = {
     azure: 'Azure OpenAI',
     anthropic: 'Anthropic',
-    zhipu: '智谱AI',
-    aliyun: '阿里云',
-    doubao: '豆包',
-    siliconflow: '硅基流动',
-    deepseek: 'DeepSeek（深度求索）',
+    zhipu: 'Zhipu AI',
+    aliyun: 'Aliyun',
+    doubao: 'Doubao',
+    siliconflow: 'SiliconFlow',
+    deepseek: 'DeepSeek',
     openai: 'OpenAI',
     ollama: 'Ollama',
     dify: 'Dify',

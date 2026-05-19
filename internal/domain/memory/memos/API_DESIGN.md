@@ -1,118 +1,98 @@
-# MemOS 独立 Provider API 对接文档（基于官方文档，可按部署覆盖 endpoint）
+# Tài liệu đối nối API MemOS provider độc lập
 
-> 官方文档：`https://memos-docs.openmem.net/cn/api_docs/start/overview`
->
-> 示例 base_url：`https://memos.memtensor.cn/api/openmem/v1`
->
-> 目标：将 MemOS 作为**独立 provider**接入，不再与 `mem0` 复用。
+> Tài liệu chính thức: `https://memos-docs.openmem.net/cn/api_docs/start/overview`
 
----
+> Ví dụ `base_url`: `https://memos.memtensor.cn/api/openmem/v1`
 
-## 1. 原则
+> Mục tiêu: tích hợp MemOS như một provider độc lập, không dùng chung client `mem0` nữa.
 
-- 不再猜测 API 路径。
-- 不再将 `memos` 路由到 `mem0` 客户端。
-- 仅以你提供的官方文档为准做字段与 endpoint 映射。
+## 1. Nguyên tắc
 
----
+- Không đoán API path.
+- Không route `memos` sang client `mem0`.
+- Chỉ dựa trên tài liệu chính thức do user cung cấp để mapping field và endpoint.
 
-## 2. 当前仓库改造约束
+## 2. Ràng buộc cải tạo trong repo hiện tại
 
-系统接口 `MemoryProvider` 要求实现：
+Interface hệ thống `MemoryProvider` yêu cầu triển khai:
 
-- `AddMessage`
-- `GetMessages`
-- `GetContext`
-- `Search`
-- `Flush`
-- `ResetMemory`
+```go
+AddMessage(ctx, agentID, message) error
+GetMessages(ctx, agentID, limit) ([]*schema.Message, error)
+GetContext(ctx, agentID) (string, error)
+Search(ctx, agentID, query, topK, threshold, timeRangeDays) (string, error)
+Flush(ctx, agentID) error
+ResetMemory(ctx, agentID) error
+```
 
-因此 MemOS 对接时，必须在官方文档里逐项找到对应 API（或组合 API）并完成映射。
+Vì vậy khi đối nối MemOS, cần tìm API tương ứng hoặc tổ hợp API trong tài liệu chính thức và hoàn tất mapping.
 
----
+## 3. Điểm đối nối theo tài liệu chính thức
 
-## 3. 对接要点（按官方文档）
+Các field sau đi theo path cố định chính thức, không mở cấu hình endpoint trong console:
 
-以下字段按官方固定路径对接，不在控制台暴露 endpoint 配置：
+1. Cách xác thực
+   - Tên header:
+   - Prefix token, ví dụ `Bearer `:
 
-1. 鉴权方式
-   - Header 名称：
-   - Token 前缀（如 `Bearer `）：
+2. API ghi memory
+   - Ví dụ request body:
+   - Field quan trọng trong response:
 
-2. 写入记忆 API
-   - Method + Path：
-   - 请求体示例：
-   - 响应体关键字段：
+3. API truy vấn memory
+   - Tham số lọc như `agent_id`, `user_id`, `session_id`:
+   - Ví dụ response body:
 
-3. 查询记忆 API
-   - Method + Path：
-   - 过滤参数（agent_id / user_id / session_id 等）：
-   - 响应体示例：
+4. API search/recall
+   - Tham số `query`, `top_k`, `threshold`, `time_range`:
+   - Field response gồm text, score, timestamp:
 
-4. 检索/召回 API
-   - Method + Path：
-   - 参数（query/top_k/threshold/time_range）：
-   - 响应字段（文本、分数、时间戳）：
+5. API clear/delete
+   - Chiều xóa: cấp user, session hoặc agent:
 
-5. 清空/删除 API
-   - Method + Path：
-   - 删除维度（用户级/会话级/agent级）：
+6. Có API flush/index refresh hay không
+   - Nếu không có, `Flush` degrade semantic như thế nào:
 
-6. 是否存在 flush/index refresh API
-   - 若无，`Flush` 如何语义降级：
-
----
-
-## 4. 代码落地计划（确认后执行）
+## 4. Kế hoạch code
 
 ```text
 internal/domain/memory/memos/
-  memos_client.go        # 真实 HTTP 调用
-  types.go               # request/response DTO
-  mapper.go              # API -> schema.Message
-  memos_test.go          # httptest mock
+  memos_client.go        # HTTP call thật
+  memos_client_test.go   # test request/response mapping
 ```
 
-并修改：
+Và sửa:
 
-- `internal/domain/memory/base.go`
-  - `MemoryTypeMemOS -> memos.GetWithConfig(config)`
-- 管理端配置保留 `memos`（已支持）
-- 示例配置保留 `memory.memos`（已支持）
+- Cấu hình quản trị giữ `memos` (đã hỗ trợ).
+- Config ví dụ giữ `memory.memos` (đã hỗ trợ).
 
----
+## 5. Ghi chú môi trường
 
-## 5. 环境说明
+Môi trường hiện tại request tới site tài liệu chính thức trả 403 nên không thể tự động fetch nội dung tài liệu local.
 
-当前执行环境对该官方文档站点请求返回 403，无法在本地自动抓取文档内容。
+Hiện đã triển khai theo path cố định, console không cho chỉnh endpoint path.
 
-当前已按固定路径实现，控制台不提供 endpoint 路径编辑。
+## 6. Ghi chú triển khai hiện tại
 
+- URL request thực tế = `base_url + endpoint_path`, ví dụ `http://host/api/v1` + `/add/message`.
+- Đã triển khai `memos_client.go`, mặc định dùng các interface:
+  - `POST /add/message`
+  - `GET /get/messages`
+  - `POST /search/memory`
+  - `POST /flush`
+  - `POST /reset/memory`
+- Path dùng semantic chính thức cố định: `/add/message`, `/get/messages`, `/search/memory`, `/flush`, `/reset/memory`.
 
-## 6. 当前实现说明
+## 7. Ràng buộc field Add Message
 
-- 实际请求 URL = `base_url + endpoint_path`（例如 `http://host/api/v1` + `/add/message`）。
-- 已实现 `memos_client.go`，默认使用以下接口：
-  - `/add/message`
-  - `/get/messages`
-  - `/search/memory`
-  - `/flush`
-  - `/reset/memory`
-- 路径采用固定官方语义：`/add/message`、`/get/messages`、`/search/memory`、`/flush`、`/reset/memory`。
+- `user_id` / `conversation_id` là bắt buộc.
+- `agent_id` là tùy chọn, chỉ truyền khi có giá trị.
+- Triển khai hiện tại dùng `agentID` map đồng thời tới `user_id` và `conversation_id`; khi `agentID` rỗng thì báo lỗi trực tiếp, không dùng placeholder mặc định.
 
+## 8. Mapping field Search Memory
 
-## 7. Add Message 字段约束（已按文档调整）
-
-- `user_id` / `conversation_id` 为必填。
-- `agent_id` 为可选，仅在有值时传递。
-- 当前实现中使用 `agentID` 同时映射到 `user_id` 与 `conversation_id`；当 `agentID` 为空时直接报错，不再使用默认占位值。
-
-
-## 8. Search Memory 字段映射（已按文档调整）
-
-- Path: `/search/memory`
-- `user_id`: 使用 `agentID` 映射
-- `conversation_id`: 使用 `agentID` 映射
-- `query`: 透传用户输入
-- `memory_limit_number`: 由 `topK` 映射
-- `relativity`: 由 `search_threshold` 映射
+- `user_id`: map từ `agentID`.
+- `conversation_id`: map từ `agentID`.
+- `query`: truyền nguyên input người dùng.
+- `memory_limit_number`: map từ `topK`.
+- `relativity`: map từ `search_threshold`.

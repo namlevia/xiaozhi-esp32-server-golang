@@ -15,8 +15,8 @@ import (
 	log "xiaozhi-esp32-server-golang/logger"
 )
 
-// ServerTransport handles sending messages to the client via the transport layer
-// (原ServerMsgService)
+// ServerTransport xử lý gửi message tới client qua transport layer.
+// Tên cũ: ServerMsgService.
 type ServerTransport struct {
 	transport      types_conn.IConn
 	clientState    *ClientState
@@ -29,7 +29,7 @@ type udpSessionProvider interface {
 	GetUdpSession() *mqtt_udp.UdpSession
 }
 
-// DrainPendingAudio clears transport-level buffered audio before an interrupt stop.
+// DrainPendingAudio dọn audio đang buffer ở tầng transport trước khi interrupt stop.
 func (s *ServerTransport) DrainPendingAudio() int {
 	if s == nil || s.transport == nil {
 		return 0
@@ -99,7 +99,7 @@ func (s *ServerTransport) SendTtsStop() error {
 		return err
 	}
 	s.clientState.IsWelcomePlaying = false
-	// 一轮对话播报结束后，回到可触发下一轮对话的状态。
+	// Sau khi phát xong một lượt hội thoại, quay về trạng thái có thể kích hoạt lượt tiếp theo.
 	s.clientState.SetStatus(ClientStatusListenStop)
 	s.clientState.SetTtsStart(false)
 	return nil
@@ -143,7 +143,7 @@ func (s *ServerTransport) SendMqttGoodbye() error {
 func (s *ServerTransport) SendHello(transportType string, audioFormat *types_audio.AudioFormat, udpConfig *UdpConfig) error {
 	msg := ServerMessage{
 		Type:        MessageTypeHello,
-		Text:        "欢迎使用小智服务器",
+		Text:        "Chào mừng bạn sử dụng server Xiaozhi",
 		SessionID:   s.clientState.SessionID,
 		Transport:   transportType,
 		AudioFormat: audioFormat,
@@ -300,7 +300,7 @@ func (s *ServerTransport) RecvMcpMsg(ctx context.Context, timeOut int) ([]byte, 
 		}
 		return msg, nil
 	case <-time.After(time.Duration(timeOut) * time.Millisecond):
-		return nil, fmt.Errorf("mcp 接收消息超时")
+		return nil, fmt.Errorf("nhận message MCP timeout")
 	}
 }
 
@@ -313,7 +313,7 @@ func (s *ServerTransport) HandleMcpMessage(payload []byte) error {
 	select {
 	case s.McpRecvMsgChan <- payload:
 	default:
-		log.Warnf("mcp 接收消息通道已满, 丢弃消息")
+		log.Warnf("channel nhận message MCP đã đầy, bỏ message")
 	}
 	return nil
 }
@@ -342,7 +342,7 @@ func (s *ServerTransport) close(closeUnderlyingTransport bool) error {
 
 	if closeUnderlyingTransport && s.transport.GetTransportType() == types_conn.TransportTypeMqttUdp {
 		if err := s.SendMqttGoodbye(); err != nil {
-			log.Warnf("发送 mqtt goodbye 失败: %v", err)
+			log.Warnf("gửi mqtt goodbye thất bại: %v", err)
 		}
 	}
 

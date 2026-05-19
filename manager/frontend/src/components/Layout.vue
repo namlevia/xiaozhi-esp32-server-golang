@@ -5,7 +5,7 @@
         <div class="brand-panel">
           <img class="brand-mark" :src="appLogo" :alt="t('app.name')" />
           <div class="brand-copy">
-            <p class="brand-eyebrow">Control Center</p>
+            <p class="brand-eyebrow">Trung tâm điều khiển</p>
             <h3>{{ t('app.name') }}</h3>
             <p>{{ authStore.isAdmin ? t('layout.adminWorkspace') : t('layout.userWorkspace') }}</p>
           </div>
@@ -209,7 +209,6 @@ const handleCommand = async (command) => {
       ElMessage.success(t('layout.loggedOut'))
       router.push('/login')
     } catch {
-      // 用户取消
     }
   }
 }

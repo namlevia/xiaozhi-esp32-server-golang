@@ -24,38 +24,38 @@ func Init(cfg config.DatabaseConfig) *gorm.DB {
 
 	if storageType == "sqlite" {
 		if cfg.SQLite == nil {
-			log.Println("SQLite配置为空，将使用fallback模式运行（硬编码用户验证）")
+			log.Println("Cấu hình SQLite trống, sẽ chạy ở chế độ fallback (xác thực người dùng hard-code)")
 			return nil
 		}
-		// 确保数据库文件所在目录存在，避免 SQLite 报 unable to open database file
+		// Đảm bảo thư mục chứa file cơ sở dữ liệu tồn tại để SQLite không báo unable to open database file
 		dir := filepath.Dir(cfg.SQLite.FilePath)
 		if err := os.MkdirAll(dir, 0755); err != nil {
-			log.Printf("创建数据库目录失败 %s: %v", dir, err)
+			log.Printf("Tạo thư mục cơ sở dữ liệu thất bại %s: %v", dir, err)
 			return nil
 		}
-		log.Println("使用SQLite数据库:", cfg.SQLite.FilePath)
+		log.Println("Đang dùng cơ sở dữ liệu SQLite:", cfg.SQLite.FilePath)
 		db, err = gorm.Open(sqlite.Open(cfg.SQLite.FilePath), &gorm.Config{})
 	} else {
 		if cfg.MySQL == nil {
-			log.Println("MySQL配置为空，将使用fallback模式运行（硬编码用户验证）")
+			log.Println("Cấu hình MySQL trống, sẽ chạy ở chế độ fallback (xác thực người dùng hard-code)")
 			return nil
 		}
-		// MySQL 数据库连接
+		// Kết nối cơ sở dữ liệu MySQL
 		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 			cfg.MySQL.Username, cfg.MySQL.Password, cfg.MySQL.Host, cfg.MySQL.Port, cfg.MySQL.Database)
 		db, err = gorm.Open(mysql.Open(dsn), &gorm.Config{})
 	}
 
 	if err != nil {
-		log.Println("数据库连接失败:", err)
-		log.Println("将使用fallback模式运行（硬编码用户验证）")
+		log.Println("Kết nối cơ sở dữ liệu thất bại:", err)
+		log.Println("Sẽ chạy ở chế độ fallback (xác thực người dùng hard-code)")
 		return nil
 	}
 
-	log.Println("数据库连接成功")
+	log.Println("Kết nối cơ sở dữ liệu thành công")
 
-	// 自动迁移数据库表结构
-	log.Println("开始自动迁移数据库表结构...")
+	// Tự động migrate cấu trúc bảng cơ sở dữ liệu
+	log.Println("Bắt đầu tự động migrate cấu trúc bảng cơ sở dữ liệu...")
 	err = db.AutoMigrate(
 		&models.User{},
 		&models.APIToken{},
@@ -67,7 +67,7 @@ func Init(cfg config.DatabaseConfig) *gorm.DB {
 		&models.Config{},
 		&models.MCPMarketService{},
 		&models.GlobalRole{},
-		&models.Role{}, // 新增：统一角色表
+		&models.Role{}, // Bảng vai trò hợp nhất
 		&models.ChatMessage{},
 		&models.SpeakerGroup{},
 		&models.SpeakerSample{},
@@ -77,24 +77,45 @@ func Init(cfg config.DatabaseConfig) *gorm.DB {
 		&models.UserVoiceCloneQuota{},
 	)
 	if err != nil {
-		log.Printf("数据库表结构迁移失败: %v", err)
-		log.Println("将使用fallback模式运行（硬编码用户验证）")
+		log.Printf("Migrate cấu trúc bảng cơ sở dữ liệu thất bại: %v", err)
+		log.Println("Sẽ chạy ở chế độ fallback (xác thực người dùng hard-code)")
 		return nil
 	}
-	log.Println("数据库表结构迁移成功")
+	log.Println("Migrate cấu trúc bảng cơ sở dữ liệu thành công")
 
 	if err := dropDeprecatedAgentStatusColumn(db); err != nil {
-		log.Printf("删除旧智能体状态字段失败: %v", err)
+		log.Printf("Xóa cột trạng thái trợ lý cũ thất bại: %v", err)
 	}
 
-	// 迁移现有全局角色数据到新的 roles 表
-	log.Println("检查是否需要迁移全局角色数据...")
+	// Migrate dữ liệu vai trò toàn cục hiện có sang bảng roles mới
+	log.Println("Kiểm tra có cần migrate dữ liệu vai trò toàn cục không...")
 	if err := migrateGlobalRolesToRoles(db); err != nil {
-		log.Printf("迁移全局角色数据失败: %v", err)
-		// 迁移失败不影响启动，只是数据没有迁移
+		log.Printf("Migrate dữ liệu vai trò toàn cục thất bại: %v", err)
+		// Migrate thất bại không ảnh hưởng quá trình khởi động, chỉ chưa migrate dữ liệu
 	}
 	if err := repairConfigProviders(db); err != nil {
-		log.Printf("修复配置provider失败: %v", err)
+		log.Printf("Sửa provider cấu hình thất bại: %v", err)
+	}
+	if err := ensureDefaultVADConfig(db); err != nil {
+		log.Printf("Tạo cấu hình VAD mặc định thất bại: %v", err)
+	}
+	if err := ensureDefaultLLMConfig(db); err != nil {
+		log.Printf("Tạo cấu hình LLM mặc định thất bại: %v", err)
+	}
+	if err := ensureDefaultASRConfig(db); err != nil {
+		log.Printf("Tạo cấu hình ASR mặc định thất bại: %v", err)
+	}
+	if err := ensureDefaultTTSConfig(db); err != nil {
+		log.Printf("Tạo cấu hình TTS mặc định thất bại: %v", err)
+	}
+	if err := ensureDefaultPiperTTSConfig(db); err != nil {
+		log.Printf("Tạo cấu hình Piper TTS offline thất bại: %v", err)
+	}
+	if err := ensureDefaultMemoryConfig(db); err != nil {
+		log.Printf("Tạo cấu hình Memory mặc định thất bại: %v", err)
+	}
+	if err := ensureDefaultKnowledgeSearchConfig(db); err != nil {
+		log.Printf("Tạo cấu hình truy xuất kho tri thức mặc định thất bại: %v", err)
 	}
 	return db
 }
@@ -114,7 +135,7 @@ func dropDeprecatedAgentStatusColumn(db *gorm.DB) error {
 	if err != nil {
 		return err
 	}
-	log.Println("已删除旧智能体状态字段 agents.status")
+	log.Println("Đã xóa cột trạng thái trợ lý cũ agents.status")
 	return nil
 }
 
@@ -154,51 +175,51 @@ func Close(db *gorm.DB) {
 	}
 	sqlDB, err := db.DB()
 	if err != nil {
-		log.Println("获取数据库连接失败:", err)
+		log.Println("Lấy kết nối cơ sở dữ liệu thất bại:", err)
 		return
 	}
 	sqlDB.Close()
 }
 
-// migrateGlobalRolesToRoles 将现有全局角色数据迁移到新的 roles 表
+// migrateGlobalRolesToRoles migrate dữ liệu vai trò toàn cục hiện có sang bảng roles mới
 func migrateGlobalRolesToRoles(db *gorm.DB) error {
-	// 检查 roles 表是否已有数据
+	// Kiểm tra bảng roles đã có dữ liệu chưa
 	var count int64
 	if err := db.Table("roles").Count(&count).Error; err != nil {
-		return fmt.Errorf("检查 roles 表失败: %w", err)
+		return fmt.Errorf("Kiểm tra bảng roles thất bại: %w", err)
 	}
 
-	// 如果 roles 表已有数据，跳过迁移
+	// Nếu bảng roles đã có dữ liệu thì bỏ qua migrate
 	if count > 0 {
-		log.Println("roles 表已有数据，跳过迁移")
+		log.Println("Bảng roles đã có dữ liệu, bỏ qua migrate")
 		return nil
 	}
 
-	// 检查 global_roles 表是否有数据
+	// Kiểm tra bảng global_roles có dữ liệu không
 	var globalRoleCount int64
 	if err := db.Table("global_roles").Count(&globalRoleCount).Error; err != nil {
-		// global_roles 表可能不存在，不是错误
-		log.Println("global_roles 表不存在，跳过迁移")
+		// Bảng global_roles có thể không tồn tại, đây không phải lỗi
+		log.Println("Bảng global_roles không tồn tại, bỏ qua migrate")
 		return nil
 	}
 
 	if globalRoleCount == 0 {
-		log.Println("global_roles 表无数据，跳过迁移")
+		log.Println("Bảng global_roles không có dữ liệu, bỏ qua migrate")
 		return nil
 	}
 
-	log.Printf("开始迁移 %d 条全局角色数据到 roles 表...", globalRoleCount)
+	log.Printf("Bắt đầu migrate %d vai trò toàn cục sang bảng roles...", globalRoleCount)
 
-	// 查询所有全局角色
+	// Truy vấn tất cả vai trò toàn cục
 	var globalRoles []models.GlobalRole
 	if err := db.Table("global_roles").Find(&globalRoles).Error; err != nil {
-		return fmt.Errorf("查询 global_roles 失败: %w", err)
+		return fmt.Errorf("Truy vấn global_roles thất bại: %w", err)
 	}
 
-	// 转换并插入到 roles 表
+	// Chuyển đổi và insert vào bảng roles
 	for _, gr := range globalRoles {
 		role := models.Role{
-			UserID:      nil, // 全局角色 user_id 为 NULL
+			UserID:      nil, // Vai trò toàn cục có user_id là NULL
 			Name:        gr.Name,
 			Description: gr.Description,
 			Prompt:      gr.Prompt,
@@ -210,13 +231,282 @@ func migrateGlobalRolesToRoles(db *gorm.DB) error {
 			UpdatedAt:   gr.UpdatedAt,
 		}
 		if err := db.Create(&role).Error; err != nil {
-			log.Printf("插入角色 %s 失败: %v", gr.Name, err)
+			log.Printf("Insert vai trò %s thất bại: %v", gr.Name, err)
 			continue
 		}
-		log.Printf("已迁移全局角色: %s", gr.Name)
+		log.Printf("Đã migrate vai trò toàn cục: %s", gr.Name)
 	}
 
-	log.Println("全局角色数据迁移完成")
+	log.Println("Migrate dữ liệu vai trò toàn cục hoàn tất")
+	return nil
+}
+
+func ensureDefaultVADConfig(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&models.Config{}).Where("type = ?", "vad").Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	data := map[string]interface{}{
+		"provider":           "ten_vad",
+		"hop_size":           320,
+		"threshold":          0.3,
+		"pool_size":          10,
+		"acquire_timeout_ms": 3000,
+	}
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	cfg := models.Config{
+		Type:      "vad",
+		Name:      "TEN VAD mặc định",
+		ConfigID:  "ten_vad_default",
+		Provider:  "ten_vad",
+		JsonData:  string(bytes),
+		Enabled:   true,
+		IsDefault: true,
+	}
+	if err := db.Create(&cfg).Error; err != nil {
+		return err
+	}
+	log.Println("Đã tạo cấu hình VAD mặc định TEN VAD")
+	return nil
+}
+
+func ensureDefaultLLMConfig(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&models.Config{}).Where("type = ?", "llm").Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	data := map[string]interface{}{
+		"type":        "openai",
+		"model_name":  "cx/gpt-5.5",
+		"api_key":     "",
+		"base_url":    "https://api.9router.com/v1",
+		"max_tokens":  4000,
+		"temperature": 0.7,
+		"top_p":       0.9,
+		"thinking": map[string]interface{}{
+			"mode":   "default",
+			"effort": "medium",
+		},
+	}
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	cfg := models.Config{
+		Type:      "llm",
+		Name:      "9Router GPT-5.5",
+		ConfigID:  "9router_gpt_5_5",
+		Provider:  "9router",
+		JsonData:  string(bytes),
+		Enabled:   true,
+		IsDefault: true,
+	}
+	if err := db.Create(&cfg).Error; err != nil {
+		return err
+	}
+	log.Println("Đã tạo cấu hình LLM mặc định 9Router GPT-5.5")
+	return nil
+}
+
+func ensureDefaultASRConfig(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&models.Config{}).Where("type = ?", "asr").Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	data := map[string]interface{}{
+		"base_url":    "http://voice-server:9000",
+		"sample_rate": 16000,
+		"timeout_ms":  30000,
+	}
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	cfg := models.Config{
+		Type:      "asr",
+		Name:      "Vietnamese ASR (Go)",
+		ConfigID:  "wyoming_vietnamese_asr_default",
+		Provider:  "wyoming_vietnamese_asr",
+		JsonData:  string(bytes),
+		Enabled:   true,
+		IsDefault: true,
+	}
+	if err := db.Create(&cfg).Error; err != nil {
+		return err
+	}
+	log.Println("Đã tạo cấu hình ASR mặc định Vietnamese ASR (Go)")
+	return nil
+}
+
+func ensureDefaultTTSConfig(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&models.Config{}).Where("type = ?", "tts").Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	data := map[string]interface{}{
+		"provider":       "edge_offline",
+		"server_url":     "ws://main-server:9001/tts",
+		"timeout":        30,
+		"sample_rate":    16000,
+		"channels":       1,
+		"frame_duration": 20,
+	}
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	cfg := models.Config{
+		Type:      "tts",
+		Name:      "Edge Offline TTS",
+		ConfigID:  "edge_offline_default",
+		Provider:  "edge_offline",
+		JsonData:  string(bytes),
+		Enabled:   true,
+		IsDefault: true,
+	}
+	if err := db.Create(&cfg).Error; err != nil {
+		return err
+	}
+	log.Println("Đã tạo cấu hình TTS mặc định Edge Offline")
+	return nil
+}
+
+func ensureDefaultPiperTTSConfig(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&models.Config{}).Where("type = ? AND provider = ?", "tts", "piper").Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	data := map[string]interface{}{
+		"provider":          "piper",
+		"api_url":           "http://main-server:9001/piper/tts",
+		"voice":             "banmai",
+		"model_path":        "/workspace/tts-model/banmai.onnx",
+		"model_config_path": "/workspace/tts-model/banmai.onnx.json",
+		"response_format":   "wav",
+		"sample_rate":       22050,
+		"frame_duration":    20,
+		"timeout":           60,
+		"length_scale":      1.0,
+		"noise_scale":       0.667,
+		"noise_w":           0.8,
+	}
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	cfg := models.Config{
+		Type:      "tts",
+		Name:      "Piper TTS offline",
+		ConfigID:  "piper_offline_default",
+		Provider:  "piper",
+		JsonData:  string(bytes),
+		Enabled:   true,
+		IsDefault: false,
+	}
+	if err := db.Create(&cfg).Error; err != nil {
+		return err
+	}
+	log.Println("Đã tạo cấu hình Piper TTS offline")
+	return nil
+}
+
+func ensureDefaultMemoryConfig(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&models.Config{}).Where("type = ?", "memory").Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	data := map[string]interface{}{
+		"api_key":          "",
+		"base_url":         "https://api.memobase.dev",
+		"enable_search":    true,
+		"search_threshold": 0.5,
+		"search_top_k":     3,
+	}
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	cfg := models.Config{
+		Type:      "memory",
+		Name:      "Memobase mặc định",
+		ConfigID:  "memobase_default",
+		Provider:  "memobase",
+		JsonData:  string(bytes),
+		Enabled:   true,
+		IsDefault: false,
+	}
+	if err := db.Create(&cfg).Error; err != nil {
+		return err
+	}
+	log.Println("Đã tạo cấu hình Memory mặc định Memobase")
+	return nil
+}
+
+func ensureDefaultKnowledgeSearchConfig(db *gorm.DB) error {
+	var count int64
+	if err := db.Model(&models.Config{}).Where("type = ?", "knowledge_search").Count(&count).Error; err != nil {
+		return err
+	}
+	if count > 0 {
+		return nil
+	}
+
+	data := map[string]interface{}{
+		"api_key":         "",
+		"base_url":        "https://api.dify.ai/v1",
+		"score_threshold": 0.2,
+	}
+	bytes, err := json.Marshal(data)
+	if err != nil {
+		return err
+	}
+
+	cfg := models.Config{
+		Type:      "knowledge_search",
+		Name:      "Dify mặc định",
+		ConfigID:  "dify_default",
+		Provider:  "dify",
+		JsonData:  string(bytes),
+		Enabled:   true,
+		IsDefault: true,
+	}
+	if err := db.Create(&cfg).Error; err != nil {
+		return err
+	}
+	log.Println("Đã tạo cấu hình truy xuất kho tri thức mặc định Dify")
 	return nil
 }
 
@@ -231,7 +521,7 @@ func repairConfigProviders(db *gorm.DB) error {
 		var data map[string]interface{}
 		if cfg.JsonData != "" {
 			if err := json.Unmarshal([]byte(cfg.JsonData), &data); err != nil {
-				log.Printf("跳过provider修复，json_data解析失败 type=%s config_id=%s: %v", cfg.Type, cfg.ConfigID, err)
+				log.Printf("Bỏ qua sửa provider, phân tích json_data thất bại type=%s config_id=%s: %v", cfg.Type, cfg.ConfigID, err)
 				continue
 			}
 		}
@@ -270,7 +560,7 @@ func repairConfigProviders(db *gorm.DB) error {
 	}
 
 	if repaired > 0 {
-		log.Printf("已修复 %d 条配置provider", repaired)
+		log.Printf("Đã sửa %d cấu hình provider", repaired)
 	}
 	return nil
 }

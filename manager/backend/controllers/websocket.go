@@ -33,7 +33,7 @@ type WSClientClaims struct {
 	jwt.RegisteredClaims
 }
 
-// WebSocketClient 连接到Manager Backend的客户端
+// WebSocketClient là client kết nối tới Manager Backend.
 type WebSocketClient struct {
 	ID           string
 	conn         *websocket.Conn
@@ -42,7 +42,7 @@ type WebSocketClient struct {
 	callbacks    map[string]func(*WebSocketResponse)
 	mu           sync.RWMutex
 	isConnected  bool
-	stopChan     chan struct{} // 停止信号通道
+	stopChan     chan struct{} // Kênh tín hiệu dừng
 }
 
 type WebSocketRequest struct {
@@ -76,21 +76,21 @@ const (
 	openClawChatMaxTimeoutMs       = 10 * 60 * 1000
 )
 
-// NewWebSocketController 创建WebSocket控制器
+// NewWebSocketController tạo WebSocket controller.
 func NewWebSocketController(db *gorm.DB, endpointAuthToken string) *WebSocketController {
 	return &WebSocketController{
 		DB:                db,
 		endpointAuthToken: strings.TrimSpace(endpointAuthToken),
 		upgrader: websocket.Upgrader{
 			CheckOrigin: func(r *http.Request) bool {
-				return true // 允许所有来源，生产环境应该限制
+				return true // Cho phép mọi origin; môi trường production nên giới hạn.
 			},
 		},
 		clientsMap: cmap.New[*WebSocketClient](),
 	}
 }
 
-// HandleWebSocket 处理WebSocket连接升级
+// HandleWebSocket xử lý nâng cấp kết nối WebSocket.
 func (ctrl *WebSocketController) HandleWebSocket(c *gin.Context) {
 	tokenString := strings.TrimSpace(c.GetHeader("Authorization"))
 	if strings.HasPrefix(strings.ToLower(tokenString), "bearer ") {
@@ -114,10 +114,10 @@ func (ctrl *WebSocketController) HandleWebSocket(c *gin.Context) {
 		return
 	}
 
-	// 获取UUID header
+	// Lấy header UUID.
 	clientUUID := c.GetHeader("UUID")
 	if clientUUID == "" {
-		log.Printf("WebSocket连接Thiếu header UUID")
+		log.Printf("Kết nối WebSocket thiếu header UUID")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Thiếu header UUID"})
 		return
 	}
@@ -126,21 +126,21 @@ func (ctrl *WebSocketController) HandleWebSocket(c *gin.Context) {
 		return
 	}
 
-	// 升级HTTP连接为WebSocket连接
+	// Nâng cấp kết nối HTTP thành WebSocket.
 	conn, err := ctrl.upgrader.Upgrade(c.Writer, c.Request, nil)
 	if err != nil {
-		log.Printf("WebSocket升级失败: %v", err)
+		log.Printf("Nâng cấp WebSocket thất bại: %v", err)
 		return
 	}
 
-	// 检查是否已存在相同UUID的连接
+	// Kiểm tra đã có kết nối cùng UUID hay chưa.
 	if existingClient, exists := ctrl.clientsMap.Get(clientUUID); exists {
-		log.Printf("断开现有连接: %s", clientUUID)
+		log.Printf("Ngắt kết nối hiện có: %s", clientUUID)
 		existingClient.conn.Close()
 		existingClient.isConnected = false
 	}
 
-	// 创建新的客户端
+	// Tạo client mới.
 	client := &WebSocketClient{
 		ID:           clientUUID,
 		conn:         conn,
@@ -151,15 +151,15 @@ func (ctrl *WebSocketController) HandleWebSocket(c *gin.Context) {
 		stopChan:     make(chan struct{}),
 	}
 
-	// 存储到clientsMap中
+	// Lưu vào clientsMap.
 	ctrl.clientsMap.Set(clientUUID, client)
 
-	log.Printf("新的WebSocketClient đã kết nối: %s", clientUUID)
+	log.Printf("WebSocketClient mới đã kết nối: %s", clientUUID)
 
-	// 启动客户端消息处理
+	// Khởi động xử lý message client.
 	go client.handleMessages()
 
-	// 启动心跳检测
+	// Khởi động kiểm tra heartbeat.
 	go client.heartbeat()
 }
 
@@ -177,26 +177,26 @@ func (ctrl *WebSocketController) parseWSClientToken(tokenString string) (*WSClie
 	return claims, nil
 }
 
-// 移除客户端
+// Xóa client.
 func (ctrl *WebSocketController) removeClient(clientID string) {
 	if client, exists := ctrl.clientsMap.Get(clientID); exists {
-		// 发送停止信号给心跳检测
+		// Gửi tín hiệu dừng cho heartbeat.
 		select {
 		case client.stopChan <- struct{}{}:
-			log.Printf("已发送停止信号给客户端: %s", clientID)
+			log.Printf("Đã gửi tín hiệu dừng cho client: %s", clientID)
 		default:
-			// 通道可能已满或已关闭，忽略
+			// Channel có thể đầy hoặc đã đóng, bỏ qua.
 		}
 
-		// 确保客户端状态正确设置
+		// Đảm bảo trạng thái client được đặt đúng.
 		client.isConnected = false
-		// 从映射中移除
+		// Xóa khỏi map.
 		ctrl.clientsMap.Remove(clientID)
-		log.Printf("WebSocket客户端已断开: %s", clientID)
+		log.Printf("WebSocket client đã ngắt kết nối: %s", clientID)
 	}
 }
 
-// 获取客户端通过UUID
+// Lấy client theo UUID.
 func (ctrl *WebSocketController) GetClient(uuid string) *WebSocketClient {
 	if client, exists := ctrl.clientsMap.Get(uuid); exists {
 		return client
@@ -204,7 +204,7 @@ func (ctrl *WebSocketController) GetClient(uuid string) *WebSocketClient {
 	return nil
 }
 
-// 检查指定UUID的客户端是否连接
+// Kiểm tra client UUID chỉ định có đang kết nối hay không.
 func (ctrl *WebSocketController) IsClientConnected(uuid string) bool {
 	if client, exists := ctrl.clientsMap.Get(uuid); exists {
 		return client.isConnected
@@ -212,7 +212,7 @@ func (ctrl *WebSocketController) IsClientConnected(uuid string) bool {
 	return false
 }
 
-// GetFirstConnectedClientUUID 返回第一个已连接客户端的 UUID，用于配置测试等场景
+// GetFirstConnectedClientUUID trả về UUID của client đang kết nối đầu tiên để kiểm tra cấu hình.
 func (ctrl *WebSocketController) GetFirstConnectedClientUUID() string {
 	for item := range ctrl.clientsMap.IterBuffered() {
 		if client := item.Val; client.isConnected {
@@ -222,31 +222,31 @@ func (ctrl *WebSocketController) GetFirstConnectedClientUUID() string {
 	return ""
 }
 
-// 向指定UUID的客户端发送消息
+// Gửi message tới client có UUID chỉ định.
 func (ctrl *WebSocketController) SendToClient(uuid string, message interface{}) error {
 	if client, exists := ctrl.clientsMap.Get(uuid); exists && client.isConnected {
 		return client.conn.WriteJSON(message)
 	}
-	return fmt.Errorf("客户端 %s 未连接", uuid)
+	return fmt.Errorf("Client %s chưa kết nối", uuid)
 }
 
-// 广播消息给所有连接的客户端
+// Broadcast message tới mọi client đang kết nối.
 func (ctrl *WebSocketController) Broadcast(message interface{}) {
 	for item := range ctrl.clientsMap.IterBuffered() {
 		if client := item.Val; client.isConnected {
 			if err := client.conn.WriteJSON(message); err != nil {
-				log.Printf("向客户端 %s 广播消息失败: %v", client.ID, err)
+				log.Printf("Broadcast message tới client %s thất bại: %v", client.ID, err)
 			}
 		}
 	}
 }
 
-// BroadcastSystemConfig 向所有连接的客户端推送系统配置变更，格式与 GET /api/system/configs 一致：{"type":"system_config","data":{...}}
+// BroadcastSystemConfig push thay đổi cấu hình hệ thống tới mọi client đang kết nối.
 func (ctrl *WebSocketController) BroadcastSystemConfig(data gin.H) {
 	ctrl.Broadcast(gin.H{"type": "system_config", "data": data})
 }
 
-// 客户端消息处理
+// Xử lý message client.
 func (client *WebSocketClient) handleMessages() {
 	defer func() {
 		client.conn.Close()
@@ -259,91 +259,91 @@ func (client *WebSocketClient) handleMessages() {
 			return
 		}
 
-		// 读取消息类型
+		// Đọc loại message.
 		messageType, reader, err := client.conn.NextReader()
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
-				log.Printf("WebSocket读取错误: %v", err)
+				log.Printf("Đọc WebSocket lỗi: %v", err)
 			}
 			return
 		}
 
-		// 处理不同类型的消息
+		// Xử lý các loại message khác nhau.
 		switch messageType {
 		case websocket.TextMessage:
-			// 处理JSON消息
+			// Xử lý message JSON.
 			var rawMessage map[string]interface{}
 			if err := json.NewDecoder(reader).Decode(&rawMessage); err != nil {
-				log.Printf("解析JSON消息失败: %v", err)
+				log.Printf("Phân tích message JSON thất bại: %v", err)
 				continue
 			}
-			// 处理消息
+			// Xử lý message.
 			client.handleMessage(rawMessage)
 
 		case websocket.PingMessage:
-			// 处理ping消息，自动回复pong
-			log.Printf("收到ping消息，自动回复pong")
+			// Xử lý ping và tự động trả pong.
+			log.Printf("Nhận ping, tự động trả pong")
 			if err := client.conn.WriteControl(websocket.PongMessage, []byte{}, time.Now().Add(10*time.Second)); err != nil {
-				log.Printf("发送pong失败: %v", err)
+				log.Printf("Gửi pong thất bại: %v", err)
 			}
 
 		case websocket.PongMessage:
-			// 处理pong消息
-			log.Printf("收到pong消息")
+			// Xử lý pong.
+			log.Printf("Nhận pong")
 
 		case websocket.CloseMessage:
-			// 处理关闭消息
-			log.Printf("收到关闭消息")
+			// Xử lý close message.
+			log.Printf("Nhận close message")
 			return
 
 		default:
-			log.Printf("收到未知类型的WebSocket消息: %d", messageType)
+			log.Printf("Nhận message WebSocket không rõ loại: %d", messageType)
 		}
 	}
 }
 
-// 处理收到的消息
+// Xử lý message nhận được.
 func (client *WebSocketClient) handleMessage(rawMessage map[string]interface{}) {
-	// 检查是否是请求消息
+	// Kiểm tra có phải message yêu cầu hay không.
 	if method, exists := rawMessage["method"]; exists && method != nil {
 		client.handleRequest(rawMessage)
 		return
 	}
 
-	// 检查是否是响应消息
+	// Kiểm tra có phải message phản hồi hay không.
 	if status, exists := rawMessage["status"]; exists && status != nil {
 		client.handleResponse(rawMessage)
 		return
 	}
 
-	log.Printf("收到无法识别的消息: %+v", rawMessage)
+	log.Printf("Nhận message không nhận diện được: %+v", rawMessage)
 }
 
-// 处理请求消息
+// Xử lý message yêu cầu.
 func (client *WebSocketClient) handleRequest(rawMessage map[string]interface{}) {
 	var request WebSocketRequest
 	if err := mapToStruct(rawMessage, &request); err != nil {
-		log.Printf("解析请求失败: %v", err)
+		log.Printf("Phân tích yêu cầu thất bại: %v", err)
 		return
 	}
 
-	log.Printf("收到请求: ID=%s, Method=%s, Path=%s", request.ID, request.Method, request.Path)
+	log.Printf("Nhận yêu cầu: ID=%s, Method=%s, Path=%s", request.ID, request.Method, request.Path)
 
-	// 处理请求并发送响应
+	// Xử lý yêu cầu và gửi phản hồi.
 	client.processRequest(&request)
 }
 
-// 处理响应消息
+// Xử lý message phản hồi.
 func (client *WebSocketClient) handleResponse(rawMessage map[string]interface{}) {
 	var response WebSocketResponse
 	if err := mapToStruct(rawMessage, &response); err != nil {
-		log.Printf("解析响应失败: %v", err)
+		log.Printf("Phân tích phản hồi thất bại: %v", err)
 		return
 	}
 
-	log.Printf("收到响应: ID=%s, Status=%d", response.ID, response.Status)
+	log.Printf("Nhận phản hồi: ID=%s, Status=%d", response.ID, response.Status)
 
-	// 查找对应的响应通道
+	// Tìm channel phản hồi tương ứng.
 	client.mu.RLock()
 	responseChan, exists := client.requestChans[response.ID]
 	callback, callbackExists := client.callbacks[response.ID]
@@ -353,7 +353,7 @@ func (client *WebSocketClient) handleResponse(rawMessage map[string]interface{})
 		select {
 		case responseChan <- &response:
 		default:
-			log.Printf("响应通道已满，丢弃响应: %s", response.ID)
+			log.Printf("Channel phản hồi đã đầy, bỏ phản hồi: %s", response.ID)
 		}
 	}
 
@@ -362,11 +362,11 @@ func (client *WebSocketClient) handleResponse(rawMessage map[string]interface{})
 	}
 
 	if !exists && !callbackExists {
-		log.Printf("收到未知的响应ID: %s", response.ID)
+		log.Printf("Nhận ID phản hồi không xác định: %s", response.ID)
 	}
 }
 
-// 处理请求
+// Xử lý yêu cầu.
 func (client *WebSocketClient) processRequest(request *WebSocketRequest) {
 	switch request.Path {
 	case "/api/server/info":
@@ -382,12 +382,12 @@ func (client *WebSocketClient) processRequest(request *WebSocketRequest) {
 		client.handleDeviceInactiveRequest(request)
 
 	default:
-		log.Printf("未知的请求路径: %s", request.Path)
+		log.Printf("Path yêu cầu không xác định: %s", request.Path)
 		client.sendResponse(request.ID, 404, nil, "Unknown endpoint")
 	}
 }
 
-// 处理服务器信息请求
+// Xử lý yêu cầu thông tin server.
 func (client *WebSocketClient) handleServerInfoRequest(request *WebSocketRequest) {
 	response := map[string]interface{}{
 		"server_name": "xiaozhi-manager-backend",
@@ -400,7 +400,7 @@ func (client *WebSocketClient) handleServerInfoRequest(request *WebSocketRequest
 	client.sendResponse(request.ID, 200, response, "")
 }
 
-// 处理ping请求
+// Xử lý yêu cầu ping.
 func (client *WebSocketClient) handlePingRequest(request *WebSocketRequest) {
 	response := map[string]interface{}{
 		"message":   "pong from manager backend",
@@ -411,9 +411,9 @@ func (client *WebSocketClient) handlePingRequest(request *WebSocketRequest) {
 	client.sendResponse(request.ID, 200, response, "")
 }
 
-// 处理设备活跃时间更新请求
+// Xử lý yêu cầu cập nhật thời gian hoạt động thiết bị.
 func (client *WebSocketClient) handleDeviceActiveRequest(request *WebSocketRequest) {
-	// 从请求体中获取device_id
+	// Lấy device_id từ body yêu cầu.
 	deviceID := ""
 	if request.Body != nil {
 		if id, ok := request.Body["device_id"].(string); ok {
@@ -422,32 +422,32 @@ func (client *WebSocketClient) handleDeviceActiveRequest(request *WebSocketReque
 	}
 
 	if deviceID == "" {
-		log.Printf("收到设备活跃请求，但缺少device_id")
-		client.sendResponse(request.ID, 400, nil, "缺少device_id参数")
+		log.Printf("Nhận yêu cầu thiết bị active nhưng thiếu device_id")
+		client.sendResponse(request.ID, 400, nil, "Thiếu tham số device_id")
 		return
 	}
 
-	log.Printf("处理设备活跃时间更新请求，device_id: %s", deviceID)
+	log.Printf("Xử lý yêu cầu cập nhật thời gian hoạt động thiết bị, device_id: %s", deviceID)
 
-	// 更新设备最后活跃时间
+	// Cập nhật thời gian hoạt động cuối của thiết bị.
 	now := time.Now()
 	result := client.controller.DB.Model(&models.Device{}).
 		Where("device_name = ?", deviceID).
 		Update("last_active_at", now)
 
 	if result.Error != nil {
-		log.Printf("更新设备活跃时间失败: %v", result.Error)
-		client.sendResponse(request.ID, 500, nil, fmt.Sprintf("更新设备活跃时间失败: %v", result.Error))
+		log.Printf("Cập nhật thời gian hoạt động thiết bị thất bại: %v", result.Error)
+		client.sendResponse(request.ID, 500, nil, fmt.Sprintf("Cập nhật thời gian hoạt động thiết bị thất bại: %v", result.Error))
 		return
 	}
 
 	if result.RowsAffected == 0 {
-		log.Printf("设备不存在: %s", deviceID)
-		client.sendResponse(request.ID, 404, nil, "设备不存在")
+		log.Printf("Thiết bị không tồn tại: %s", deviceID)
+		client.sendResponse(request.ID, 404, nil, "Thiết bị không tồn tại")
 		return
 	}
 
-	// 构造成功响应
+	// Dựng phản hồi thành công.
 	response := map[string]interface{}{
 		"device_id":      deviceID,
 		"last_active_at": now.Format(time.RFC3339),
@@ -455,12 +455,12 @@ func (client *WebSocketClient) handleDeviceActiveRequest(request *WebSocketReque
 	}
 
 	client.sendResponse(request.ID, 200, response, "")
-	log.Printf("设备 %s 活跃时间已更新为: %s", deviceID, now.Format(time.RFC3339))
+	log.Printf("Thời gian hoạt động của thiết bị %s đã cập nhật thành: %s", deviceID, now.Format(time.RFC3339))
 }
 
-// 处理设备离线请求
+// Xử lý yêu cầu thiết bị offline.
 func (client *WebSocketClient) handleDeviceInactiveRequest(request *WebSocketRequest) {
-	// 从请求体中获取device_id
+	// Lấy device_id từ body yêu cầu.
 	deviceID := ""
 	if request.Body != nil {
 		if id, ok := request.Body["device_id"].(string); ok {
@@ -469,42 +469,42 @@ func (client *WebSocketClient) handleDeviceInactiveRequest(request *WebSocketReq
 	}
 
 	if deviceID == "" {
-		log.Printf("收到设备离线请求，但缺少device_id")
-		client.sendResponse(request.ID, 400, nil, "缺少device_id参数")
+		log.Printf("Nhận yêu cầu thiết bị offline nhưng thiếu device_id")
+		client.sendResponse(request.ID, 400, nil, "Thiếu tham số device_id")
 		return
 	}
 
-	log.Printf("处理设备离线请求，device_id: %s", deviceID)
+	log.Printf("Xử lý yêu cầu thiết bị offline, device_id: %s", deviceID)
 
-	// 将设备最后活跃时间设置为0（离线状态）
+	// Đặt thời gian hoạt động cuối của thiết bị về nil để biểu thị offline.
 	result := client.controller.DB.Model(&models.Device{}).
 		Where("device_name = ?", deviceID).
-		Update("last_active_at", nil) // 设置为NULL表示离线
+		Update("last_active_at", nil) // Đặt NULL để biểu thị offline
 
 	if result.Error != nil {
-		log.Printf("更新设备离线状态失败: %v", result.Error)
-		client.sendResponse(request.ID, 500, nil, fmt.Sprintf("更新设备离线状态失败: %v", result.Error))
+		log.Printf("Cập nhật trạng thái offline của thiết bị thất bại: %v", result.Error)
+		client.sendResponse(request.ID, 500, nil, fmt.Sprintf("Cập nhật trạng thái offline của thiết bị thất bại: %v", result.Error))
 		return
 	}
 
 	if result.RowsAffected == 0 {
-		log.Printf("设备不存在: %s", deviceID)
-		client.sendResponse(request.ID, 404, nil, "设备不存在")
+		log.Printf("Thiết bị không tồn tại: %s", deviceID)
+		client.sendResponse(request.ID, 404, nil, "Thiết bị không tồn tại")
 		return
 	}
 
-	// 构造成功响应
+	// Dựng phản hồi thành công.
 	response := map[string]interface{}{
 		"device_id":      deviceID,
-		"last_active_at": nil, // 离线状态
+		"last_active_at": nil, // Trạng thái offline
 		"message":        "Cập nhật trạng thái offline của thiết bị thành công",
 	}
 
 	client.sendResponse(request.ID, 200, response, "")
-	log.Printf("设备 %s 已设置为离线状态", deviceID)
+	log.Printf("Thiết bị %s đã được đặt offline", deviceID)
 }
 
-// 发送响应
+// Gửi phản hồi.
 func (client *WebSocketClient) sendResponse(requestID string, status int, body map[string]interface{}, errorMsg string) {
 	response := WebSocketResponse{
 		ID:     requestID,
@@ -514,52 +514,52 @@ func (client *WebSocketClient) sendResponse(requestID string, status int, body m
 	}
 
 	if err := client.conn.WriteJSON(response); err != nil {
-		log.Printf("发送响应失败: %v", err)
+		log.Printf("Gửi phản hồi thất bại: %v", err)
 	} else {
-		log.Printf("已发送响应: ID=%s, Status=%d", requestID, status)
+		log.Printf("Đã gửi phản hồi: ID=%s, Status=%d", requestID, status)
 	}
 }
 
-// 心跳检测 - 使用WebSocket原生ping/pong
+// Kiểm tra heartbeat bằng ping/pong WebSocket native.
 func (client *WebSocketClient) heartbeat() {
 	ticker := time.NewTicker(30 * time.Second)
 	defer ticker.Stop()
 
-	// 连续ping失败计数
+	// Đếm số lần ping thất bại liên tiếp.
 	pingFailCount := 0
-	maxPingFailCount := 3 // 允许连续失败3次
+	maxPingFailCount := 3 // Cho phép thất bại liên tiếp 3 lần
 
 	for {
 		select {
 		case <-client.stopChan:
-			log.Printf("收到停止信号，停止心跳检测")
+			log.Printf("Nhận tín hiệu dừng, dừng kiểm tra heartbeat")
 			return
 		case <-ticker.C:
 			if !client.isConnected {
 				return
 			}
 
-			// 检查连接是否仍然有效
+			// Kiểm tra kết nối còn hợp lệ hay không.
 			if client.conn == nil {
-				log.Printf("WebSocket连接已为空，停止心跳检测")
+				log.Printf("Kết nối WebSocket nil, dừng kiểm tra heartbeat")
 				return
 			}
 
-			// 发送WebSocket原生ping
+			// Gửi ping WebSocket native.
 			if err := client.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(10*time.Second)); err != nil {
 				pingFailCount++
-				log.Printf("发送ping失败 (第%d次): %v", pingFailCount, err)
+				log.Printf("Gửi ping thất bại (lần %d): %v", pingFailCount, err)
 
-				// 只有连续失败超过阈值才断开连接
+				// Chỉ ngắt kết nối khi số lần thất bại liên tiếp vượt ngưỡng.
 				if pingFailCount >= maxPingFailCount {
-					log.Printf("连续ping失败%d次，断开WebSocket连接", maxPingFailCount)
+					log.Printf("Ping thất bại liên tiếp %d lần, ngắt kết nối WebSocket", maxPingFailCount)
 					client.conn.Close()
 					return
 				}
 			} else {
-				// ping成功，重置失败计数
+				// Ping thành công, reset bộ đếm thất bại.
 				if pingFailCount > 0 {
-					log.Printf("ping恢复成功，重置失败计数")
+					log.Printf("Ping khôi phục thành công, reset bộ đếm thất bại")
 					pingFailCount = 0
 				}
 			}
@@ -567,7 +567,7 @@ func (client *WebSocketClient) heartbeat() {
 	}
 }
 
-// 发送请求到客户端（用于主动推送）
+// Gửi yêu cầu tới client để chủ động push.
 func (client *WebSocketClient) SendRequest(method, path string, body map[string]interface{}) error {
 	request := WebSocketRequest{
 		ID:     uuid.New().String(),
@@ -579,7 +579,7 @@ func (client *WebSocketClient) SendRequest(method, path string, body map[string]
 	return client.conn.WriteJSON(request)
 }
 
-// 发送请求并等待响应
+// Gửi yêu cầu và chờ phản hồi.
 func (client *WebSocketClient) SendRequestWithResponse(ctx context.Context, method, path string, body map[string]interface{}) (*WebSocketResponse, error) {
 	requestID := uuid.New().String()
 
@@ -590,13 +590,13 @@ func (client *WebSocketClient) SendRequestWithResponse(ctx context.Context, meth
 		Body:   body,
 	}
 
-	// 创建响应通道
+	// Tạo channel phản hồi.
 	responseChan := make(chan *WebSocketResponse, 1)
 	client.mu.Lock()
 	client.requestChans[requestID] = responseChan
 	client.mu.Unlock()
 
-	// 清理响应通道
+	// Dọn channel phản hồi.
 	defer func() {
 		client.mu.Lock()
 		delete(client.requestChans, requestID)
@@ -604,23 +604,23 @@ func (client *WebSocketClient) SendRequestWithResponse(ctx context.Context, meth
 		close(responseChan)
 	}()
 
-	// 发送请求
+	// Gửi yêu cầu.
 	if err := client.conn.WriteJSON(request); err != nil {
-		return nil, fmt.Errorf("发送请求失败: %v", err)
+		return nil, fmt.Errorf("Gửi yêu cầu thất bại: %v", err)
 	}
 
-	// 等待响应
+	// Chờ phản hồi.
 	select {
 	case response := <-responseChan:
 		return response, nil
 	case <-time.After(30 * time.Second):
-		return nil, fmt.Errorf("请求超时")
+		return nil, fmt.Errorf("Yêu cầu timeout")
 	case <-ctx.Done():
-		return nil, fmt.Errorf("上下文取消")
+		return nil, fmt.Errorf("Context đã hủy")
 	}
 }
 
-// mapToStruct 辅助函数：将map转换为struct
+// mapToStruct là hàm hỗ trợ chuyển map thành struct.
 func mapToStruct(data map[string]interface{}, target interface{}) error {
 	jsonData, err := json.Marshal(data)
 	if err != nil {
@@ -629,15 +629,15 @@ func mapToStruct(data map[string]interface{}, target interface{}) error {
 	return json.Unmarshal(jsonData, target)
 }
 
-// 向指定UUID的客户端发送请求并等待响应
+// Gửi yêu cầu tới client UUID chỉ định và chờ phản hồi.
 func (ctrl *WebSocketController) SendRequestToClient(ctx context.Context, uuid string, method, path string, body map[string]interface{}) (*WebSocketResponse, error) {
 	if client, exists := ctrl.clientsMap.Get(uuid); exists && client.isConnected {
 		return client.SendRequestWithResponse(ctx, method, path, body)
 	}
-	return nil, fmt.Errorf("客户端 %s 未连接", uuid)
+	return nil, fmt.Errorf("Client %s chưa kết nối", uuid)
 }
 
-// 请求客户端MCP工具列表（广播方式，等待第一个非空列表响应）
+// Yêu cầu danh sách công cụ MCP từ client bằng broadcast, chờ phản hồi không rỗng đầu tiên.
 func (ctrl *WebSocketController) RequestMcpToolsFromClient(ctx context.Context, agentID string) ([]string, error) {
 	toolDetails, err := ctrl.RequestMcpToolDetailsFromClient(ctx, agentID)
 	if err != nil {
@@ -653,7 +653,7 @@ func (ctrl *WebSocketController) RequestMcpToolsFromClient(ctx context.Context, 
 }
 
 func (ctrl *WebSocketController) RequestMcpToolDetailsFromClient(ctx context.Context, agentID string) ([]MCPTool, error) {
-	log.Printf("开始请求客户端MCP工具列表，agentID: %s", agentID)
+	log.Printf("Bắt đầu yêu cầu danh sách công cụ MCP từ client, agentID: %s", agentID)
 	return ctrl.requestMcpToolsByBody(ctx, map[string]interface{}{"agent_id": agentID})
 }
 
@@ -665,7 +665,7 @@ func (ctrl *WebSocketController) RequestMcpEndpointStatusFromClient(ctx context.
 	return ctrl.broadcastMcpStatusRequest(ctx, body)
 }
 
-// RequestDeviceMcpToolsFromClient 请求设备维度MCP工具列表（广播方式，等待第一个非空列表响应）
+// RequestDeviceMcpToolsFromClient yêu cầu danh sách công cụ MCP theo thiết bị bằng broadcast.
 func (ctrl *WebSocketController) RequestDeviceMcpToolsFromClient(ctx context.Context, deviceID string) ([]string, error) {
 	toolDetails, err := ctrl.RequestDeviceMcpToolDetailsFromClient(ctx, deviceID)
 	if err != nil {
@@ -681,7 +681,7 @@ func (ctrl *WebSocketController) RequestDeviceMcpToolsFromClient(ctx context.Con
 }
 
 func (ctrl *WebSocketController) RequestDeviceMcpToolDetailsFromClient(ctx context.Context, deviceID string) ([]MCPTool, error) {
-	log.Printf("开始请求设备MCP工具列表，deviceID: %s", deviceID)
+	log.Printf("Bắt đầu yêu cầu danh sách công cụ MCP theo thiết bị, deviceID: %s", deviceID)
 	return ctrl.requestMcpToolsByBody(ctx, map[string]interface{}{"device_id": deviceID})
 }
 
@@ -701,7 +701,7 @@ func (ctrl *WebSocketController) requestMcpToolsByBody(ctx context.Context, body
 	case []interface{}:
 		for _, item := range v {
 			if toolStr, ok := item.(string); ok {
-				tools = append(tools, MCPTool{Name: toolStr, Description: fmt.Sprintf("MCP工具: %s", toolStr), Schema: true})
+				tools = append(tools, MCPTool{Name: toolStr, Description: fmt.Sprintf("Công cụ MCP: %s", toolStr), Schema: true})
 				continue
 			}
 
@@ -717,28 +717,28 @@ func (ctrl *WebSocketController) requestMcpToolsByBody(ctx context.Context, body
 
 			description, _ := toolMap["description"].(string)
 			if description == "" {
-				description = fmt.Sprintf("MCP工具: %s", name)
+				description = fmt.Sprintf("Công cụ MCP: %s", name)
 			}
 
 			parsed := MCPTool{Name: name, Description: description, Schema: true}
 			if inputSchema, ok := toolMap["input_schema"].(map[string]interface{}); ok {
 				parsed.InputSchema = inputSchema
 			} else if inputSchema, ok := toolMap["inputSchema"].(map[string]interface{}); ok {
-				// 兼容部分客户端返回 camelCase 字段名
+				// Tương thích một số client trả về tên trường camelCase.
 				parsed.InputSchema = inputSchema
 			}
 			tools = append(tools, parsed)
 		}
 	case []string:
 		for _, name := range v {
-			tools = append(tools, MCPTool{Name: name, Description: fmt.Sprintf("MCP工具: %s", name), Schema: true})
+			tools = append(tools, MCPTool{Name: name, Description: fmt.Sprintf("Công cụ MCP: %s", name), Schema: true})
 		}
 	}
 
 	return tools, nil
 }
 
-// CallMcpToolFromClient 请求客户端执行MCP工具调用
+// CallMcpToolFromClient yêu cầu client thực thi công cụ MCP.
 func (ctrl *WebSocketController) CallMcpToolFromClient(ctx context.Context, body map[string]interface{}) (map[string]interface{}, error) {
 	response, err := ctrl.broadcastRequestAndWaitFirstSuccess(ctx, "POST", "/api/mcp/call", body)
 	if err != nil {
@@ -752,7 +752,7 @@ func (ctrl *WebSocketController) CallMcpToolFromClient(ctx context.Context, body
 	return response.Body, nil
 }
 
-// RequestOpenClawStatusFromClient 请求客户端返回 OpenClaw 连接状态
+// RequestOpenClawStatusFromClient yêu cầu client trả về trạng thái kết nối OpenClaw.
 func (ctrl *WebSocketController) RequestOpenClawStatusFromClient(ctx context.Context, agentID string) (map[string]interface{}, error) {
 	body := map[string]interface{}{
 		"agent_id": agentID,
@@ -769,7 +769,7 @@ func (ctrl *WebSocketController) RequestOpenClawStatusFromClient(ctx context.Con
 	return response.Body, nil
 }
 
-// CallOpenClawChatFromClient 请求客户端执行 OpenClaw 对话测试
+// CallOpenClawChatFromClient yêu cầu client thực thi kiểm tra hội thoại OpenClaw.
 func (ctrl *WebSocketController) CallOpenClawChatFromClient(ctx context.Context, body map[string]interface{}) (map[string]interface{}, error) {
 	if body == nil {
 		body = map[string]interface{}{}
@@ -794,7 +794,7 @@ type wsClientResponse struct {
 	response *WebSocketResponse
 }
 
-// CallOpenClawChatStreamFromClient 请求客户端执行 OpenClaw 对话测试（流式回调）
+// CallOpenClawChatStreamFromClient yêu cầu client thực thi kiểm tra hội thoại OpenClaw dạng stream.
 func (ctrl *WebSocketController) CallOpenClawChatStreamFromClient(
 	ctx context.Context,
 	body map[string]interface{},
@@ -823,7 +823,7 @@ func (ctrl *WebSocketController) CallOpenClawChatStreamFromClient(
 			select {
 			case responseChan <- wsClientResponse{clientID: clientID, response: response}:
 			default:
-				log.Printf("OpenClaw流式响应通道已满，丢弃响应: %s", requestID)
+				log.Printf("Channel phản hồi stream OpenClaw đã đầy, bỏ phản hồi: %s", requestID)
 			}
 		}
 
@@ -839,12 +839,12 @@ func (ctrl *WebSocketController) CallOpenClawChatStreamFromClient(
 			Body:   body,
 		}
 		if err := client.conn.WriteJSON(request); err != nil {
-			log.Printf("向客户端 %s 发送OpenClaw流式请求失败: %v", client.ID, err)
+			log.Printf("Gửi yêu cầu stream OpenClaw tới client %s thất bại: %v", client.ID, err)
 		}
 	}
 
 	if callbacksRegistered == 0 {
-		return nil, fmt.Errorf("没有连接的客户端")
+		return nil, fmt.Errorf("Không có client đang kết nối")
 	}
 
 	defer func() {
@@ -882,7 +882,7 @@ func (ctrl *WebSocketController) CallOpenClawChatStreamFromClient(
 						if firstError != "" {
 							return nil, fmt.Errorf("%s", firstError)
 						}
-						return nil, fmt.Errorf("所有客户端都返回失败")
+						return nil, fmt.Errorf("Tất cả client đều trả về thất bại")
 					}
 					continue
 				}
@@ -909,14 +909,14 @@ func (ctrl *WebSocketController) CallOpenClawChatStreamFromClient(
 			if resp.Status >= http.StatusBadRequest {
 				msg := strings.TrimSpace(resp.Error)
 				if msg == "" {
-					msg = fmt.Sprintf("OpenClaw流式请求失败: status=%d", resp.Status)
+					msg = fmt.Sprintf("Yêu cầu stream OpenClaw thất bại: status=%d", resp.Status)
 				}
 				return nil, fmt.Errorf("%s", msg)
 			}
 		case <-timeout:
-			return nil, fmt.Errorf("请求超时")
+			return nil, fmt.Errorf("Yêu cầu timeout")
 		case <-ctx.Done():
-			return nil, fmt.Errorf("上下文取消")
+			return nil, fmt.Errorf("Context đã hủy")
 		}
 	}
 }
@@ -967,7 +967,7 @@ func (ctrl *WebSocketController) broadcastMcpStatusRequest(ctx context.Context, 
 		}
 	}
 	if len(clients) == 0 {
-		return nil, fmt.Errorf("没有连接的客户端")
+		return nil, fmt.Errorf("Không có client đang kết nối")
 	}
 
 	responseChan := make(chan *WebSocketResponse, len(clients))
@@ -975,7 +975,7 @@ func (ctrl *WebSocketController) broadcastMcpStatusRequest(ctx context.Context, 
 		select {
 		case responseChan <- response:
 		default:
-			log.Printf("MCP状态响应通道已满，丢弃响应: %s", response.ID)
+			log.Printf("Channel phản hồi trạng thái MCP đã đầy, bỏ phản hồi: %s", response.ID)
 		}
 	}
 
@@ -996,13 +996,13 @@ func (ctrl *WebSocketController) broadcastMcpStatusRequest(ctx context.Context, 
 	for _, client := range clients {
 		request := WebSocketRequest{ID: requestID, Method: "GET", Path: "/api/mcp/status", Body: body}
 		if err := client.conn.WriteJSON(request); err != nil {
-			log.Printf("向客户端 %s 发送MCP状态请求失败: %v", client.ID, err)
+			log.Printf("Gửi yêu cầu trạng thái MCP tới client %s thất bại: %v", client.ID, err)
 			continue
 		}
 		sentCount++
 	}
 	if sentCount == 0 {
-		return nil, fmt.Errorf("没有可用的客户端")
+		return nil, fmt.Errorf("Không có client khả dụng")
 	}
 
 	offline := map[string]interface{}{
@@ -1035,7 +1035,7 @@ func (ctrl *WebSocketController) broadcastMcpStatusRequest(ctx context.Context, 
 				if firstError != "" {
 					return nil, fmt.Errorf("%s", firstError)
 				}
-				return nil, fmt.Errorf("所有客户端都返回失败")
+				return nil, fmt.Errorf("Tất cả client đều trả về thất bại")
 			}
 		case <-timeout:
 			if successResponses > 0 {
@@ -1044,9 +1044,9 @@ func (ctrl *WebSocketController) broadcastMcpStatusRequest(ctx context.Context, 
 			if firstError != "" {
 				return nil, fmt.Errorf("%s", firstError)
 			}
-			return nil, fmt.Errorf("请求超时")
+			return nil, fmt.Errorf("Yêu cầu timeout")
 		case <-ctx.Done():
-			return nil, fmt.Errorf("上下文取消")
+			return nil, fmt.Errorf("Context đã hủy")
 		}
 	}
 }
@@ -1092,7 +1092,7 @@ func (ctrl *WebSocketController) broadcastRequestAndWaitFirstSuccessWithTimeout(
 		select {
 		case responseChan <- response:
 		default:
-			log.Printf("响应通道已满，丢弃响应: %s", response.ID)
+			log.Printf("Channel phản hồi đã đầy, bỏ phản hồi: %s", response.ID)
 		}
 	}
 
@@ -1110,12 +1110,12 @@ func (ctrl *WebSocketController) broadcastRequestAndWaitFirstSuccessWithTimeout(
 
 		request := WebSocketRequest{ID: requestID, Method: method, Path: path, Body: body}
 		if err := client.conn.WriteJSON(request); err != nil {
-			log.Printf("向客户端 %s 发送请求失败: %v", client.ID, err)
+			log.Printf("Gửi yêu cầu tới client %s thất bại: %v", client.ID, err)
 		}
 	}
 
 	if callbacksRegistered == 0 {
-		return nil, fmt.Errorf("没有连接的客户端")
+		return nil, fmt.Errorf("Không có client đang kết nối")
 	}
 
 	defer func() {
@@ -1147,17 +1147,17 @@ func (ctrl *WebSocketController) broadcastRequestAndWaitFirstSuccessWithTimeout(
 				if firstError != "" {
 					return nil, fmt.Errorf("%s", firstError)
 				}
-				return nil, fmt.Errorf("所有客户端都返回失败")
+				return nil, fmt.Errorf("Tất cả client đều trả về thất bại")
 			}
 		case <-timeout:
-			return nil, fmt.Errorf("请求超时")
+			return nil, fmt.Errorf("Yêu cầu timeout")
 		case <-ctx.Done():
-			return nil, fmt.Errorf("上下文取消")
+			return nil, fmt.Errorf("Context đã hủy")
 		}
 	}
 }
 
-// 请求客户端服务器信息
+// Yêu cầu thông tin server từ client.
 func (ctrl *WebSocketController) RequestServerInfoFromClient(ctx context.Context, uuid string) (*WebSocketResponse, error) {
 	return ctrl.SendRequestToClient(ctx, uuid, "GET", "/api/server/info", nil)
 }
@@ -1168,12 +1168,12 @@ func (ctrl *WebSocketController) RequestDeviceActivation(ctx context.Context, uu
 	})
 }
 
-// 请求客户端ping
+// Yêu cầu ping client.
 func (ctrl *WebSocketController) RequestPingFromClient(ctx context.Context, uuid string) (*WebSocketResponse, error) {
 	return ctrl.SendRequestToClient(ctx, uuid, "GET", "/api/server/ping", nil)
 }
 
-// InjectMessageToDevice 向设备注入消息（广播方式）
+// InjectMessageToDevice gửi message vào thiết bị bằng broadcast.
 func (ctrl *WebSocketController) InjectMessageToDevice(ctx context.Context, deviceID, message string, skipLlm bool, autoListen bool) error {
 	body := map[string]interface{}{
 		"device_id":   deviceID,
@@ -1182,7 +1182,7 @@ func (ctrl *WebSocketController) InjectMessageToDevice(ctx context.Context, devi
 		"auto_listen": autoListen,
 	}
 
-	// 创建请求
+	// Tạo yêu cầu.
 	request := WebSocketRequest{
 		ID:     uuid.New().String(),
 		Method: "POST",
@@ -1190,7 +1190,7 @@ func (ctrl *WebSocketController) InjectMessageToDevice(ctx context.Context, devi
 		Body:   body,
 	}
 
-	// 广播给所有连接的客户端
+	// Broadcast tới mọi client đang kết nối.
 	var lastError error
 	clientCount := 0
 
@@ -1199,30 +1199,30 @@ func (ctrl *WebSocketController) InjectMessageToDevice(ctx context.Context, devi
 		if client.isConnected {
 			clientCount++
 			if err := client.conn.WriteJSON(request); err != nil {
-				log.Printf("向客户端 %s 广播注入消息失败: %v", client.ID, err)
+				log.Printf("Broadcast message inject tới client %s thất bại: %v", client.ID, err)
 				lastError = err
 			} else {
-				log.Printf("向客户端 %s 广播注入消息成功", client.ID)
+				log.Printf("Broadcast message inject tới client %s thành công", client.ID)
 			}
 		}
 	}
 
 	if clientCount == 0 {
-		return fmt.Errorf("没有连接的客户端")
+		return fmt.Errorf("Không có client đang kết nối")
 	}
 
 	return lastError
 }
 
-// 异步发送请求到客户端（不等待响应）
+// Gửi yêu cầu bất đồng bộ tới client, không chờ phản hồi.
 func (ctrl *WebSocketController) SendRequestToClientAsync(uuid string, method, path string, body map[string]interface{}) error {
 	if client, exists := ctrl.clientsMap.Get(uuid); exists && client.isConnected {
 		return client.SendRequest(method, path, body)
 	}
-	return fmt.Errorf("客户端 %s 未连接", uuid)
+	return fmt.Errorf("Client %s chưa kết nối", uuid)
 }
 
-// 获取所有客户端连接状态
+// Lấy trạng thái kết nối của toàn bộ client.
 func (ctrl *WebSocketController) GetClientConnectionStatus() map[string]interface{} {
 	clients := make([]map[string]interface{}, 0)
 	for item := range ctrl.clientsMap.IterBuffered() {
@@ -1239,7 +1239,7 @@ func (ctrl *WebSocketController) GetClientConnectionStatus() map[string]interfac
 	}
 }
 
-// 获取指定客户端连接状态
+// Lấy trạng thái kết nối của client chỉ định.
 func (ctrl *WebSocketController) GetClientStatus(uuid string) map[string]interface{} {
 	if client, exists := ctrl.clientsMap.Get(uuid); exists {
 		return map[string]interface{}{

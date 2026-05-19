@@ -19,11 +19,11 @@ import (
 
 type ChatHistoryController struct {
 	DB            *gorm.DB
-	AudioBasePath string // 音频存储基础路径
-	MaxFileSize   int64  // 最大文件大小（10MB）
+	AudioBasePath string // Đường dẫn gốc lưu âm thanh
+	MaxFileSize   int64  // Kích thước file tối đa (10MB)
 }
 
-// SaveMessageRequest 保存消息请求
+// SaveMessageRequest là yêu cầu lưu tin nhắn.
 type SaveMessageRequest struct {
 	MessageID     string                 `json:"message_id" binding:"required"`
 	DeviceID      string                 `json:"device_id" binding:"required"`
@@ -31,16 +31,16 @@ type SaveMessageRequest struct {
 	SessionID     string                 `json:"session_id,omitempty"`
 	Role          string                 `json:"role" binding:"required,oneof=user assistant system tool"`
 	Content       string                 `json:"content" binding:"required"`
-	ToolCallID    string                 `json:"tool_call_id,omitempty"`    // 工具调用ID（Tool角色使用）
-	ToolCallsJSON *string                `json:"tool_calls_json,omitempty"` // 工具调用列表JSON（Assistant角色使用），nil 表示 NULL
-	AudioData     string                 `json:"audio_data,omitempty"`      // base64编码
-	AudioFormat   string                 `json:"audio_format,omitempty"`    // 音频格式（客户端传入，后端固定使用wav）
+	ToolCallID    string                 `json:"tool_call_id,omitempty"`    // ID lời gọi công cụ, dùng cho role tool
+	ToolCallsJSON *string                `json:"tool_calls_json,omitempty"` // JSON danh sách lời gọi công cụ, role assistant dùng; nil là NULL
+	AudioData     string                 `json:"audio_data,omitempty"`      // Mã hóa base64
+	AudioFormat   string                 `json:"audio_format,omitempty"`    // Định dạng âm thanh client truyền vào; backend cố định wav
 	AudioDuration int                    `json:"audio_duration,omitempty"`
 	AudioSize     int                    `json:"audio_size,omitempty"`
 	Metadata      map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// SaveMessage 保存消息
+// SaveMessage lưu tin nhắn.
 func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 	var req SaveMessageRequest
 	if err := ctx.ShouldBindJSON(&req); err != nil {
@@ -48,25 +48,25 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 		return
 	}
 
-	// 验证设备存在（使用device_name字段查询）
+	// Kiểm tra thiết bị tồn tại bằng trường device_name.
 	var device models.Device
 	if err := c.DB.Where("device_name = ?", req.DeviceID).First(&device).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			ctx.JSON(http.StatusNotFound, gin.H{"error": "Thiết bị không tồn tại"})
 			return
 		}
-		// 其他数据库错误
+		// Lỗi cơ sở dữ liệu khác.
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn thiết bị thất bại: " + err.Error()})
 		return
 	}
 
-	// 如果请求中没有提供 AgentID，使用设备关联的 AgentID
+	// Nếu request không cung cấp AgentID, dùng AgentID liên kết với thiết bị.
 	agentID := req.AgentID
 	if agentID == "" && device.AgentID > 0 {
 		agentID = fmt.Sprintf("%d", device.AgentID)
 	}
 
-	// 如果 AgentID 仍然为空，跳过保存
+	// Nếu AgentID vẫn trống, bỏ qua lưu.
 	if agentID == "" {
 		ctx.JSON(http.StatusOK, gin.H{"message": "Bỏ qua lưu: không có AgentID liên kết"})
 		return
@@ -85,11 +85,11 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 		Metadata:      req.Metadata,
 	}
 
-	// 检查消息是否已存在（避免重复创建）
+	// Kiểm tra tin nhắn đã tồn tại để tránh tạo trùng.
 	var existingMessage models.ChatMessage
 	err := c.DB.Where("message_id = ?", req.MessageID).First(&existingMessage).Error
 	if err == nil {
-		// 消息已存在，更新音频数据（如果提供了）
+		// Tin nhắn đã tồn tại, cập nhật dữ liệu âm thanh nếu có.
 		if req.AudioData != "" {
 			audioPath, err := c.saveAudioFile(req.MessageID, req.AudioData)
 			if err != nil {
@@ -97,12 +97,12 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 				return
 			}
 
-			// 如果之前有音频文件，先删除
+			// Nếu trước đó có file âm thanh, xóa trước.
 			if existingMessage.AudioPath != "" {
 				c.deleteAudioFile(existingMessage.AudioPath)
 			}
 
-			// 更新消息
+			// Cập nhật tin nhắn.
 			updates := map[string]interface{}{
 				"audio_path":   audioPath,
 				"audio_format": "wav",
@@ -114,7 +114,7 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 				updates["audio_duration"] = req.AudioDuration
 			}
 
-			// 更新 metadata（合并）
+			// Cập nhật metadata bằng cách gộp.
 			if existingMessage.Metadata == nil {
 				existingMessage.Metadata = make(map[string]interface{})
 			}
@@ -123,7 +123,7 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 					existingMessage.Metadata[k] = v
 				}
 			}
-			// 手动序列化 metadata 到 MetadataJSON（因为 Updates 不会触发 BeforeSave hook）
+			// Tuần tự hóa thủ công metadata vì Updates không kích hoạt hook BeforeSave.
 			metadataJSONBytes, err := json.Marshal(existingMessage.Metadata)
 			if err != nil {
 				ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Tuần tự hóa metadata thất bại: " + err.Error()})
@@ -138,17 +138,17 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 			ctx.JSON(http.StatusOK, existingMessage)
 			return
 		}
-		// 消息已存在且没有音频数据，直接返回
+		// Tin nhắn đã tồn tại và không có dữ liệu âm thanh, trả về trực tiếp.
 		ctx.JSON(http.StatusOK, existingMessage)
 		return
 	} else if err != gorm.ErrRecordNotFound {
-		// 查询出错（非"记录不存在"）
+		// Lỗi truy vấn, không phải record not found.
 		ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn tin nhắn thất bại: " + err.Error()})
 		return
 	}
 
-	// Tin nhắn không tồn tại，创建新消息
-	// 处理音频数据 - 保存到文件系统（固定为wav格式，两级hash打散）
+	// Tin nhắn không tồn tại, tạo tin nhắn mới.
+	// Xử lý dữ liệu âm thanh: lưu vào filesystem, cố định wav và tách thư mục hash hai cấp.
 	if req.AudioData != "" {
 		audioPath, err := c.saveAudioFile(req.MessageID, req.AudioData)
 		if err != nil {
@@ -156,7 +156,7 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 			return
 		}
 		message.AudioPath = audioPath
-		message.AudioFormat = "wav" // 固定为wav格式
+		message.AudioFormat = "wav" // Cố định định dạng wav
 		if req.AudioSize > 0 {
 			message.AudioSize = &req.AudioSize
 		}
@@ -166,7 +166,7 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 	}
 
 	if err := c.DB.Create(message).Error; err != nil {
-		// 如果数据库保存失败，删除已保存的音频文件
+		// Nếu lưu cơ sở dữ liệu thất bại, xóa file âm thanh đã lưu.
 		if message.AudioPath != "" {
 			c.deleteAudioFile(message.AudioPath)
 		}
@@ -177,7 +177,7 @@ func (c *ChatHistoryController) SaveMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusCreated, message)
 }
 
-// GetMessages 获取消息列表（按agentId汇总）
+// GetMessages lấy danh sách tin nhắn, tổng hợp theo agentId.
 func (c *ChatHistoryController) GetMessages(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
 	if !exists {
@@ -192,7 +192,7 @@ func (c *ChatHistoryController) GetMessages(ctx *gin.Context) {
 	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "50"))
 	role := ctx.Query("role") // user/assistant
 
-	// 构建查询
+	// Dựng truy vấn.
 	query := c.DB.Model(&models.ChatMessage{}).
 		Where("user_id = ? AND is_deleted = ?", userID, false)
 
@@ -229,7 +229,7 @@ func (c *ChatHistoryController) GetMessages(ctx *gin.Context) {
 	})
 }
 
-// DeleteMessage 删除消息（软删除，立即删除音频文件）
+// DeleteMessage xóa mềm tin nhắn và xóa ngay file âm thanh.
 func (c *ChatHistoryController) DeleteMessage(ctx *gin.Context) {
 	id := ctx.Param("id")
 
@@ -239,22 +239,22 @@ func (c *ChatHistoryController) DeleteMessage(ctx *gin.Context) {
 		return
 	}
 
-	// 获取消息信息
+	// Lấy thông tin tin nhắn.
 	var message models.ChatMessage
 	if err := c.DB.Where("id = ? AND user_id = ?", id, userID).First(&message).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Tin nhắn không tồn tại"})
 		return
 	}
 
-	// 先删除音频文件（如果存在）
+	// Xóa file âm thanh trước nếu tồn tại.
 	if message.AudioPath != "" {
 		if err := c.deleteAudioFile(message.AudioPath); err != nil {
-			// 记录日志，但不影响删除操作
-			log.Printf("删除音频文件失败: %v", err)
+			// Ghi log nhưng không ảnh hưởng thao tác xóa.
+			log.Printf("Xóa file âm thanh thất bại: %v", err)
 		}
 	}
 
-	// 软删除消息
+	// Xóa mềm tin nhắn.
 	if err := c.DB.Model(&models.ChatMessage{}).
 		Where("id = ?", id).
 		Update("is_deleted", true).Error; err != nil {
@@ -265,7 +265,7 @@ func (c *ChatHistoryController) DeleteMessage(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
-// GetMessagesByAgent 按AgentID获取消息汇总（支持筛选）
+// GetMessagesByAgent lấy tổng hợp tin nhắn theo AgentID, hỗ trợ lọc.
 func (c *ChatHistoryController) GetMessagesByAgent(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
 	if !exists {
@@ -277,25 +277,25 @@ func (c *ChatHistoryController) GetMessagesByAgent(ctx *gin.Context) {
 	page, _ := strconv.Atoi(ctx.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(ctx.DefaultQuery("page_size", "50"))
 	role := ctx.Query("role")            // user/assistant
-	deviceID := ctx.Query("device_id")   // 设备ID筛选
-	startDate := ctx.Query("start_date") // 开始日期 YYYY-MM-DD
-	endDate := ctx.Query("end_date")     // 结束日期 YYYY-MM-DD
+	deviceID := ctx.Query("device_id")   // Lọc theo ID thiết bị
+	startDate := ctx.Query("start_date") // Ngày bắt đầu YYYY-MM-DD
+	endDate := ctx.Query("end_date")     // Ngày kết thúc YYYY-MM-DD
 
-	// 构建查询
+	// Dựng truy vấn.
 	query := c.DB.Model(&models.ChatMessage{}).
 		Where("user_id = ? AND agent_id = ? AND is_deleted = ?", userID, agentID, false)
 
-	// 角色筛选
+	// Lọc theo vai trò.
 	if role != "" {
 		query = query.Where("role = ?", role)
 	}
 
-	// 设备筛选
+	// Lọc theo thiết bị.
 	if deviceID != "" {
 		query = query.Where("device_id = ?", deviceID)
 	}
 
-	// 日期范围筛选
+	// Lọc theo khoảng ngày.
 	if startDate != "" {
 		if startTime, err := time.Parse("2006-01-02", startDate); err == nil {
 			query = query.Where("created_at >= ?", startTime)
@@ -303,17 +303,17 @@ func (c *ChatHistoryController) GetMessagesByAgent(ctx *gin.Context) {
 	}
 	if endDate != "" {
 		if endTime, err := time.Parse("2006-01-02", endDate); err == nil {
-			// 结束日期包含整天
+			// Ngày kết thúc bao gồm cả ngày.
 			endTime = endTime.Add(24 * time.Hour)
 			query = query.Where("created_at < ?", endTime)
 		}
 	}
 
-	// 计算总数
+	// Tính tổng số.
 	var total int64
 	query.Count(&total)
 
-	// 分页查询（按时间倒序，最新的在前，前端会反转数组使最新的在底部）
+	// Truy vấn phân trang theo thời gian giảm dần; frontend sẽ đảo để tin mới ở dưới.
 	var messages []models.ChatMessage
 	offset := (page - 1) * pageSize
 	if err := query.Order("created_at DESC").
@@ -331,7 +331,7 @@ func (c *ChatHistoryController) GetMessagesByAgent(ctx *gin.Context) {
 	})
 }
 
-// ExportMessages 导出聊天记录（JSON格式）
+// ExportMessages xuất lịch sử chat dạng JSON.
 func (c *ChatHistoryController) ExportMessages(ctx *gin.Context) {
 	userID, exists := ctx.Get("user_id")
 	if !exists {
@@ -344,7 +344,7 @@ func (c *ChatHistoryController) ExportMessages(ctx *gin.Context) {
 	startDate := ctx.Query("start_date")
 	endDate := ctx.Query("end_date")
 
-	// 构建查询
+	// Dựng truy vấn.
 	query := c.DB.Model(&models.ChatMessage{}).
 		Where("user_id = ? AND is_deleted = ?", userID, false)
 
@@ -361,7 +361,7 @@ func (c *ChatHistoryController) ExportMessages(ctx *gin.Context) {
 	}
 	if endDate != "" {
 		if endTime, err := time.Parse("2006-01-02", endDate); err == nil {
-			// 结束日期包含整天
+			// Ngày kết thúc bao gồm cả ngày.
 			endTime = endTime.Add(24 * time.Hour)
 			query = query.Where("created_at < ?", endTime)
 		}
@@ -373,7 +373,7 @@ func (c *ChatHistoryController) ExportMessages(ctx *gin.Context) {
 		return
 	}
 
-	// 设置响应头，提示下载
+	// Đặt header phản hồi để tải xuống.
 	ctx.Header("Content-Type", "application/json")
 	ctx.Header("Content-Disposition", "attachment; filename=chat_history_"+time.Now().Format("20060102_150405")+".json")
 	ctx.JSON(http.StatusOK, gin.H{
@@ -383,52 +383,52 @@ func (c *ChatHistoryController) ExportMessages(ctx *gin.Context) {
 	})
 }
 
-// saveAudioFile 保存音频文件到文件系统（两级hash打散）
+// saveAudioFile lưu file âm thanh vào filesystem với hash hai cấp.
 func (c *ChatHistoryController) saveAudioFile(messageID, audioDataBase64 string) (string, error) {
-	// 解码base64音频数据
+	// Giải mã dữ liệu âm thanh base64.
 	audioData, err := base64.StdEncoding.DecodeString(audioDataBase64)
 	if err != nil {
-		return "", fmt.Errorf("解码音频数据失败: %v", err)
+		return "", fmt.Errorf("Giải mã dữ liệu âm thanh thất bại: %v", err)
 	}
 
-	// 检查文件大小
+	// Kiểm tra kích thước file.
 	if int64(len(audioData)) > c.MaxFileSize {
-		return "", fmt.Errorf("音频文件大小超过限制: %d > %d", len(audioData), c.MaxFileSize)
+		return "", fmt.Errorf("Kích thước file âm thanh vượt giới hạn: %d > %d", len(audioData), c.MaxFileSize)
 	}
 
-	// 计算message_id的MD5作为文件名（排除后缀）
+	// Tính MD5 của message_id làm tên file, không gồm hậu tố.
 	fileNameHash := fmt.Sprintf("%x", md5.Sum([]byte(messageID)))
 
-	// 计算两级hash用于目录打散
-	hash1 := fileNameHash[0:2] // 前2个字符
-	hash2 := fileNameHash[2:4] // 第3-4个字符
+	// Tính hash hai cấp để phân tán thư mục.
+	hash1 := fileNameHash[0:2] // 2 ký tự đầu
+	hash2 := fileNameHash[2:4] // Ký tự thứ 3-4
 
-	// 构建文件路径：{base_path}/{hash1}/{hash2}/{md5(message_id)}.wav
+	// Dựng đường dẫn file: {base_path}/{hash1}/{hash2}/{md5(message_id)}.wav.
 	relativePath := fmt.Sprintf("%s/%s/%s.wav", hash1, hash2, fileNameHash)
 	fullPath := filepath.Join(c.AudioBasePath, relativePath)
 
-	// 创建目录
+	// Tạo thư mục.
 	dir := filepath.Dir(fullPath)
 	if err := os.MkdirAll(dir, 0755); err != nil {
-		return "", fmt.Errorf("创建目录失败: %v", err)
+		return "", fmt.Errorf("Tạo thư mục thất bại: %v", err)
 	}
 
-	// 写入文件
+	// Ghi file.
 	if err := os.WriteFile(fullPath, audioData, 0644); err != nil {
-		return "", fmt.Errorf("写入文件失败: %v", err)
+		return "", fmt.Errorf("Ghi file thất bại: %v", err)
 	}
 
-	// 返回相对路径（用于数据库存储）
+	// Trả về đường dẫn tương đối để lưu DB.
 	return relativePath, nil
 }
 
-// deleteAudioFile 删除音频文件
+// deleteAudioFile xóa file âm thanh.
 func (c *ChatHistoryController) deleteAudioFile(relativePath string) error {
 	fullPath := filepath.Join(c.AudioBasePath, relativePath)
 	return os.Remove(fullPath)
 }
 
-// GetAudioFile 获取音频文件（通过Golang转发）
+// GetAudioFile lấy file âm thanh qua Go forward.
 func (c *ChatHistoryController) GetAudioFile(ctx *gin.Context) {
 	id := ctx.Param("id")
 
@@ -438,7 +438,7 @@ func (c *ChatHistoryController) GetAudioFile(ctx *gin.Context) {
 		return
 	}
 
-	// 获取消息信息
+	// Lấy thông tin tin nhắn.
 	var message models.ChatMessage
 	if err := c.DB.Where("id = ? AND user_id = ? AND is_deleted = ?", id, userID, false).First(&message).Error; err != nil {
 		ctx.JSON(http.StatusNotFound, gin.H{"error": "Tin nhắn không tồn tại"})
@@ -450,7 +450,7 @@ func (c *ChatHistoryController) GetAudioFile(ctx *gin.Context) {
 		return
 	}
 
-	// 读取文件
+	// Đọc file.
 	fullPath := filepath.Join(c.AudioBasePath, message.AudioPath)
 	audioData, err := os.ReadFile(fullPath)
 	if err != nil {
@@ -462,16 +462,16 @@ func (c *ChatHistoryController) GetAudioFile(ctx *gin.Context) {
 		return
 	}
 
-	// 设置响应头（wav格式）
+	// Đặt header phản hồi định dạng wav.
 	ctx.Header("Content-Type", "audio/wav")
 	ctx.Header("Content-Length", strconv.Itoa(len(audioData)))
 	ctx.Header("Content-Disposition", fmt.Sprintf("inline; filename=%s", filepath.Base(message.AudioPath)))
 
-	// 转发音频数据
+	// Forward dữ liệu âm thanh.
 	ctx.Data(http.StatusOK, "audio/wav", audioData)
 }
 
-// GetMessagesForInit 获取消息列表（用于初始化加载，内部服务接口，无需认证）
+// GetMessagesForInit lấy danh sách tin nhắn cho tải khởi tạo, API nội bộ không cần xác thực.
 func (c *ChatHistoryController) GetMessagesForInit(ctx *gin.Context) {
 	deviceID := ctx.Query("device_id")
 	agentID := ctx.Query("agent_id")
@@ -483,7 +483,7 @@ func (c *ChatHistoryController) GetMessagesForInit(ctx *gin.Context) {
 		return
 	}
 
-	// 构建查询（不按 user_id 过滤，因为这是内部服务接口）
+	// Dựng truy vấn, không lọc theo user_id vì đây là API nội bộ.
 	query := c.DB.Model(&models.ChatMessage{}).
 		Where("device_id = ? AND agent_id = ? AND is_deleted = ?", deviceID, agentID, false)
 
@@ -492,7 +492,7 @@ func (c *ChatHistoryController) GetMessagesForInit(ctx *gin.Context) {
 	}
 
 	var messages []models.ChatMessage
-	// 先取最新的 N 条，再反转为时间正序（旧 -> 新）供 LLM 使用
+	// Lấy N dòng mới nhất rồi đảo thành thứ tự thời gian tăng dần cho LLM.
 	if err := query.Order("created_at DESC").
 		Order("id DESC").
 		Limit(limit).
@@ -501,12 +501,12 @@ func (c *ChatHistoryController) GetMessagesForInit(ctx *gin.Context) {
 		return
 	}
 
-	// 反转后保证返回顺序为旧 -> 新
+	// Đảo để đảm bảo thứ tự trả về là cũ -> mới.
 	for i, j := 0, len(messages)-1; i < j; i, j = i+1, j-1 {
 		messages[i], messages[j] = messages[j], messages[i]
 	}
 
-	// 转换为响应格式（只包含文本，不包含音频）
+	// Chuyển sang định dạng phản hồi, chỉ gồm text, không gồm âm thanh.
 	messageItems := make([]map[string]interface{}, 0, len(messages))
 	for _, msg := range messages {
 		item := map[string]interface{}{
@@ -515,11 +515,11 @@ func (c *ChatHistoryController) GetMessagesForInit(ctx *gin.Context) {
 			"content":    msg.Content,
 			"created_at": msg.CreatedAt.Format(time.RFC3339),
 		}
-		// 直接返回 tool_call_id（如果存在）
+		// Trả trực tiếp tool_call_id nếu có.
 		if msg.ToolCallID != "" {
 			item["tool_call_id"] = msg.ToolCallID
 		}
-		// 直接返回 tool_calls（如果存在）
+		// Trả trực tiếp tool_calls nếu có.
 		if msg.ToolCallsJSON != nil && *msg.ToolCallsJSON != "" {
 			var toolCalls []interface{}
 			if err := json.Unmarshal([]byte(*msg.ToolCallsJSON), &toolCalls); err == nil {
@@ -534,7 +534,7 @@ func (c *ChatHistoryController) GetMessagesForInit(ctx *gin.Context) {
 	})
 }
 
-// UpdateMessageAudioRequest 更新消息音频请求
+// UpdateMessageAudioRequest là yêu cầu cập nhật audio tin nhắn
 type UpdateMessageAudioRequest struct {
 	AudioData   string                 `json:"audio_data" binding:"required"`
 	AudioFormat string                 `json:"audio_format"`
@@ -542,7 +542,7 @@ type UpdateMessageAudioRequest struct {
 	Metadata    map[string]interface{} `json:"metadata,omitempty"`
 }
 
-// UpdateMessageAudio 更新消息音频
+// UpdateMessageAudio cập nhật audio tin nhắn
 func (c *ChatHistoryController) UpdateMessageAudio(ctx *gin.Context) {
 	messageID := ctx.Param("message_id")
 	if messageID == "" {
@@ -556,11 +556,11 @@ func (c *ChatHistoryController) UpdateMessageAudio(ctx *gin.Context) {
 		return
 	}
 
-	// 查找消息
+	// Tìm tin nhắn
 	var message models.ChatMessage
 	if err := c.DB.Where("message_id = ?", messageID).First(&message).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// Tin nhắn không tồn tại，跳过更新（可能是因为 SaveMessage 时没有 AgentID 而被跳过）
+			// Tin nhắn không tồn tại, bỏ qua cập nhật vì có thể SaveMessage đã bỏ qua do thiếu AgentID.
 			ctx.JSON(http.StatusOK, gin.H{"message": "Bỏ qua cập nhật: tin nhắn không tồn tại"})
 			return
 		}
@@ -568,13 +568,13 @@ func (c *ChatHistoryController) UpdateMessageAudio(ctx *gin.Context) {
 		return
 	}
 
-	// 如果消息没有关联的 AgentID，跳过更新
+	// Nếu tin nhắn không liên kết AgentID, bỏ qua cập nhật
 	if message.AgentID == "" {
 		ctx.JSON(http.StatusOK, gin.H{"message": "Bỏ qua cập nhật: không có AgentID liên kết"})
 		return
 	}
 
-	// 保存音频文件
+	// Lưu file audio
 	if req.AudioData != "" {
 		audioPath, err := c.saveAudioFile(messageID, req.AudioData)
 		if err != nil {
@@ -582,12 +582,12 @@ func (c *ChatHistoryController) UpdateMessageAudio(ctx *gin.Context) {
 			return
 		}
 
-		// 如果之前有音频文件，先删除
+		// Nếu trước đó có file âm thanh, xóa trước.
 		if message.AudioPath != "" {
 			c.deleteAudioFile(message.AudioPath)
 		}
 
-		// 更新消息
+		// Cập nhật tin nhắn.
 		updates := map[string]interface{}{
 			"audio_path":   audioPath,
 			"audio_format": "wav",
@@ -596,14 +596,14 @@ func (c *ChatHistoryController) UpdateMessageAudio(ctx *gin.Context) {
 			updates["audio_size"] = req.AudioSize
 		}
 
-		// 更新 metadata
+		// Cập nhật metadata
 		if message.Metadata == nil {
 			message.Metadata = make(map[string]interface{})
 		}
 		for k, v := range req.Metadata {
 			message.Metadata[k] = v
 		}
-		// 手动序列化 metadata 到 MetadataJSON（因为 Updates 不会触发 BeforeSave hook）
+		// Tuần tự hóa thủ công metadata vì Updates không kích hoạt hook BeforeSave.
 		metadataJSONBytes, err := json.Marshal(message.Metadata)
 		if err != nil {
 			ctx.JSON(http.StatusInternalServerError, gin.H{"error": "Tuần tự hóa metadata thất bại: " + err.Error()})

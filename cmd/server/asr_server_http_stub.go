@@ -4,10 +4,10 @@ package main
 
 import log "xiaozhi-esp32-server-golang/logger"
 
-// StartAsrServerHTTP 未启用 asr_server 编译时的空实现。需使用 -tags asr_server 编译以启用内嵌 asr_server。
+// StartAsrServerHTTP là bản rỗng khi chưa bật asr_server lúc biên dịch. Dùng -tags asr_server để bật asr_server nhúng.
 func StartAsrServerHTTP(configPath string) {
-	log.Warn("asr_server 内嵌未编译进本二进制，请使用 -tags asr_server 重新编译以启用")
+	log.Warn("asr_server nhúng chưa được biên dịch vào binary này, hãy biên dịch lại với -tags asr_server để bật")
 }
 
-// StopAsrServerHTTP 未启用 asr_server 编译时的空实现。
+// StopAsrServerHTTP là bản rỗng khi chưa bật asr_server lúc biên dịch.
 func StopAsrServerHTTP() {}

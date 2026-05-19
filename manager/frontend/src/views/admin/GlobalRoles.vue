@@ -57,8 +57,8 @@
             </div>
 
             <div class="role-prompt">
-              <p class="prompt-label">Prompt</p>
-              <p class="prompt-text">{{ role.prompt || t('role.noPrompt') }}</p>
+              <p class="prompt-label">Prompt hệ thống</p>
+              <p class="prompt-text">{{ role.prompt || t('role.noPrompt hệ thống') }}</p>
             </div>
           </div>
         </el-card>
@@ -116,7 +116,7 @@
 
           <section class="dialog-section">
             <h4 class="dialog-section-title">{{ t('role.promptConfig') }}</h4>
-            <el-form-item :label="t('role.systemPrompt')" prop="prompt">
+            <el-form-item :label="t('role.systemPrompt hệ thống')" prop="prompt">
               <el-input
                 v-model="form.prompt"
                 type="textarea"
@@ -304,6 +304,34 @@ const handleCardAction = (command, role) => {
   }
 }
 
+const cosyVoiceLabelMap = {
+  '中文女': 'Giọng nữ tiếng Trung',
+  '中文男': 'Giọng nam tiếng Trung',
+  '粤语女': 'Giọng nữ tiếng Quảng Đông',
+  '英文女': 'Giọng nữ tiếng Anh',
+  '英文男': 'Giọng nam tiếng Anh',
+  '日语男': 'Giọng nam tiếng Nhật',
+  '韩语女': 'Giọng nữ tiếng Hàn'
+}
+
+const normalizeVoiceOption = (voice) => {
+  const rawLabel = String(voice?.label || voice?.value || '')
+  const value = String(voice?.value || '')
+  const mappedLabel = cosyVoiceLabelMap[value]
+
+  if (mappedLabel) {
+    return {
+      ...voice,
+      label: `${mappedLabel} (${value})`
+    }
+  }
+
+  return {
+    ...voice,
+    label: rawLabel
+  }
+}
+
 const clearVoiceOptions = () => {
   availableVoices.value = []
   filteredVoices.value = []
@@ -334,7 +362,7 @@ const loadVoices = async (provider) => {
       params.config_id = form.tts_config_id
     }
     const response = await api.get('/user/voice-options', { params })
-    availableVoices.value = response.data.data || []
+    availableVoices.value = (response.data.data || []).map(normalizeVoiceOption)
     filteredVoices.value = availableVoices.value
   } catch (error) {
     clearVoiceOptions()
@@ -523,6 +551,11 @@ onMounted(() => {
 <style scoped>
 .roles-page {
   padding: 20px;
+  font-family: var(--apple-font-stack);
+}
+
+.roles-page :deep(*) {
+  font-family: inherit;
 }
 
 .page-actions {
@@ -578,6 +611,7 @@ onMounted(() => {
 .role-name {
   font-weight: 700;
   font-size: 15px;
+  line-height: 1.4;
   color: #111827;
   white-space: nowrap;
   overflow: hidden;
@@ -612,6 +646,7 @@ onMounted(() => {
 .description {
   color: #4b5563;
   font-size: 14px;
+  line-height: 1.6;
   margin: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -646,6 +681,7 @@ onMounted(() => {
   margin: 0;
   color: #374151;
   font-size: 12px;
+  line-height: 1.6;
   overflow: hidden;
   text-overflow: ellipsis;
   display: -webkit-box;

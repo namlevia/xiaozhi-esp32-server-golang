@@ -7,24 +7,24 @@ func TestEnsureSessionReusesPreferredID(t *testing.T) {
 
 	session, err := manager.EnsureSession("device-1", "preferred-session")
 	if err != nil {
-		t.Fatalf("EnsureSession returned error: %v", err)
+		t.Fatalf("EnsureSession trả về lỗi: %v", err)
 	}
 	if session.ID != "preferred-session" {
-		t.Fatalf("expected preferred session id, got %q", session.ID)
+		t.Fatalf("mong đợi session id ưu tiên, nhận được %q", session.ID)
 	}
 	if session.DeviceID != "device-1" {
-		t.Fatalf("expected device-1, got %q", session.DeviceID)
+		t.Fatalf("mong đợi device-1, nhận được %q", session.DeviceID)
 	}
 
 	reused, err := manager.EnsureSession("device-2", "preferred-session")
 	if err != nil {
-		t.Fatalf("EnsureSession returned error on reuse: %v", err)
+		t.Fatalf("EnsureSession trả về lỗi khi tái sử dụng: %v", err)
 	}
 	if reused != session {
-		t.Fatal("expected EnsureSession to reuse the existing session object")
+		t.Fatal("mong đợi EnsureSession tái sử dụng object session hiện có")
 	}
 	if reused.DeviceID != "device-2" {
-		t.Fatalf("expected reused session device id to be refreshed, got %q", reused.DeviceID)
+		t.Fatalf("mong đợi device id của session tái sử dụng được cập nhật, nhận được %q", reused.DeviceID)
 	}
 }
 
@@ -33,12 +33,12 @@ func TestEnsureSessionCreatesNewSessionWhenPreferredIDEmpty(t *testing.T) {
 
 	session, err := manager.EnsureSession("device-1", "")
 	if err != nil {
-		t.Fatalf("EnsureSession returned error: %v", err)
+		t.Fatalf("EnsureSession trả về lỗi: %v", err)
 	}
 	if session.ID == "" {
-		t.Fatal("expected generated session id")
+		t.Fatal("mong đợi session id được tạo")
 	}
 	if session.DeviceID != "device-1" {
-		t.Fatalf("expected device-1, got %q", session.DeviceID)
+		t.Fatalf("mong đợi device-1, nhận được %q", session.DeviceID)
 	}
 }

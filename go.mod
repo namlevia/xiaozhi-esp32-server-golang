@@ -8,7 +8,6 @@ require (
 	github.com/ThinkInAIXYZ/go-mcp v0.2.19
 	github.com/antonfisher/nested-logrus-formatter v1.3.1
 	github.com/asaskevich/EventBus v0.0.0-20200907212545-49d423059eef
-	github.com/bytedance/sonic v1.13.2
 	github.com/cloudwego/eino v0.3.40
 	github.com/cloudwego/eino-ext/components/model/ollama v0.0.0-20250530094010-bd1c4fc20bbe
 	github.com/cloudwego/eino-ext/components/model/openai v0.0.0-20250530094010-bd1c4fc20bbe
@@ -25,6 +24,7 @@ require (
 	github.com/hackers365/go-webrtcvad v0.0.0-20250711024710-dde35479e077
 	github.com/hackers365/mem0-go v1.0.2
 	github.com/hraban/opus v0.0.0-20220302220929-eeacdbcb92d0
+	github.com/k2-fsa/sherpa-onnx-go v1.12.4
 	github.com/lestrrat-go/file-rotatelogs v2.4.0+incompatible
 	github.com/mark3labs/mcp-go v0.36.0
 	github.com/memodb-io/memobase/src/client/memobase-go v0.0.0-20251008012534-936f45328453
@@ -44,18 +44,20 @@ require (
 	xiaozhi/manager/backend v0.0.0-00010101000000-000000000000
 )
 
-// 主进程内嵌 manager HTTP 时引用 backend 子模块
+// Khi nhúng manager HTTP vào tiến trình chính, tham chiếu backend submodule.
 replace xiaozhi/manager/backend => ./manager/backend
 
-// 主进程内嵌 asr_server 时引用 asr_server 子模块（Git submodule）
+// Khi nhúng asr_server vào tiến trình chính, tham chiếu asr_server submodule (Git submodule).
 replace voice_server => ./asr_server
 
 require (
 	github.com/bahlo/generic-list-go v0.2.0 // indirect
 	github.com/buger/jsonparser v1.1.1 // indirect
-	github.com/bytedance/sonic/loader v0.2.4 // indirect
+	github.com/bytedance/gopkg v0.1.3 // indirect
+	github.com/bytedance/sonic v1.15.0 // indirect
+	github.com/bytedance/sonic/loader v0.5.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
-	github.com/cloudwego/base64x v0.1.5 // indirect
+	github.com/cloudwego/base64x v0.1.6 // indirect
 	github.com/cloudwego/eino-ext/libs/acl/openai v0.0.0-20250519084852-38fafa73d9ea // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
@@ -84,11 +86,10 @@ require (
 	github.com/jonboulle/clockwork v0.5.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
-	github.com/k2-fsa/sherpa-onnx-go v1.12.4 // indirect
 	github.com/k2-fsa/sherpa-onnx-go-linux v1.12.4 // indirect
 	github.com/k2-fsa/sherpa-onnx-go-macos v1.12.4 // indirect
 	github.com/k2-fsa/sherpa-onnx-go-windows v1.12.4 // indirect
-	github.com/klauspost/cpuid/v2 v2.2.7 // indirect
+	github.com/klauspost/cpuid/v2 v2.2.9 // indirect
 	github.com/leodido/go-urn v1.4.0 // indirect
 	github.com/lestrrat-go/strftime v1.1.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect

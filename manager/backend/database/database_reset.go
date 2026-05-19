@@ -11,7 +11,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// InitWithReset 初始化数据库并重置所有表（仅用于开发环境）
+// InitWithReset khởi tạo cơ sở dữ liệu và đặt lại toàn bộ bảng (chỉ dùng cho môi trường phát triển)
 func InitWithReset(cfg config.DatabaseConfig) *gorm.DB {
 	storageType := cfg.GetStorageType()
 	var db *gorm.DB
@@ -19,12 +19,12 @@ func InitWithReset(cfg config.DatabaseConfig) *gorm.DB {
 
 	if storageType == "sqlite" {
 		if cfg.SQLite == nil {
-			log.Fatal("SQLite配置为空")
+			log.Fatal("Cấu hình SQLite trống")
 		}
 		db, err = gorm.Open(sqlite.Open(cfg.SQLite.FilePath), &gorm.Config{})
 	} else {
 		if cfg.MySQL == nil {
-			log.Fatal("MySQL配置为空")
+			log.Fatal("Cấu hình MySQL trống")
 		}
 		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=Local",
 			cfg.MySQL.Username, cfg.MySQL.Password, cfg.MySQL.Host, cfg.MySQL.Port, cfg.MySQL.Database)
@@ -32,12 +32,12 @@ func InitWithReset(cfg config.DatabaseConfig) *gorm.DB {
 	}
 
 	if err != nil {
-		log.Fatal("数据库连接失败:", err)
+		log.Fatal("Kết nối cơ sở dữ liệu thất bại:", err)
 	}
 
-	log.Println("警告：正在重置数据库表，所有数据将被删除！")
+	log.Println("Cảnh báo: đang đặt lại bảng cơ sở dữ liệu, toàn bộ dữ liệu sẽ bị xóa!")
 
-	// 删除所有表
+	// Xóa toàn bộ bảng
 	err = db.Migrator().DropTable(
 		&models.User{},
 		&models.Device{},
@@ -52,9 +52,9 @@ func InitWithReset(cfg config.DatabaseConfig) *gorm.DB {
 		&models.VoiceCloneAudio{},
 	)
 	if err != nil {
-		log.Printf("删除表时出现错误（可能表不存在）: %v", err)
+		log.Printf("Lỗi khi xóa bảng (có thể bảng không tồn tại): %v", err)
 	}
 
-	log.Println("数据库表删除完成！")
+	log.Println("Xóa bảng cơ sở dữ liệu hoàn tất!")
 	return db
 }

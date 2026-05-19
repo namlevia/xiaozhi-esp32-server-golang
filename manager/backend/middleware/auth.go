@@ -10,7 +10,7 @@ import (
 	"github.com/golang-jwt/jwt/v4"
 )
 
-// min 函数用于获取两个整数的最小值
+// min trả về giá trị nhỏ hơn trong hai số nguyên
 func min(a, b int) int {
 	if a < b {
 		return a
@@ -27,7 +27,7 @@ type Claims struct {
 
 var jwtSecret = []byte("xiaozhi_admin_secret_key")
 
-// 生成JWT Token
+// Tạo JWT token
 func GenerateToken(userID uint, username, role string) (string, error) {
 	claims := Claims{
 		UserID:   userID,
@@ -43,7 +43,7 @@ func GenerateToken(userID uint, username, role string) (string, error) {
 	return token.SignedString(jwtSecret)
 }
 
-// 解析JWT Token
+// Phân tích JWT token
 func ParseToken(tokenString string) (*Claims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Claims{}, func(token *jwt.Token) (interface{}, error) {
 		return jwtSecret, nil
@@ -60,14 +60,14 @@ func ParseToken(tokenString string) (*Claims, error) {
 	return nil, jwt.ErrInvalidKey
 }
 
-// JWT认证中间件
+// Middleware xác thực JWT
 func JWTAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// 添加调试日志
-		log.Printf("[JWTAuth] 处理请求: %s %s, 客户端IP: %s", c.Request.Method, c.Request.URL.Path, c.ClientIP())
+		// Ghi log debug
+		log.Printf("[JWTAuth] Xử lý request: %s %s, IP client: %s", c.Request.Method, c.Request.URL.Path, c.ClientIP())
 
 		authHeader := c.GetHeader("Authorization")
-		log.Printf("[JWTAuth] Authorization头: %s", authHeader)
+		log.Printf("[JWTAuth] Header Authorization: %s", authHeader)
 
 		if authHeader == "" {
 			log.Printf("[JWTAuth] ❌ Thiếu header xác thực")
@@ -77,17 +77,17 @@ func JWTAuth() gin.HandlerFunc {
 		}
 
 		tokenString := strings.Replace(authHeader, "Bearer ", "", 1)
-		log.Printf("[JWTAuth] 提取的token长度: %d, 前缀: %s", len(tokenString), tokenString[:min(20, len(tokenString))])
+		log.Printf("[JWTAuth] Độ dài token đã trích xuất: %d, tiền tố: %s", len(tokenString), tokenString[:min(20, len(tokenString))])
 
 		claims, err := ParseToken(tokenString)
 		if err != nil {
-			log.Printf("[JWTAuth] ❌ token解析失败: %v", err)
+			log.Printf("[JWTAuth] ❌ Phân tích token thất bại: %v", err)
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Token không hợp lệ"})
 			c.Abort()
 			return
 		}
 
-		log.Printf("[JWTAuth] ✅ token验证成功 - 用户ID: %d, 用户名: %s, 角色: %s", claims.UserID, claims.Username, claims.Role)
+		log.Printf("[JWTAuth] ✅ Xác thực token thành công - ID người dùng: %d, tên người dùng: %s, vai trò: %s", claims.UserID, claims.Username, claims.Role)
 		c.Set("user_id", claims.UserID)
 		c.Set("username", claims.Username)
 		c.Set("role", claims.Role)
@@ -95,7 +95,7 @@ func JWTAuth() gin.HandlerFunc {
 	}
 }
 
-// 管理员权限中间件
+// Middleware quyền quản trị viên
 func AdminAuth() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")

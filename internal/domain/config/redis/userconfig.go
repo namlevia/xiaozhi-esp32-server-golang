@@ -14,8 +14,8 @@ import (
 	"github.com/spf13/viper"
 )
 
-// RedisUserConfigProvider Redis用户配置提供者
-// 实现UserConfigProvider接口，支持Redis存储
+// RedisUserConfigProvider là provider cấu hình người dùng Redis.
+// Triển khai interface UserConfigProvider, hỗ trợ lưu trữ Redis.
 type RedisUserConfigProvider struct {
 	UserConfig
 }
@@ -25,8 +25,8 @@ type UserConfig struct {
 	prefix        string
 }
 
-// NewRedisUserConfigProvider 创建Redis用户配置提供者
-// config: 配置参数map，包含host, port, password, db, prefix等
+// NewRedisUserConfigProvider tạo provider cấu hình người dùng Redis.
+// config: map tham số config, gồm host, port, password, db, prefix và các field khác.
 func NewRedisUserConfigProvider(config interface{}) (*RedisUserConfigProvider, error) {
 	provider := &RedisUserConfigProvider{
 		UserConfig: UserConfig{
@@ -35,7 +35,7 @@ func NewRedisUserConfigProvider(config interface{}) (*RedisUserConfigProvider, e
 		},
 	}
 
-	log.Log().Info("Redis用户配置提供者初始化成功")
+	log.Log().Info("Khởi tạo provider cấu hình người dùng Redis thành công")
 	return provider, nil
 }
 
@@ -45,7 +45,7 @@ func (u *UserConfig) GetUserConfig(ctx context.Context, userID string) (types.UC
 	if u.redisInstance != nil {
 		key := u.GetUserConfigKey(userID)
 
-		//hgetall 拿到所有的
+		// hgetall lấy toàn bộ field
 		var err error
 		redisConfig, err = u.redisInstance.HGetAll(ctx, key).Result()
 		if err != nil {
@@ -58,7 +58,7 @@ func (u *UserConfig) GetUserConfig(ctx context.Context, userID string) (types.UC
 		MemoryMode:      "short",
 		SpeakerChatMode: "off",
 	}
-	//将UserConfig转换成UConfig结构
+	// Chuyển UserConfig thành cấu trúc UConfig
 	kv := map[string]string{
 		"llm":    "",
 		"asr":    "",
@@ -181,7 +181,7 @@ func (u *UserConfig) GetUserConfigKey(deviceId string) string {
 	return fmt.Sprintf("%s:userconfig:%s", u.prefix, deviceId)
 }
 
-// getSystemPromptKey 生成设备对应的系统 prompt 的 Redis key
+// getSystemPromptKey tạo Redis key system prompt tương ứng với thiết bị.
 func (u *UserConfig) getSystemPrompt(ctx context.Context, deviceID string) string {
 	key := fmt.Sprintf("%s:llm:system:%s", u.prefix, deviceID)
 
@@ -197,46 +197,46 @@ func (u *UserConfig) getSystemPrompt(ctx context.Context, deviceID string) strin
 	return configPrompt
 }
 
-// 获取 mqtt, mqtt_server, udp, ota, vision配置
+// Lấy config mqtt, mqtt_server, udp, ota, vision.
 func (u *UserConfig) GetSystemConfig(ctx context.Context) (string, error) {
-	//默认不覆盖
+	// Mặc định không override
 	return "", nil
 }
 
-// SwitchDeviceRoleByName Redis 模式不支持设备角色切换
+// SwitchDeviceRoleByName không hỗ trợ chuyển role thiết bị ở mode Redis.
 func (u *UserConfig) SwitchDeviceRoleByName(ctx context.Context, deviceID string, roleName string) (string, error) {
-	return "", fmt.Errorf("redis 配置提供者不支持按角色名切换设备角色")
+	return "", fmt.Errorf("Provider cấu hình redis không hỗ trợ chuyển role thiết bị theo tên role")
 }
 
-// RestoreDeviceDefaultRole Redis 模式不支持恢复默认角色
+// RestoreDeviceDefaultRole không hỗ trợ khôi phục role mặc định ở mode Redis.
 func (u *UserConfig) RestoreDeviceDefaultRole(ctx context.Context, deviceID string) error {
-	return fmt.Errorf("redis 配置提供者不支持恢复设备默认角色")
+	return fmt.Errorf("Provider cấu hình redis không hỗ trợ khôi phục role mặc định của thiết bị")
 }
 
 func (u *UserConfig) NotifyDeviceEvent(ctx context.Context, eventType string, eventData map[string]interface{}) {
-	// 实现设备事件通知逻辑
+	// Triển khai logic thông báo sự kiện thiết bị
 	return
 }
 
 func (u *UserConfig) RegisterMessageEventHandler(ctx context.Context, deviceID string, handler types.EventHandler) {
-	// 实现消息事件处理逻辑
+	// Triển khai logic xử lý sự kiện message
 	return
 }
 
-// Init 初始化Redis配置提供者
+// Init khởi tạo provider cấu hình Redis.
 func Init(ctx context.Context) error {
 	log.Log().Info("Redis config provider initialized successfully")
 	return nil
 }
 
-// Close 关闭Redis配置提供者，清理资源
+// Close đóng provider cấu hình Redis và cleanup tài nguyên.
 func Close() error {
 	log.Log().Info("Redis config provider closed")
 	return nil
 }
 
-// IsConnected 检查Redis配置提供者是否已连接
+// IsConnected kiểm tra provider cấu hình Redis đã kết nối hay chưa.
 func IsConnected() bool {
-	// Redis连接状态由全局Redis客户端管理
+	// Trạng thái kết nối Redis do Redis client toàn cục quản lý
 	return true
 }

@@ -1,262 +1,262 @@
-# Chat Hook / Plugin V2 设计文档
+# Tài liệu thiết kế Chat Hook / Plugin V2
 
-## 1. 文档目标
+## 1. Mục tiêu tài liệu
 
-本文档用于回答三个问题：
+Tài liệu này trả lời ba câu hỏi:
 
-1. 当前聊天链路 Hook 架构的合理边界是什么；
-2. V2 应该优先补哪些能力；
-3. 在尽量不扰动现有业务主链路的前提下，如何分阶段演进。
+1. Ranh giới hợp lý của kiến trúc Hook trong chuỗi chat hiện tại là gì;
+2. V2 nên ưu tiên bổ sung năng lực nào;
+3. Làm thế nào để tiến hóa theo giai đoạn mà ít ảnh hưởng nhất tới luồng nghiệp vụ chính hiện có.
 
-本文档的定位不是“构建一个完整插件市场”，而是为当前仓库落地一套**可治理、可扩展、可观测**的 Chat Hook / Plugin V2 方案。
+Mục tiêu của tài liệu này không phải là “xây dựng một plugin market hoàn chỉnh”, mà là đưa vào repo hiện tại một phương án Chat Hook / Plugin V2 **có thể quản trị, có thể mở rộng, có thể quan sát**.
 
 ---
 
 ## 2. TL;DR
 
-### 2.1 一句话结论
+### 2.1 Kết luận một câu
 
-当前实现已经具备一个可用的 **Chat Hook Framework** 雏形，但还不适合直接定义为“完整 Plugin Platform”。
+Phần triển khai hiện tại đã có nguyên mẫu **Chat Hook Framework** dùng được, nhưng chưa phù hợp để định nghĩa trực tiếp là “nền tảng plugin” hoàn chỉnh.
 
-### 2.2 V2 核心主张
+### 2.2 Luận điểm cốt lõi của V2
 
-V2 的核心不是“推翻重写”，而是：
+Trọng tâm của V2 không phải là “đập đi viết lại”, mà là:
 
-- 保留现有业务接入点；
-- 将 **Interceptor（可改写主流程）** 与 **Observer（只做观测）** 明确拆分；
-- 为异步执行补齐 **有界队列、超时、丢弃策略、指标**；
-- 引入 **PluginMeta + Registry + Lifecycle**；
-- 为 ASR / LLM / TTS / Metric 事件补齐契约。
+- Giữ các điểm tích hợp nghiệp vụ hiện có;
+- Tách rõ **Interceptor** (có thể sửa luồng chính) và **Observer** (chỉ quan sát);
+- Bổ sung **hàng đợi có giới hạn, timeout, chiến lược drop, metric** cho thực thi async;
+- Giới thiệu **PluginMeta + Registry + Lifecycle**;
+- Hoàn thiện contract cho các event ASR / LLM / TTS / Metric.
 
-### 2.3 推荐优先级
+### 2.3 Ưu tiên khuyến nghị
 
-| 优先级 | 建议项 | 目标 |
+| Ưu tiên | Hạng mục đề xuất | Mục tiêu |
 | --- | --- | --- |
-| P0 | Async Runtime 治理 | 防止慢插件拖垮系统 |
-| P0 | Interceptor / Observer 语义拆分 | 降低语义混用 |
-| P0 | Payload 契约文档 | 降低插件误用 |
-| P1 | PluginMeta / Registry | 让插件注册可管理 |
-| P1 | Lifecycle / Config | 支持带状态插件 |
-| P2 | 多队列 / 多 worker / tracing 集成 | 支持更复杂扩展 |
+| P0 | Quản trị Async Runtime | Tránh plugin chậm kéo sập hệ thống |
+| P0 | Tách ngữ nghĩa Interceptor / Observer | Giảm nhầm lẫn ngữ nghĩa |
+| P0 | Tài liệu contract payload | Giảm plugin dùng sai |
+| P1 | PluginMeta / Registry | Quản lý được đăng ký plugin |
+| P1 | Vòng đời / cấu hình | Hỗ trợ plugin có trạng thái |
+| P2 | Nhiều queue / nhiều worker / tích hợp tracing | Hỗ trợ mở rộng phức tạp hơn |
 
 ---
 
-## 3. 现状判断
+## 3. Đánh giá hiện trạng
 
-## 3.1 当前设计已经做对的部分
+## 3.1 Phần thiết kế hiện tại đã đúng
 
-当前实现已经具备以下优点：
+Phần triển khai hiện tại đã có các ưu điểm sau:
 
-1. **接入点选得对**
-   - Hook 已经接在 ASR 最终输出、LLM 输入/输出、TTS 输入/输出起止、Metric 阶段；
-   - 都是聊天主链路中最有业务价值的位置。
+1. **Chọn đúng điểm tích hợp**
+   - Hook đã được gắn vào ASR final output, LLM input/output, TTS input/output start-stop, và Metric;
+   - Đây đều là các vị trí có giá trị nghiệp vụ cao nhất trong luồng chat chính.
 
-2. **分层基本正确**
-   - `internal/pkg/hooks` 负责通用执行框架；
-   - `internal/domain/chat/hooks` 负责 chat 领域上下文、事件和 typed payload；
-   - `internal/app/server/chat/*` 只负责在合适的位置 emit。
+2. **Phân tầng cơ bản đúng**
+   - `internal/pkg/hooks` chịu trách nhiệm framework thực thi chung;
+   - `internal/domain/chat/hooks` chịu trách nhiệm context miền chat, event và typed payload;
+   - `internal/app/server/chat/*` chỉ chịu trách nhiệm emit tại vị trí phù hợp.
 
-3. **Typed façade 已经建立**
-   - 业务侧已经不是直接操作 `any`；
-   - 这为 V2 继续增强契约与治理提供了良好基础。
+3. **Typed façade đã được xây dựng**
+   - Tầng nghiệp vụ không còn thao tác trực tiếp với `any`;
+   - Đây là nền tảng tốt để V2 tiếp tục tăng cường contract và governance.
 
-4. **可插拔性已经可用**
-   - 当前已经能支撑统计插件、文本改写、流程拦截等内建能力。
+4. **Khả năng cắm mở đã dùng được**
+   - Hiện tại đã có thể hỗ trợ plugin thống kê, rewrite text, chặn luồng, và các năng lực built-in khác.
 
-## 3.2 当前主要短板
+## 3.2 Điểm yếu chính hiện tại
 
-当前最需要解决的不是“抽象不对”，而是“治理能力不足”。
+Vấn đề cần giải quyết nhất hiện tại không phải là “abstraction sai”, mà là “thiếu năng lực governance”.
 
-### A. 语义混用
+### A. Trộn lẫn ngữ nghĩa
 
-当前统一用一套 Hook 模型承载两类完全不同的需求：
+Hiện tại cùng một mô hình Hook đang gánh hai loại nhu cầu rất khác nhau:
 
-- 可改写主流程的拦截器；
-- 只做观测的 metric / audit / telemetry。
+- Interceptor có thể rewrite luồng chính;
+- Metric / audit / telemetry chỉ quan sát.
 
-这会带来以下问题：
+Điều này gây ra các vấn đề:
 
-- `stop` 语义并不适合所有事件；
-- `payload 改写` 只适合一部分阶段；
-- 插件作者不容易理解哪些事件能做什么。
+- Ngữ nghĩa `stop` không phù hợp với mọi event;
+- `payload rewrite` chỉ phù hợp với một số stage;
+- Tác giả plugin khó hiểu event nào được phép làm gì.
 
-### B. 异步执行治理不足
+### B. Thiếu governance cho thực thi async
 
-当前 async 执行的痛点：
+Điểm đau của async execution hiện tại:
 
-- 队列无上限；
-- 缺少 timeout；
-- 缺少 dropped 指标；
-- 所有 async handler 共用单线程串行消费；
-- 对慢插件缺少隔离。
+- Queue không có giới hạn;
+- Thiếu timeout;
+- Thiếu metric dropped;
+- Tất cả async handler dùng chung một luồng consumer tuần tự;
+- Thiếu cách cô lập plugin chậm.
 
-### C. 插件注册方式偏硬编码
+### C. Cách đăng ký plugin còn hard-code
 
-当前主要通过 `RegisterBuiltinPlugins` 在代码中注册。这样虽然简单，但不利于：
+Hiện tại chủ yếu đăng ký bằng `RegisterBuiltinPlugins` trong code. Cách này đơn giản nhưng không thuận lợi cho:
 
-- 查看当前加载了哪些插件；
-- 做启停开关；
-- 做按环境配置；
-- 做插件级别调试。
+- Xem hiện đang load plugin nào;
+- Bật/tắt plugin;
+- Cấu hình theo môi trường;
+- Debug theo từng plugin.
 
-### D. 契约不清晰
+### D. Contract chưa rõ
 
-目前虽然已经有 `ASROutputData` / `LLMInputData` / `LLMOutputData` / `TTSInputData` / `MetricData`，但仍缺少以下约束：
+Dù đã có `ASROutputData` / `LLMInputData` / `LLMOutputData` / `TTSInputData` / `MetricData`, vẫn còn thiếu các ràng buộc sau:
 
-- 哪些字段允许修改；
-- 哪些字段不允许置空；
-- `stop` 的业务语义是什么；
-- `Err` 是否允许覆盖；
-- 插件最大允许耗时是多少。
+- Field nào được phép sửa;
+- Field nào không được phép set rỗng;
+- Ngữ nghĩa nghiệp vụ của `stop` là gì;
+- `Err` có được phép overwrite hay không;
+- Thời gian tối đa plugin được phép chạy là bao lâu.
 
 ---
 
-## 4. V2 定位与设计原则
+## 4. Định vị và nguyên tắc thiết kế V2
 
-## 4.1 架构定位
+## 4.1 Định vị kiến trúc
 
-V2 建议将系统正式命名为：
+V2 nên chính thức đặt tên hệ thống là:
 
 > **Chat Interceptor & Observer Framework**
 
-而不是直接叫：
+Thay vì gọi ngay là:
 
-> Plugin Platform
+> Nền tảng plugin
 
-这样命名更贴近当前阶段的真实能力，也更有利于控制团队预期。
+Tên này sát hơn với năng lực thực tế ở giai đoạn hiện tại và giúp kiểm soát kỳ vọng trong team tốt hơn.
 
-## 4.2 设计原则
+## 4.2 Nguyên tắc thiết kế
 
-V2 应遵循以下原则：
+V2 nên tuân theo các nguyên tắc sau:
 
-1. **保持业务主链路稳定**
-   - 不大规模改 ASR / LLM / TTS 现有逻辑；
-   - 优先在 Hook Runtime 和 Domain Facade 层增强。
+1. **Giữ ổn định luồng nghiệp vụ chính**
+   - Không sửa lớn logic ASR / LLM / TTS hiện có;
+   - Ưu tiên tăng cường ở tầng Hook Runtime và Domain Facade.
 
-2. **先做治理，再做平台化**
-   - 先解决语义、边界、监控、稳定性；
-   - 再考虑更复杂的插件生态。
+2. **Làm governance trước, platform hóa sau**
+   - Giải quyết ngữ nghĩa, ranh giới, monitoring, ổn định trước;
+   - Sau đó mới cân nhắc hệ sinh thái plugin phức tạp hơn.
 
-3. **先区分 Interceptor 与 Observer**
-   - 所有可改写主流程的行为必须显式归类为 Interceptor；
-   - 所有只读观测行为必须显式归类为 Observer。
+3. **Phân biệt Interceptor và Observer trước**
+   - Mọi hành vi có thể rewrite luồng chính phải được phân loại rõ là Interceptor;
+   - Mọi hành vi quan sát read-only phải được phân loại rõ là Observer.
 
-4. **先明确契约，再扩展插件数量**
-   - 没有契约时，插件越多，维护成本越高。
+4. **Làm rõ contract trước, mở rộng số lượng plugin sau**
+   - Khi không có contract, càng nhiều plugin thì chi phí bảo trì càng cao.
 
-5. **增量演进，不做一次性重写**
-   - 能兼容现有 emit 接口的设计优先；
-   - 迁移要分阶段推进。
+5. **Tiến hóa tăng dần, không rewrite một lần**
+   - Ưu tiên thiết kế tương thích với interface emit hiện tại;
+   - Migration cần triển khai theo giai đoạn.
 
 ---
 
-## 5. V2 总体架构
+## 5. Kiến trúc tổng thể V2
 
-## 5.1 三层结构
+## 5.1 Cấu trúc ba tầng
 
-V2 延续当前三层结构，但强化职责边界。
+V2 tiếp tục dùng cấu trúc ba tầng hiện tại nhưng tăng cường ranh giới trách nhiệm.
 
-### 第一层：业务主链路层
+### Tầng 1: Luồng nghiệp vụ chính
 
-职责：
+Trách nhiệm:
 
-- 在 ASR / LLM / TTS / Session Metric 的关键节点 emit；
-- 不直接感知插件注册、调度策略、生命周期。
+- Emit tại các điểm quan trọng của ASR / LLM / TTS / Session Metric;
+- Không trực tiếp nhận biết đăng ký plugin, chiến lược scheduling, lifecycle.
 
-不负责：
+Không chịu trách nhiệm:
 
-- 插件注册；
-- 插件执行治理；
-- 插件元数据管理。
+- Đăng ký plugin;
+- Governance thực thi plugin;
+- Quản lý metadata plugin.
 
-### 第二层：Chat Domain Hook 层
+### Tầng 2: Chat Domain Hook
 
-职责：
+Trách nhiệm:
 
-- 定义 chat 领域事件、typed payload、领域 context；
-- 对业务代码暴露统一而稳定的入口；
-- 约束字段契约与 stop/error 语义。
+- Định nghĩa event miền chat, typed payload, domain context;
+- Cung cấp điểm vào thống nhất và ổn định cho code nghiệp vụ;
+- Ràng buộc contract field và ngữ nghĩa stop/error.
 
-### 第三层：Generic Runtime 层
+### Tầng 3: Generic Runtime
 
-职责：
+Trách nhiệm:
 
-- 插件注册；
-- 排序与执行；
-- async 调度；
-- timeout / drop / metrics；
-- 生命周期管理。
+- Đăng ký plugin;
+- Sắp xếp và thực thi;
+- Scheduling async;
+- Timeout / drop / metrics;
+- Quản lý lifecycle.
 
-## 5.2 请求路径中的 Hook 角色
+## 5.2 Vai trò Hook trong request path
 
 ```text
 ASR final text
   -> ASR Output Interceptors
   -> LLM Input Interceptors
-  -> LLM 执行
+  -> LLM execution
   -> LLM Output Interceptors
   -> TTS Input Interceptors
   -> TTS Output Observers
 
-同时：
-  Metric Observers 在 turn_start / asr_first / asr_final / llm_start /
-  llm_first / llm_end / tts_start / tts_first / tts_stop 等阶段观测
+Đồng thời:
+  Metric Observers quan sát ở các stage turn_start / asr_first / asr_final /
+  llm_start / llm_first / llm_end / tts_start / tts_first / tts_stop, v.v.
 ```
 
-这个拆法的核心是：
+Cốt lõi của cách tách này là:
 
-- 业务主链路只关心“何时 emit”；
-- Interceptor 负责改写；
-- Observer 负责观测；
-- Runtime 负责治理。
+- Luồng nghiệp vụ chính chỉ quan tâm “emit lúc nào”;
+- Interceptor chịu trách nhiệm rewrite;
+- Observer chịu trách nhiệm quan sát;
+- Runtime chịu trách nhiệm governance.
 
 ---
 
-## 6. 事件模型设计
+## 6. Thiết kế event model
 
-## 6.1 事件分层
+## 6.1 Phân tầng event
 
-### A. Interceptor 类事件
+### A. Event loại Interceptor
 
-用于同步改写与流程控制。
+Dùng cho rewrite đồng bộ và điều khiển luồng.
 
-建议保留：
+Đề xuất giữ:
 
 - `chat.asr.output`
 - `chat.llm.input`
 - `chat.llm.output`
 - `chat.tts.input`
 
-这类事件应具备：
+Loại event này nên có:
 
-- 按 priority 有序执行；
-- 可修改 payload；
-- 可 `stop`；
-- 可返回 error；
-- 必须快速返回。
+- Thực thi có thứ tự theo priority;
+- Có thể sửa payload;
+- Có thể `stop`;
+- Có thể trả error;
+- Bắt buộc return nhanh.
 
-### B. Observer 类事件
+### B. Event loại Observer
 
-用于观测、埋点、日志、trace、审计等。
+Dùng cho quan sát, instrumentation, log, trace, audit, v.v.
 
-建议归类为 Observer：
+Đề xuất phân loại là Observer:
 
 - `chat.metric`
 - `chat.tts.output.start`
 - `chat.tts.output.stop`
-- 后续扩展的 audit / trace / debug event
+- Audit / trace / debug event mở rộng sau này
 
-这类事件应具备：
+Loại event này nên có:
 
-- 默认只读；
-- 不允许 stop 主流程；
-- 不参与主流程 payload 变更；
-- 可以异步执行；
-- 错误只影响观测链路。
+- Mặc định read-only;
+- Không được phép stop luồng chính;
+- Không tham gia thay đổi payload của luồng chính;
+- Có thể thực thi async;
+- Lỗi chỉ ảnh hưởng chuỗi quan sát.
 
-## 6.2 事件命名建议
+## 6.2 Đề xuất đặt tên event
 
-继续沿用现有分层命名即可，不建议马上大改命名体系。推荐保持：
+Tiếp tục dùng naming phân tầng hiện có, không nên đổi lớn hệ thống tên ngay. Khuyến nghị giữ:
 
 - `chat.asr.output`
 - `chat.llm.input`
@@ -266,19 +266,19 @@ ASR final text
 - `chat.tts.output.stop`
 - `chat.metric`
 
-原因：
+Lý do:
 
-- 当前命名已经直观；
-- 与现有实现兼容；
-- 迁移成本最低。
+- Tên hiện tại đã trực quan;
+- Tương thích implementation hiện có;
+- Chi phí migration thấp nhất.
 
 ---
 
-## 7. 运行时设计
+## 7. Thiết kế runtime
 
 ## 7.1 PluginMeta
 
-V2 引入统一元数据，便于展示、启停、诊断和排序。
+V2 thêm metadata thống nhất để phục vụ hiển thị, bật/tắt, chẩn đoán và sắp xếp.
 
 ```go
 package hooks
@@ -301,18 +301,18 @@ type PluginMeta struct {
 }
 ```
 
-### 设计说明
+### Giải thích thiết kế
 
-- `Name`：全局唯一标识；
-- `Version`：便于后续兼容与灰度；
-- `Priority`：排序依据；
-- `Enabled`：运行期开关；
-- `Kind`：区分 interceptor / observer；
-- `Stage`：声明所挂载的阶段。
+- `Name`: định danh duy nhất toàn cục;
+- `Version`: phục vụ tương thích và rollout sau này;
+- `Priority`: căn cứ sắp xếp;
+- `Enabled`: công tắc runtime;
+- `Kind`: phân biệt interceptor / observer;
+- `Stage`: khai báo stage được mount.
 
 ## 7.2 Registry
 
-V2 推荐引入显式注册中心，而不是让 Runtime 自己决定“有哪些插件”。
+V2 khuyến nghị thêm registry rõ ràng, thay vì để Runtime tự quyết “có plugin nào”.
 
 ```go
 package hooks
@@ -328,22 +328,22 @@ type Registry interface {
 }
 ```
 
-### Registry 负责什么
+### Registry chịu trách nhiệm gì
 
-- 保存插件定义；
-- 暴露可枚举的注册清单；
-- 支持按配置过滤是否启用；
-- 为调试和观测提供基础数据。
+- Lưu định nghĩa plugin;
+- Expose danh sách đăng ký có thể enumerate;
+- Hỗ trợ lọc bật/tắt theo cấu hình;
+- Cung cấp dữ liệu nền cho debug và quan sát.
 
-### Registry 不负责什么
+### Registry không chịu trách nhiệm gì
 
-- 不直接执行插件；
-- 不直接承载业务状态；
-- 不替代 Runtime 的执行逻辑。
+- Không trực tiếp thực thi plugin;
+- Không trực tiếp chứa trạng thái nghiệp vụ;
+- Không thay thế logic thực thi của Runtime.
 
 ## 7.3 Lifecycle
 
-为带状态插件提供最小生命周期。
+Cung cấp lifecycle tối thiểu cho plugin có trạng thái.
 
 ```go
 package hooks
@@ -354,13 +354,13 @@ type Lifecycle interface {
 }
 ```
 
-建议：
+Khuyến nghị:
 
-- 无状态插件可不实现；
-- 有缓存、后台任务、连接池的插件实现该接口；
-- Runtime 统一管理调用时机。
+- Plugin stateless không cần implement;
+- Plugin có cache, background task, connection pool thì implement interface này;
+- Runtime quản lý thống nhất thời điểm gọi.
 
-## 7.4 Interceptor 接口
+## 7.4 Interface Interceptor
 
 ```go
 package hooks
@@ -371,13 +371,13 @@ type Interceptor[T any] interface {
 }
 ```
 
-设计意图：
+Ý đồ thiết kế:
 
-- 保留“改写 + stop + error”三种能力；
-- 利用泛型提升编译期约束；
-- 降低 `any` 造成的误用风险。
+- Giữ ba năng lực “rewrite + stop + error”;
+- Dùng generic để tăng ràng buộc ở compile time;
+- Giảm rủi ro dùng sai do `any`.
 
-## 7.5 Observer 接口
+## 7.5 Interface Observer
 
 ```go
 package hooks
@@ -388,29 +388,29 @@ type Observer[T any] interface {
 }
 ```
 
-设计意图：
+Ý đồ thiết kế:
 
-- 明确“只观察，不改写”；
-- 从语义上消除对 `stop` 的误用；
-- 方便后续对 observer 做独立调度策略。
+- Làm rõ “chỉ quan sát, không rewrite”;
+- Loại bỏ việc lạm dụng `stop` ở mức ngữ nghĩa;
+- Thuận tiện để sau này áp dụng scheduling strategy riêng cho observer.
 
 ## 7.6 Async Runtime
 
-### 当前问题
+### Vấn đề hiện tại
 
-当前 async 执行模型最大的问题不是“不能工作”，而是“缺少边界”。
+Vấn đề lớn nhất của mô hình async hiện tại không phải là “không chạy được”, mà là “thiếu ranh giới”.
 
-### V2 设计目标
+### Mục tiêu thiết kế V2
 
-为 async observer 增加以下能力：
+Bổ sung các năng lực sau cho async observer:
 
-- bounded queue；
-- timeout；
-- dropped 统计；
-- per-plugin 执行指标；
-- 后续可扩展为多队列 / 多 worker。
+- bounded queue;
+- timeout;
+- thống kê dropped;
+- metric thực thi theo plugin;
+- sau này có thể mở rộng thành nhiều queue / nhiều worker.
 
-### 建议配置
+### Cấu hình đề xuất
 
 ```go
 package hooks
@@ -423,109 +423,109 @@ type AsyncConfig struct {
 }
 ```
 
-### 推荐默认值
+### Giá trị mặc định khuyến nghị
 
 - `QueueSize = 1024`
 - `WorkerCount = 1`
 - `DropWhenFull = true`
 - `Timeout = 200ms`
 
-### 推荐策略
+### Chiến lược khuyến nghị
 
-1. 默认先保持单 worker，保证顺序语义；
-2. 队列满时优先丢弃 observer 事件，而不是拖慢主链路；
-3. 记录 dropped count 和 timeout count；
-4. 若未来出现高负载 observer，再按事件或插件拆分队列。
+1. Mặc định giữ một worker để đảm bảo ngữ nghĩa thứ tự;
+2. Khi queue đầy, ưu tiên drop observer event thay vì làm chậm luồng chính;
+3. Ghi nhận dropped count và timeout count;
+4. Nếu sau này xuất hiện observer tải cao, tách queue theo event hoặc plugin.
 
 ---
 
-## 8. 领域契约
+## 8. Contract miền nghiệp vụ
 
-V2 必须把 payload 契约显式写清楚。
+V2 bắt buộc viết rõ contract payload.
 
 ## 8.1 ASROutputData
 
-用途：ASR 最终文本与说话人结果改写。
+Mục đích: rewrite text cuối của ASR và kết quả speaker.
 
-| 字段 | 是否可改 | 说明 |
+| Field | Có thể sửa | Ghi chú |
 | --- | --- | --- |
-| `Text` | 是 | 可做清洗、归一化、过滤 |
-| `SpeakerResult` | 是 | 可做说话人修正或增强 |
+| `Text` | Có | Có thể clean, normalize, filter |
+| `SpeakerResult` | Có | Có thể chỉnh hoặc enrich speaker |
 
-约束：
+Ràng buộc:
 
-- 插件不得长时间阻塞；
-- `stop=true` 表示本轮文本不再继续进入 LLM；
-- 若返回空文本，应明确由插件自行承担后果。
+- Plugin không được block lâu;
+- `stop=true` nghĩa là text lượt này không đi tiếp vào LLM;
+- Nếu trả text rỗng, plugin tự chịu hậu quả.
 
 ## 8.2 LLMInputData
 
-用途：在发起 LLM 请求前，对消息与工具做改写。
+Mục đích: rewrite message và tool trước khi gửi request LLM.
 
-| 字段 | 是否可改 | 说明 |
+| Field | Có thể sửa | Ghi chú |
 | --- | --- | --- |
-| `UserMessage` | 是 | 不允许置空 |
-| `RequestMessages` | 是 | 可裁剪、重排、注入 system prompt |
-| `Tools` | 是 | 可做过滤或附加 |
+| `UserMessage` | Có | Không được set rỗng |
+| `RequestMessages` | Có | Có thể cắt, reorder, inject system prompt |
+| `Tools` | Có | Có thể filter hoặc append |
 
-约束：
+Ràng buộc:
 
-- `UserMessage` 不允许为 `nil`；
-- 插件必须保证输出仍满足下游 LLM Provider 的最小输入要求；
-- `stop=true` 表示本次 LLM 请求被拦截终止。
+- `UserMessage` không được là `nil`;
+- Plugin phải đảm bảo output vẫn thỏa yêu cầu input tối thiểu của LLM Provider phía dưới;
+- `stop=true` nghĩa là request LLM lần này bị intercept và kết thúc.
 
 ## 8.3 LLMOutputData
 
-用途：在 LLM 输出完成后，改写展示文本或补充错误语义。
+Mục đích: rewrite text hiển thị hoặc bổ sung ngữ nghĩa lỗi sau khi LLM output hoàn tất.
 
-| 字段 | 是否可改 | 说明 |
+| Field | Có thể sửa | Ghi chú |
 | --- | --- | --- |
-| `FullText` | 是 | 可做安全改写、格式整理、语音友好化 |
-| `Err` | 谨慎 | 建议附加上下文，不建议直接吞掉底层错误 |
+| `FullText` | Có | Có thể rewrite an toàn, format lại, tối ưu cho giọng nói |
+| `Err` | Thận trọng | Nên bổ sung context, không nên nuốt trực tiếp lỗi tầng dưới |
 
-约束：
+Ràng buộc:
 
-- 不建议插件无痕覆盖底层真实错误；
-- `stop=true` 表示后续不再继续进入 TTS 或消息更新；
-- 未来可将 `Err` 拆成 `OriginErr` / `DisplayErr`。
+- Không khuyến nghị plugin âm thầm overwrite lỗi thật tầng dưới;
+- `stop=true` nghĩa là không tiếp tục đi vào TTS hoặc cập nhật message;
+- Sau này có thể tách `Err` thành `OriginErr` / `DisplayErr`.
 
 ## 8.4 TTSInputData
 
-用途：在文本进入 TTS 前做可朗读化处理。
+Mục đích: xử lý text trước khi vào TTS để dễ đọc thành tiếng hơn.
 
-| 字段 | 是否可改 | 说明 |
+| Field | Có thể sửa | Ghi chú |
 | --- | --- | --- |
-| `Text` | 是 | 可做数值、标点、emoji 可朗读化 |
-| `IsStart` | 默认否 | 视为协议边界字段 |
-| `IsEnd` | 默认否 | 视为协议边界字段 |
+| `Text` | Có | Có thể chuyển số, dấu câu, emoji sang dạng dễ đọc |
+| `IsStart` | Mặc định không | Xem là field ranh giới protocol |
+| `IsEnd` | Mặc định không | Xem là field ranh giới protocol |
 
-约束：
+Ràng buộc:
 
-- 普通插件建议只改 `Text`；
-- `IsStart` / `IsEnd` 应保留给更高权限或专用插件；
-- `stop=true` 表示当前片段不进入 TTS。
+- Plugin thông thường chỉ nên sửa `Text`;
+- `IsStart` / `IsEnd` nên dành cho plugin quyền cao hơn hoặc plugin chuyên dụng;
+- `stop=true` nghĩa là fragment hiện tại không đi vào TTS.
 
 ## 8.5 MetricData
 
-用途：链路观测。
+Mục đích: quan sát chuỗi xử lý.
 
-| 字段 | 是否可改 | 说明 |
+| Field | Có thể sửa | Ghi chú |
 | --- | --- | --- |
-| `Stage` | 否 | 只读 |
-| `Ts` | 否 | 只读 |
-| `Err` | 否 | 只读，仅用于观测 |
+| `Stage` | Không | Read-only |
+| `Ts` | Không | Read-only |
+| `Err` | Không | Read-only, chỉ dùng để quan sát |
 
-约束：
+Ràng buộc:
 
-- 不允许 stop 主流程；
-- 不允许改写后再反馈给主链路；
-- 仅用于日志、指标、追踪、调试。
+- Không được stop luồng chính;
+- Không được rewrite rồi feedback lại luồng chính;
+- Chỉ dùng cho log, metric, tracing, debug.
 
 ---
 
-## 9. 配置模型
+## 9. Mô hình cấu hình
 
-推荐为 Hook 系统增加最小配置模型：
+Khuyến nghị thêm model cấu hình tối thiểu cho hệ thống Hook:
 
 ```yaml
 chat_hooks:
@@ -541,28 +541,28 @@ chat_hooks:
       priority: 100
 ```
 
-配置设计目标：
+Mục tiêu thiết kế cấu hình:
 
-- 支持插件启停；
-- 支持 priority 覆盖；
-- 支持 async 运行参数控制；
-- 为未来插件级 config schema 预留空间。
+- Hỗ trợ bật/tắt plugin;
+- Hỗ trợ override priority;
+- Hỗ trợ kiểm soát tham số runtime async;
+- Chừa không gian cho plugin-level config schema trong tương lai.
 
 ---
 
-## 10. 可观测性要求
+## 10. Yêu cầu quan sát
 
-Runtime 至少应采集以下指标：
+Runtime tối thiểu nên thu thập các metric sau:
 
-- plugin 调用次数；
-- plugin 耗时；
-- error 次数；
-- stop 次数（interceptor）；
-- dropped 次数（observer async）；
-- timeout 次数；
-- 当前 async queue 长度。
+- Số lần gọi plugin;
+- Thời gian chạy plugin;
+- Số lần error;
+- Số lần stop (interceptor);
+- Số lần dropped (observer async);
+- Số lần timeout;
+- Độ dài async queue hiện tại.
 
-建议日志/指标中包含：
+Khuyến nghị log/metric chứa:
 
 - `plugin_name`
 - `plugin_kind`
@@ -571,7 +571,7 @@ Runtime 至少应采集以下指标：
 - `duration_ms`
 - `result`
 
-如果后续接 tracing，可进一步记录：
+Nếu sau này tích hợp tracing, có thể ghi thêm:
 
 - session_id
 - device_id
@@ -580,125 +580,125 @@ Runtime 至少应采集以下指标：
 
 ---
 
-## 11. 迁移计划
+## 11. Kế hoạch migration
 
-## 11.1 阶段 1：Runtime 增强（P0）
+## 11.1 Giai đoạn 1: Tăng cường Runtime (P0)
 
-目标：在不改业务接入点的前提下提升稳定性。
+Mục tiêu: tăng độ ổn định mà không sửa điểm tích hợp nghiệp vụ.
 
-工作项：
+Hạng mục:
 
-- 为 async observer 增加 bounded queue；
-- 增加 timeout 与 dropped 统计；
-- 增加 Runtime 基础指标；
-- 保持现有 `Emit` / `RegisterSync` / `RegisterAsync` 接口兼容。
+- Thêm bounded queue cho async observer;
+- Thêm timeout và thống kê dropped;
+- Thêm metric runtime cơ bản;
+- Giữ tương thích interface `Emit` / `RegisterSync` / `RegisterAsync` hiện có.
 
-产出：
+Kết quả:
 
-- 稳定性提升；
-- 为后续 observer 扩展提供边界。
+- Độ ổn định tăng;
+- Có ranh giới cho việc mở rộng observer sau này.
 
-## 11.2 阶段 2：语义分层（P0）
+## 11.2 Giai đoạn 2: Phân tầng ngữ nghĩa (P0)
 
-目标：显式区分 Interceptor 与 Observer。
+Mục tiêu: phân biệt rõ Interceptor và Observer.
 
-工作项：
+Hạng mục:
 
-- 在 Domain Hook 层新增清晰 façade；
-- 将 `Metric` 事件转为标准 observer 语义；
-- 明确不允许 stop 的事件集合。
+- Thêm façade rõ ràng ở tầng Domain Hook;
+- Chuyển event `Metric` sang ngữ nghĩa observer tiêu chuẩn;
+- Làm rõ tập event không cho phép stop.
 
-产出：
+Kết quả:
 
-- 语义更清晰；
-- 插件作者更不容易误用。
+- Ngữ nghĩa rõ hơn;
+- Tác giả plugin ít dễ dùng sai hơn.
 
-## 11.3 阶段 3：Registry + Meta（P1）
+## 11.3 Giai đoạn 3: Registry + Meta (P1)
 
-目标：将“有哪些插件”从硬编码逻辑中抽离。
+Mục tiêu: tách “có những plugin nào” khỏi logic hard-code.
 
-工作项：
+Hạng mục:
 
-- 引入 `PluginMeta`；
-- 引入 `Registration` / `Registry`；
-- 支持按配置启停插件；
-- 支持列出当前已加载插件。
+- Thêm `PluginMeta`;
+- Thêm `Registration` / `Registry`;
+- Hỗ trợ bật/tắt plugin theo cấu hình;
+- Hỗ trợ liệt kê plugin đang được load.
 
-产出：
+Kết quả:
 
-- 注册透明；
-- 便于调试、观测和配置治理。
+- Đăng ký minh bạch;
+- Thuận tiện debug, quan sát và quản trị cấu hình.
 
-## 11.4 阶段 4：契约与生命周期（P1）
+## 11.4 Giai đoạn 4: Contract và lifecycle (P1)
 
-目标：让插件边界正式化。
+Mục tiêu: chính thức hóa ranh giới plugin.
 
-工作项：
+Hạng mục:
 
-- 固化 payload 契约；
-- 引入 `Lifecycle`；
-- 为有状态插件增加初始化与关闭流程。
+- Cố định contract payload;
+- Thêm `Lifecycle`;
+- Thêm quy trình init/close cho plugin có trạng thái.
 
-产出：
+Kết quả:
 
-- 更适合承载复杂内建插件；
-- 便于演进到更完整的插件体系。
+- Phù hợp hơn để chứa plugin built-in phức tạp;
+- Dễ tiến hóa thành hệ thống plugin hoàn chỉnh hơn.
 
-## 11.5 阶段 5：高级能力（P2）
+## 11.5 Giai đoạn 5: Năng lực nâng cao (P2)
 
-目标：支撑更复杂插件生态。
+Mục tiêu: hỗ trợ hệ sinh thái plugin phức tạp hơn.
 
-工作项：
+Hạng mục:
 
-- 按事件拆分队列；
-- 多 worker observer runtime；
-- tracing / metrics 深度集成；
-- 针对重插件的隔离执行策略。
-
----
-
-## 12. 非目标
-
-V2 当前**不追求**：
-
-- 第三方不受信插件沙箱；
-- 进程外 RPC 插件体系；
-- 热加载复杂插件生态；
-- 完整插件市场。
-
-这些能力应在未来更高版本评估，不应提前引入复杂度。
+- Tách queue theo event;
+- Runtime observer nhiều worker;
+- Tích hợp sâu tracing / metrics;
+- Chiến lược thực thi cô lập cho plugin nặng.
 
 ---
 
-## 13. 落地建议
+## 12. Không phải mục tiêu
 
-如果只允许当前迭代做 3 件事，推荐顺序如下：
+V2 hiện tại **không theo đuổi**:
 
-1. **先做 Async Runtime 治理**
-   - 这是稳定性收益最高的一步。
+- Sandbox cho plugin bên thứ ba không tin cậy;
+- Hệ thống plugin RPC ngoài tiến trình;
+- Hệ sinh thái hot-load plugin phức tạp;
+- Plugin market hoàn chỉnh.
 
-2. **再做 Interceptor / Observer 语义拆分**
-   - 这是降低误用风险最有效的一步。
-
-3. **补齐契约与 Meta/Registry**
-   - 这是把系统从“能用”推进到“可管理”的关键一步。
+Các năng lực này nên được đánh giá ở version cao hơn trong tương lai, không nên đưa độ phức tạp vào quá sớm.
 
 ---
 
-## 14. 总结
+## 13. Khuyến nghị triển khai
 
-V2 的目标不是把当前 Hook 体系包装成一个听起来更大的“Plugin Platform”，而是把它演进成一个真正：
+Nếu iteration hiện tại chỉ được làm 3 việc, khuyến nghị thứ tự như sau:
 
-- 语义清晰；
-- 执行可控；
-- 可观测；
-- 可渐进扩展；
-- 与当前聊天主链路兼容的扩展框架。
+1. **Làm governance Async Runtime trước**
+   - Đây là bước có lợi ích ổn định cao nhất.
 
-因此，V2 最重要的不是“增加更多插件”，而是先完成以下三件事：
+2. **Sau đó tách ngữ nghĩa Interceptor / Observer**
+   - Đây là bước hiệu quả nhất để giảm rủi ro dùng sai.
 
-- 把 **Interceptor** 与 **Observer** 分清；
-- 把 **async runtime 边界** 补齐；
-- 把 **payload 契约与插件元数据** 建立起来。
+3. **Hoàn thiện contract và Meta/Registry**
+   - Đây là bước then chốt để đẩy hệ thống từ “dùng được” thành “quản lý được”.
 
-完成这三步后，当前仓库的 Hook 体系才算真正具备长期演进的基础。
+---
+
+## 14. Tổng kết
+
+Mục tiêu của V2 không phải là đóng gói hệ thống Hook hiện tại thành một “nền tảng plugin” nghe có vẻ lớn hơn, mà là tiến hóa nó thành một framework mở rộng thật sự:
+
+- Rõ ngữ nghĩa;
+- Kiểm soát được thực thi;
+- Quan sát được;
+- Mở rộng tăng dần được;
+- Tương thích với luồng chat chính hiện tại.
+
+Vì vậy, điều quan trọng nhất của V2 không phải là “thêm nhiều plugin hơn”, mà là hoàn tất ba việc sau trước:
+
+- Phân rõ **Interceptor** và **Observer**;
+- Bổ sung đầy đủ **ranh giới async runtime**;
+- Xây dựng **contract payload và metadata plugin**.
+
+Sau khi hoàn tất ba bước này, hệ thống Hook của repo hiện tại mới thật sự có nền tảng để tiến hóa lâu dài.

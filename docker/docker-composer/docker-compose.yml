@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # MySQL数据库服务
+  # Dịch vụ database MySQL
   mysql:
     image: mysql:8.0
     container_name: xiaozhi-mysql
@@ -9,7 +9,7 @@ services:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: xiaozhi_admin
     ports:
-      - "23306:3306"        #可以不进行映射
+      - "23306:3306"        # Có thể không cần map cổng
     volumes:
       - mysql_data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password --skip-ssl
@@ -23,13 +23,14 @@ services:
       interval: 10s
       start_period: 180s
 
-  # 主程序服务
+  # Dịch vụ chương trình chính
   main-server:
     image: ghcr.io/hackers365/xiaozhi_server:0.6.0
     container_name: xiaozhi-main-server
-    command: ["/workspace/bin/xiaozhi_server", "-c", "/workspace/config/config.yaml"]
+    command: ["/workspace/bin/xiaozhi_server", "-c", "/workspace/config/config.yaml", "-tts-enable", "-tts-config", "/workspace/tts_server.json"]
     ports:
-      - "8989:8989"        # websocket服务 端口 18989端口
+      - "8989:8989"        # Cổng WebSocket service
+      - "9001:9001"        # Cổng TTS local
       - "2883:2883"        # mqtt server 12883
       - "8888:8888/udp"     # udp server 8888
     depends_on:
@@ -47,16 +48,17 @@ services:
     volumes:
       - ../../config:/workspace/config
       - ../../logs:/workspace/logs
+      - ../../build/common/tts_server.json:/workspace/tts_server.json:ro
     networks:
       - xiaozhi-network
     restart: unless-stopped
 
-  # 后端管理服务
+  # Dịch vụ backend quản trị
   backend:
     image: ghcr.io/hackers365/xiaozhi_manager_backend:0.6.0
     container_name: xiaozhi-backend
     ports:
-      - "8081:8080"        # 后端管理服务 端口 映射至宿主机 28080
+      - "8081:8080"        # Map cổng backend quản trị ra host
     depends_on:
       mysql:
         condition: service_healthy
@@ -77,37 +79,40 @@ services:
       - xiaozhi-network
     restart: unless-stopped
 
-  # 前端管理服务
+  # Dịch vụ frontend quản trị
   frontend:
     image: ghcr.io/hackers365/xiaozhi_manager_frontend:0.6.0
     container_name: xiaozhi-frontend
     ports:
-      - "8080:80"           # 前端管理服务 端口 映射至宿主机 18080
+      - "8080:80"           # Map cổng frontend quản trị ra host
     depends_on:
       - backend
     networks:
       - xiaozhi-network
     restart: unless-stopped
 
-  # Qdrant向量数据库服务（用于说话人识别）
+  # Dịch vụ database vector Qdrant dùng cho nhận diện người nói
   qdrant:
     image: qdrant/qdrant:latest
     container_name: xiaozhi-qdrant
     ports:
-      - "6333:6333"         # REST API 端口
-      - "6334:6334"         # gRPC 端口
+      - "6333:6333"         # Cổng REST API
+      - "6334:6334"         # Cổng gRPC
     volumes:
       - qdrant_data:/qdrant/storage
     networks:
       - xiaozhi-network
     restart: unless-stopped
 
-  # ASR语音识别服务（说话人识别）
+  # Dịch vụ ASR tiếng Việt Go-native
   voice-server:
-    image: ghcr.io/hackers365/voice_server:0.1.2    # 替换为实际的镜像名称
+    build:
+      context: ../../asr_server
+      dockerfile: Dockerfile
+    image: xiaozhi-voice-server-go
     container_name: xiaozhi-voice-server
     ports:
-      - "8082:8080"         # ASR服务端口 映射至宿主机 8082
+      - "8082:9000"
     depends_on:
       - qdrant
     environment:

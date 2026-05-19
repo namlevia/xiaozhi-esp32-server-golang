@@ -1,73 +1,78 @@
-# WebSocket连接流程说明
+# Mô tả luồng kết nối WebSocket
 
-## 概述
+## Tổng quan
 
-本文档描述了 `internal/domain/config/manager/websocket_client.go` 和 `websocket.go` 之间的WebSocket连接和通信流程。
+Tài liệu này mô tả luồng kết nối và giao tiếp WebSocket giữa `internal/domain/config/manager/websocket_client.go` và `websocket.go`.
 
-## 架构设计
+## Thiết kế kiến trúc
 
-### 角色定义
+### Định nghĩa vai trò
 
-1. **`internal/domain/config/manager/websocket_client.go`** - 主服务器WebSocket客户端
-   - 作为客户端连接到Manager Backend
-   - 可以发送请求和接收响应
-   - 支持双向通信
+1. **`internal/domain/config/manager/websocket_client.go`** - WebSocket client của server chính
+   - Đóng vai trò client kết nối tới Manager Backend
+   - Có thể gửi request và nhận response
+   - Hỗ trợ giao tiếp hai chiều
 
-2. **`websocket.go`** - Manager Backend WebSocket服务器
-   - 作为服务端接收来自主服务器的WebSocket连接
-   - 处理主服务器发送的请求
-   - **只保留最后一个有效连接**（新连接会断开旧连接）
-   - 支持主动推送消息
+2. **`websocket.go`** - WebSocket server của Manager Backend
+   - Đóng vai trò server nhận kết nối WebSocket từ server chính
+   - Xử lý request do server chính gửi lên
+   - **Chỉ giữ kết nối hợp lệ cuối cùng**; kết nối mới sẽ ngắt kết nối cũ
+   - Hỗ trợ chủ động đẩy message
 
-### 连接流程
+### Luồng kết nối
 
+```text
+Server chính (internal/domain/config/manager/websocket_client.go)  →  Manager Backend (websocket.go)
+        client                                      server (một kết nối)
 ```
-主服务器 (internal/domain/config/manager/websocket_client.go)  →  Manager Backend (websocket.go)
-        客户端                          服务端（单连接）
-```
 
-## 详细流程
+## Luồng chi tiết
 
-### 1. 建立连接
+### 1. Thiết lập kết nối
 
-#### Manager Backend启动WebSocket服务器
+#### Manager Backend khởi động WebSocket server
+
 ```go
-// 在 websocket.go 中
+// Trong websocket.go
 controller := NewWebSocketController(db)
-// 在路由中注册
+// Đăng ký trong router
 router.GET("/ws", controller.HandleWebSocket)
 ```
 
-#### 主服务器连接Manager Backend
+#### Server chính kết nối tới Manager Backend
+
 ```go
-// 在 internal/domain/config/manager/websocket_client.go 中
+// Trong internal/domain/config/manager/websocket_client.go
 client := manager.NewWebSocketClient()
 err := client.Connect(ctx)
 ```
 
-连接URL格式：
-- 如果配置为 `http://localhost:8080`
-- 实际连接 `ws://localhost:8080/ws`
+Định dạng URL kết nối:
 
-**重要**：如果有新的连接请求，Manager Backend会自动断开现有连接，只保留最新的连接。
+- Nếu cấu hình là `http://localhost:8080`
+- Kết nối thực tế sẽ là `ws://localhost:8080/ws`
 
-### 2. 请求工具列表流程
+**Quan trọng**: nếu có request kết nối mới, Manager Backend sẽ tự động ngắt kết nối hiện tại và chỉ giữ kết nối mới nhất.
 
-#### 主服务器请求MCP工具列表
+### 2. Luồng request danh sách tool
+
+#### Server chính request danh sách MCP tool
+
 ```go
-// 在 internal/domain/config/manager/websocket_client.go 中
+// Trong internal/domain/config/manager/websocket_client.go
 response, err := client.SendRequest(ctx, "GET", "/api/mcp/tools", map[string]interface{}{
     "agent_id": "some_agent_id",
 })
 ```
 
-#### Manager Backend处理请求
+#### Manager Backend xử lý request
+
 ```go
-// 在 websocket.go 中
+// Trong websocket.go
 func (client *WebSocketClient) handleMcpToolListRequest(request *WebSocketRequest) {
     agentID := request.Body["agent_id"].(string)
     
-    // 获取工具列表逻辑
+    // Logic lấy danh sách tool
     response := map[string]interface{}{
         "agent_id": agentID,
         "tools":    []string{"tool1", "tool2", "tool3"},
@@ -78,24 +83,27 @@ func (client *WebSocketClient) handleMcpToolListRequest(request *WebSocketReques
 }
 ```
 
-### 3. 双向通信支持
+### 3. Hỗ trợ giao tiếp hai chiều
 
-### 客户端 → 服务器（原有功能）
-#### 主服务器请求MCP工具列表
+### Client → Server (chức năng hiện có)
+
+#### Server chính request danh sách MCP tool
+
 ```go
-// 在 internal/domain/config/manager/websocket_client.go 中
+// Trong internal/domain/config/manager/websocket_client.go
 response, err := client.SendRequest(ctx, "GET", "/api/mcp/tools", map[string]interface{}{
     "agent_id": "some_agent_id",
 })
 ```
 
-#### Manager Backend处理请求
+#### Manager Backend xử lý request
+
 ```go
-// 在 websocket.go 中
+// Trong websocket.go
 func (client *WebSocketClient) handleMcpToolListRequest(request *WebSocketRequest) {
     agentID := request.Body["agent_id"].(string)
     
-    // 获取工具列表逻辑
+    // Logic lấy danh sách tool
     response := map[string]interface{}{
         "agent_id": agentID,
         "tools":    []string{"tool1", "tool2", "tool3"},
@@ -106,10 +114,12 @@ func (client *WebSocketClient) handleMcpToolListRequest(request *WebSocketReques
 }
 ```
 
-### 服务器 → 客户端（新增功能）
-#### Manager Backend主动请求客户端
+### Server → Client (chức năng mới)
+
+#### Manager Backend chủ động request client
+
 ```go
-// 在 websocket.go 中
+// Trong websocket.go
 func (ctrl *WebSocketController) RequestMcpToolsFromClient(ctx context.Context, agentID string) (*WebSocketResponse, error) {
     body := map[string]interface{}{
         "agent_id": agentID,
@@ -117,62 +127,65 @@ func (ctrl *WebSocketController) RequestMcpToolsFromClient(ctx context.Context, 
     return ctrl.SendRequestToClient(ctx, "GET", "/api/mcp/tools", body)
 }
 
-// 请求客户端服务器信息
+// Request thông tin server từ client
 func (ctrl *WebSocketController) RequestServerInfoFromClient(ctx context.Context) (*WebSocketResponse, error) {
     return ctrl.SendRequestToClient(ctx, "GET", "/api/server/info", nil)
 }
 
-// 请求客户端ping
+// Request ping từ client
 func (ctrl *WebSocketController) RequestPingFromClient(ctx context.Context) (*WebSocketResponse, error) {
     return ctrl.SendRequestToClient(ctx, "GET", "/api/server/ping", nil)
 }
 ```
 
-#### 客户端处理服务器请求
+#### Client xử lý request từ server
+
 ```go
-// 在 internal/domain/config/manager/websocket_client.go 中
+// Trong internal/domain/config/manager/websocket_client.go
 client.SetRequestHandler(func(request *WebSocketRequest) {
-    // 处理收到的请求
+    // Xử lý request nhận được
     switch request.Path {
     case "/api/mcp/tools":
-        // 处理MCP工具列表请求
+        // Xử lý request danh sách MCP tool
         c.handleMcpToolListRequest(request)
     case "/api/server/info":
-        // 处理服务器信息请求
+        // Xử lý request thông tin server
         c.handleServerInfoRequest(request)
     case "/api/server/ping":
-        // 处理ping请求
+        // Xử lý request ping
         c.handlePingRequest(request)
     }
 })
 ```
 
-### 完整的双向通信示例
+### Ví dụ giao tiếp hai chiều hoàn chỉnh
+
 ```go
-// 1. 客户端连接到服务器
+// 1. Client kết nối tới server
 client := manager.NewWebSocketClient()
 err := client.Connect(ctx)
 
-// 2. 客户端设置请求处理器
+// 2. Client thiết lập request handler
 client.SetRequestHandler(func(request *WebSocketRequest) {
-    // 处理来自服务器的请求
-    // 并发送响应
+    // Xử lý request từ server
+    // và gửi response
 })
 
-// 3. 客户端主动请求服务器
+// 3. Client chủ động request server
 response, err := client.SendRequest(ctx, "GET", "/api/mcp/tools", map[string]interface{}{
     "agent_id": "agent_123",
 })
 
-// 4. 服务器主动请求客户端
+// 4. Server chủ động request client
 serverResponse, err := websocketController.RequestMcpToolsFromClient(ctx, "agent_456")
 
-// 5. 双向通信完成
+// 5. Hoàn tất giao tiếp hai chiều
 ```
 
-## 消息格式
+## Định dạng message
 
-### 请求消息 (WebSocketRequest)
+### Request message (WebSocketRequest)
+
 ```json
 {
     "id": "uuid-string",
@@ -184,7 +197,8 @@ serverResponse, err := websocketController.RequestMcpToolsFromClient(ctx, "agent
 }
 ```
 
-### 响应消息 (WebSocketResponse)
+### Response message (WebSocketResponse)
+
 ```json
 {
     "id": "uuid-string",
@@ -198,7 +212,8 @@ serverResponse, err := websocketController.RequestMcpToolsFromClient(ctx, "agent
 }
 ```
 
-### Ping/Pong消息
+### Ping/Pong message
+
 ```json
 // Ping
 {"ping": 1640995200}
@@ -207,113 +222,121 @@ serverResponse, err := websocketController.RequestMcpToolsFromClient(ctx, "agent
 {"pong": 1640995200}
 ```
 
-## 连接管理
+## Quản lý kết nối
 
-### 单连接策略
-- **只保留最后一个有效连接**
-- 新连接会自动断开现有连接
-- 简化了连接管理逻辑
-- 适合一对一的通信场景
+### Chiến lược một kết nối
 
-### 连接状态监控
+- **Chỉ giữ kết nối hợp lệ cuối cùng**
+- Kết nối mới sẽ tự động ngắt kết nối hiện tại
+- Đơn giản hóa logic quản lý kết nối
+- Phù hợp với kịch bản giao tiếp một-một
+
+### Giám sát trạng thái kết nối
+
 ```go
-// 检查是否有连接的客户端
+// Kiểm tra có client đang kết nối hay không
 func (ctrl *WebSocketController) HasConnectedClient() bool
 
-// 获取当前连接的客户端
+// Lấy client đang kết nối hiện tại
 func (ctrl *WebSocketController) GetCurrentClient() *WebSocketClient
 ```
 
-### 连接切换逻辑
+### Logic chuyển đổi kết nối
+
 ```go
-// 在HandleWebSocket中
+// Trong HandleWebSocket
 if ctrl.currentClient != nil && ctrl.currentClient.isConnected {
-    log.Printf("断开现有连接: %s", ctrl.currentClient.ID)
+    log.Printf("Ngắt kết nối hiện tại: %s", ctrl.currentClient.ID)
     ctrl.currentClient.conn.Close()
     ctrl.currentClient.isConnected = false
 }
 
-// 设置新连接为当前客户端
+// Đặt kết nối mới làm client hiện tại
 ctrl.currentClient = client
 ```
 
-## 错误处理
+## Xử lý lỗi
 
-### 连接错误
-- 自动心跳检测
-- 连接超时自动断开
-- 连接异常自动清理
-- 新连接自动替换旧连接
+### Lỗi kết nối
 
-### 消息错误
-- 消息格式验证
-- 错误响应返回
-- 日志记录
+- Tự động kiểm tra heartbeat
+- Tự động ngắt khi kết nối timeout
+- Tự động dọn dẹp khi kết nối bất thường
+- Kết nối mới tự động thay thế kết nối cũ
 
-## 配置要求
+### Lỗi message
 
-### 主服务器配置
+- Kiểm tra định dạng message
+- Trả về response lỗi
+- Ghi log
+
+## Yêu cầu cấu hình
+
+### Cấu hình server chính
+
 ```yaml
 manager:
   backend_url: "http://localhost:8080"
 ```
 
-### Manager Backend配置
+### Cấu hình Manager Backend
+
 ```go
-// 在路由中注册WebSocket端点
+// Đăng ký endpoint WebSocket trong router
 router.GET("/ws", websocketController.HandleWebSocket)
 ```
 
-## 测试建议
+## Gợi ý kiểm thử
 
-1. **连接测试**
-   - 验证WebSocket连接建立
-   - 测试新连接断开旧连接
-   - 测试连接断开重连
+1. **Kiểm thử kết nối**
+   - Xác minh WebSocket kết nối thành công
+   - Kiểm thử kết nối mới ngắt kết nối cũ
+   - Kiểm thử ngắt kết nối và reconnect
 
-2. **功能测试**
-   - 测试MCP工具列表请求
-   - 验证双向通信
-   - 测试消息推送
+2. **Kiểm thử chức năng**
+   - Kiểm thử request danh sách MCP tool
+   - Xác minh giao tiếp hai chiều
+   - Kiểm thử đẩy message
 
-3. **错误测试**
-   - 网络断开重连
-   - 无效消息处理
-   - 超时处理
-   - 心跳超时
-   - 连接切换
+3. **Kiểm thử lỗi**
+   - Reconnect sau khi mất mạng
+   - Xử lý message không hợp lệ
+   - Xử lý timeout
+   - Heartbeat timeout
+   - Chuyển đổi kết nối
 
-## 注意事项
+## Lưu ý
 
-1. **单连接限制**
-   - 同时只能有一个活跃连接
-   - 新连接会强制断开旧连接
-   - 适合主从架构，不适合多客户端场景
+1. **Giới hạn một kết nối**
+   - Chỉ có một kết nối active tại cùng thời điểm
+   - Kết nối mới sẽ buộc kết nối cũ ngắt
+   - Phù hợp với kiến trúc master-slave, không phù hợp với kịch bản nhiều client
 
-2. **并发安全**
-   - 使用读写锁保护当前客户端引用
-   - 安全的客户端切换
-   - 线程安全的消息发送
+2. **An toàn đồng thời**
+   - Dùng read-write lock để bảo vệ tham chiếu client hiện tại
+   - Chuyển đổi client an toàn
+   - Gửi message an toàn theo luồng
 
-3. **资源管理**
-   - 及时清理断开的连接
-   - 正确关闭WebSocket连接
-   - 避免内存泄漏
+3. **Quản lý tài nguyên**
+   - Dọn dẹp kịp thời các kết nối đã ngắt
+   - Đóng WebSocket connection đúng cách
+   - Tránh rò rỉ bộ nhớ
 
-4. **心跳机制**
-   - 30秒发送一次ping
-   - 60秒无响应自动断开
-   - 支持ping/pong消息
+4. **Cơ chế heartbeat**
+   - Gửi ping mỗi 30 giây
+   - Tự động ngắt nếu không có response trong 60 giây
+   - Hỗ trợ message ping/pong
 
-5. **日志记录**
-   - 记录连接状态变化
-   - 记录连接切换
-   - 记录请求和响应信息
-   - 记录错误和异常情况
+5. **Ghi log**
+   - Ghi lại thay đổi trạng thái kết nối
+   - Ghi lại quá trình chuyển đổi kết nối
+   - Ghi lại thông tin request và response
+   - Ghi lại lỗi và tình huống bất thường
 
-## 完整使用示例
+## Ví dụ sử dụng hoàn chỉnh
 
-### 双向通信测试代码
+### Code kiểm thử giao tiếp hai chiều
+
 ```go
 package main
 
@@ -329,20 +352,20 @@ import (
 func main() {
     ctx := context.Background()
     
-    // 1. 创建客户端并连接
+    // 1. Tạo client và kết nối
     client := manager.NewWebSocketClient()
     if err := client.Connect(ctx); err != nil {
-        log.Fatalf("连接失败: %v", err)
+        log.Fatalf("Kết nối thất bại: %v", err)
     }
     defer client.Disconnect()
     
-    // 2. 设置请求处理器（处理来自服务器的请求）
+    // 2. Thiết lập request handler để xử lý request từ server
     client.SetRequestHandler(func(request *manager.WebSocketRequest) {
-        log.Printf("收到服务器请求: %s %s", request.Method, request.Path)
+        log.Printf("Nhận request từ server: %s %s", request.Method, request.Path)
         
         switch request.Path {
         case "/api/mcp/tools":
-            // 处理MCP工具列表请求
+            // Xử lý request danh sách MCP tool
             agentID := ""
             if request.Body != nil {
                 if id, ok := request.Body["agent_id"].(string); ok {
@@ -375,77 +398,78 @@ func main() {
         }
     })
     
-    // 3. 客户端主动请求服务器
-    fmt.Println("=== 客户端请求服务器 ===")
+    // 3. Client chủ động request server
+    fmt.Println("=== Client request server ===")
     response, err := client.SendRequest(ctx, "GET", "/api/mcp/tools", map[string]interface{}{
         "agent_id": "client_agent_123",
     })
     if err != nil {
-        log.Printf("客户端请求失败: %v", err)
+        log.Printf("Client request thất bại: %v", err)
     } else {
-        fmt.Printf("服务器响应: %+v\n", response)
+        fmt.Printf("Response từ server: %+v\n", response)
     }
     
-    // 4. 等待一段时间，让服务器有机会发送请求
-    fmt.Println("等待服务器请求...")
+    // 4. Đợi một khoảng thời gian để server có cơ hội gửi request
+    fmt.Println("Đang đợi request từ server...")
     time.Sleep(5 * time.Second)
     
-    fmt.Println("双向通信测试完成！")
+    fmt.Println("Kiểm thử giao tiếp hai chiều hoàn tất")
 }
 ```
 
-### 服务器端测试代码
+### Code kiểm thử phía server
+
 ```go
-// 在Manager Backend中
+// Trong Manager Backend
 func testBidirectionalCommunication() {
     ctx := context.Background()
     
-    // 1. 检查客户端连接状态
+    // 1. Kiểm tra trạng thái kết nối client
     status := websocketController.GetClientConnectionStatus()
-    fmt.Printf("客户端状态: %+v\n", status)
+    fmt.Printf("Trạng thái client: %+v\n", status)
     
-    // 2. 服务器主动请求客户端
-    fmt.Println("=== 服务器请求客户端 ===")
+    // 2. Server chủ động request client
+    fmt.Println("=== Server request client ===")
     
-    // 请求MCP工具列表
+    // Request danh sách MCP tool
     response, err := websocketController.RequestMcpToolsFromClient(ctx, "server_agent_456")
     if err != nil {
-        log.Printf("请求MCP工具列表失败: %v", err)
+        log.Printf("Request danh sách MCP tool thất bại: %v", err)
     } else {
-        fmt.Printf("客户端MCP工具响应: %+v\n", response)
+        fmt.Printf("Response MCP tool từ client: %+v\n", response)
     }
     
-    // 请求服务器信息
+    // Request thông tin server
     infoResponse, err := websocketController.RequestServerInfoFromClient(ctx)
     if err != nil {
-        log.Printf("请求服务器信息失败: %v", err)
+        log.Printf("Request thông tin server thất bại: %v", err)
     } else {
-        fmt.Printf("客户端服务器信息: %+v\n", infoResponse)
+        fmt.Printf("Thông tin server từ client: %+v\n", infoResponse)
     }
     
-    // 请求ping
+    // Request ping
     pingResponse, err := websocketController.RequestPingFromClient(ctx)
     if err != nil {
-        log.Printf("请求ping失败: %v", err)
+        log.Printf("Request ping thất bại: %v", err)
     } else {
-        fmt.Printf("客户端ping响应: %+v\n", pingResponse)
+        fmt.Printf("Response ping từ client: %+v\n", pingResponse)
     }
 }
 ```
 
-## 注意事项
+## Lưu ý bổ sung
 
-1. **双向通信要求**
-   - 客户端必须设置请求处理器
-   - 服务器和客户端都必须实现相应的请求处理方法
-   - 请求ID必须匹配，确保响应正确路由
+1. **Yêu cầu giao tiếp hai chiều**
+   - Client phải thiết lập request handler
+   - Server và client đều phải triển khai các phương thức xử lý request tương ứng
+   - Request ID phải khớp để response được định tuyến chính xác
 
-2. **错误处理**
-   - 网络断开时双向通信会失败
-   - 超时处理很重要
-   - 连接状态检查必不可少
+2. **Xử lý lỗi**
+   - Giao tiếp hai chiều sẽ thất bại khi mất kết nối mạng
+   - Xử lý timeout rất quan trọng
+   - Bắt buộc kiểm tra trạng thái kết nối
 
-3. **性能考虑**
-   - 避免频繁的双向请求
-   - 合理设置超时时间
-   - 监控连接状态
+3. **Cân nhắc hiệu năng**
+   - Tránh request hai chiều quá thường xuyên
+   - Thiết lập timeout hợp lý
+   - Giám sát trạng thái kết nối

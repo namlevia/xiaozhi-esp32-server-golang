@@ -23,11 +23,11 @@ func TestServerEventUnmarshalConversationItemCreatedStringID(t *testing.T) {
 
 func TestGetTranscriptionTextPrefersTranscript(t *testing.T) {
 	event := &ServerEvent{
-		Transcript: "你们看花花呢？",
-		Stash:      "你们看花花呢",
+		Transcript: "các bạn đang ngắm hoa à?",
+		Stash:      "các bạn đang ngắm hoa à",
 	}
 
-	if got := GetTranscriptionText(event); got != "你们看花花呢？" {
+	if got := GetTranscriptionText(event); got != "các bạn đang ngắm hoa à?" {
 		t.Fatalf("expected transcript text, got %q", got)
 	}
 }
@@ -35,10 +35,10 @@ func TestGetTranscriptionTextPrefersTranscript(t *testing.T) {
 func TestGetTranscriptionTextFallsBackToStash(t *testing.T) {
 	event := &ServerEvent{
 		Text:  "",
-		Stash: "你们看花花呢",
+		Stash: "các bạn đang ngắm hoa à",
 	}
 
-	if got := GetTranscriptionText(event); got != "你们看花花呢" {
+	if got := GetTranscriptionText(event); got != "các bạn đang ngắm hoa à" {
 		t.Fatalf("expected stash fallback, got %q", got)
 	}
 }

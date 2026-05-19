@@ -1,23 +1,37 @@
-使用redis来存储用户配置数据结构
+# Cấu trúc dữ liệu cấu hình người dùng lưu bằng Redis
 
-#### 一. 配置
-##### 1. 全局配置hget结构
+#### I. Cấu hình
+
+##### 1. Cấu trúc hget của cấu hình toàn cục
+
+```text
 xiaozhi:global:config
-
-##### 2. 用户配置可以覆盖配置文件中的，hget结构
 ```
+
+##### 2. Cấu hình người dùng có thể ghi đè cấu hình trong file, dùng cấu trúc hget
+
+```json
 xiaozhi:userconfig:{deviceid}
-    "llm": {
-        "provider": "deepseek",         //与 配置文件 llm中的key对应
-    },
-    "tts": {
-        "provider": "cosyvoice",        //与 配置文件 tts中的key对应
-    }
+{
+  "llm": {
+    "provider": "deepseek" // Tương ứng với key trong cấu hình llm.
+  },
+  "tts": {
+    "provider": "cosyvoice" // Tương ứng với key trong cấu hình tts.
+  }
+}
 ```
 
-#### 二. prompt
-##### 1. 系统prompt get/set
->xiaozhi:llm:system:{deviceid}
+#### II. Prompt
 
-##### 2. 聊天session prompt记录 sorted set结构
->xiaozhi:llm:{deviceid}
+##### 1. get/set prompt hệ thống
+
+```text
+xiaozhi:llm:system:{deviceid}
+```
+
+##### 2. Cấu trúc sorted set ghi prompt của session chat
+
+```text
+xiaozhi:llm:{deviceid}
+```

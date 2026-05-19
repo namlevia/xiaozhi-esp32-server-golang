@@ -16,18 +16,17 @@ export default {
 
     const checkSystemStatus = async () => {
       try {
-        // 检查系统是否需要初始化
+        // Kiểm tra xem hệ thống có cần khởi tạo hay không
         const response = await api.get('/setup/status')
         
         if (response.data.needs_setup) {
-          // 如果需要初始化且当前不在引导页面，则跳转到引导页面
+          // Nếu cần khởi tạo và hiện chưa ở trang hướng dẫn thì chuyển hướng sang đó
           if (router.currentRoute.value.path !== '/setup') {
             router.push('/setup')
           }
         }
       } catch (error) {
-        console.error('检查系统状态失败:', error)
-        // 如果检查失败，可能是网络问题，不强制跳转
+        console.error('Kiểm tra trạng thái hệ thống thất bại:', error)
       }
     }
 
@@ -61,40 +60,40 @@ body {
 }
 
 
-/* 移动端样式优化 */
+/* Tối ưu giao diện di động */
 @media (max-width: 767px) {
-  /* 移动端字体大小优化 */
+  /* Tối ưu cỡ chữ trên di động */
   body {
     font-size: 14px;
     -webkit-text-size-adjust: 100%;
     -webkit-tap-highlight-color: transparent;
   }
-  
-  /* 移动端滚动优化 */
+
+  /* Tối ưu cuộn trên di động */
   * {
     -webkit-overflow-scrolling: touch;
   }
-  
-  /* 移动端点击延迟优化 */
+
+  /* Tối ưu thao tác chạm trên di động */
   a, button, input, textarea {
     touch-action: manipulation;
   }
-  
-  /* 隐藏桌面端元素 */
+
+  /* Ẩn phần tử chỉ dành cho desktop */
   .desktop-only {
     display: none !important;
   }
 }
 
-/* 桌面端样式 */
+/* Giao diện desktop */
 @media (min-width: 768px) {
-  /* 隐藏移动端元素 */
+  /* Ẩn phần tử chỉ dành cho di động */
   .mobile-only {
     display: none !important;
   }
 }
 
-/* 全局动画 */
+/* Hiệu ứng toàn cục */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.22s ease, transform 0.22s ease;
@@ -106,7 +105,7 @@ body {
   transform: translateY(4px);
 }
 
-/* 移动端安全区域适配 */
+/* Thích ứng vùng an toàn trên di động */
 @supports (padding: max(0px)) {
   .mobile-safe-top {
     padding-top: max(20px, env(safe-area-inset-top));

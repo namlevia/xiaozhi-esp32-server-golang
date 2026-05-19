@@ -16,10 +16,10 @@
     "max_send_errors": 10
   },
   "vad": {
-    "provider": "ten_vad",
+    "provider": "none",
     "pool_size": 20,
     "threshold": 0.3,
-    "silero_vad":{
+    "silero_vad": {
       "model_path": "models/vad/silero_vad/silero_vad.onnx",
       "min_silence_duration": 0.1,
       "min_speech_duration": 0.25,
@@ -27,19 +27,23 @@
       "window_size": 512,
       "buffer_size_seconds": 10.0
     },
-    "ten_vad":{
-        "hop_size": 512,
-        "min_speech_frames": 12,
-        "max_silence_frames": 5
-      }
+    "ten_vad": {
+      "hop_size": 512,
+      "min_speech_frames": 12,
+      "max_silence_frames": 5
+    }
   },
   "recognition": {
-    "enabled": false,
-    "model_path": "models/asr/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/model.int8.onnx",
-    "tokens_path": "models/asr/sherpa-onnx-sense-voice-zh-en-ja-ko-yue-2024-07-17/tokens.txt",
-    "language": "auto",
+    "enabled": true,
+    "model_type": "transducer",
+    "model_path": "",
+    "encoder_path": "models/asr/zipformer-vietnamese-30m/encoder-epoch-20-avg-10.onnx",
+    "decoder_path": "models/asr/zipformer-vietnamese-30m/decoder-epoch-20-avg-10.onnx",
+    "joiner_path": "models/asr/zipformer-vietnamese-30m/joiner-epoch-20-avg-10.onnx",
+    "tokens_path": "models/asr/zipformer-vietnamese-30m/config.json",
+    "language": "vi",
     "use_inverse_text_normalization": false,
-    "num_threads": 16,
+    "num_threads": 4,
     "provider": "cpu",
     "debug": false
   },
@@ -52,7 +56,7 @@
     "data_dir": "data/speaker",
     "save_audio_on_finish": false,
     "audio_save_dir": "",
-    "storage_type": "json",
+    "storage_type": "qdrant",
     "json_storage": {
       "file_path": "data/speaker/speaker_embeddings.json"
     },
@@ -93,4 +97,4 @@
     "max_age": 30,
     "compress": true
   }
-} 
+}

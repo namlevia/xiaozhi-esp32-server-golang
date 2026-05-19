@@ -49,7 +49,7 @@ func generateAPIToken() (string, string, string, error) {
 	return raw, raw[:prefixLen], hash, nil
 }
 
-// CreateAPIToken 创建当前用户的API Token（明文仅返回一次）
+// CreateAPIToken tạo API Token cho người dùng hiện tại, bản rõ chỉ trả về một lần.
 func (uc *UserController) CreateAPIToken(c *gin.Context) {
 	userIDRaw, _ := c.Get("user_id")
 	userID, ok := userIDRaw.(uint)
@@ -101,7 +101,7 @@ func (uc *UserController) CreateAPIToken(c *gin.Context) {
 	})
 }
 
-// ListAPITokens 获取当前用户的API Token列表（不返回明文）
+// ListAPITokens lấy danh sách API Token của người dùng hiện tại, không trả về bản rõ.
 func (uc *UserController) ListAPITokens(c *gin.Context) {
 	userIDRaw, _ := c.Get("user_id")
 	userID, ok := userIDRaw.(uint)
@@ -124,7 +124,7 @@ func (uc *UserController) ListAPITokens(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// RevokeAPIToken 吊销当前用户的API Token
+// RevokeAPIToken thu hồi API Token của người dùng hiện tại.
 func (uc *UserController) RevokeAPIToken(c *gin.Context) {
 	userIDRaw, _ := c.Get("user_id")
 	userID, ok := userIDRaw.(uint)

@@ -51,26 +51,66 @@
 
               <div class="form-group">
                 <label for="password">{{ t('setup.adminPassword') }}</label>
-                <input
-                  id="password"
-                  v-model="form.admin_password"
-                  type="password"
-                  required
-                  minlength="6"
-                  maxlength="100"
-                  :placeholder="t('setup.adminPasswordPlaceholder')"
-                />
+                <div class="password-field">
+                  <input
+                    id="password"
+                    v-model="form.admin_password"
+                    :type="showAdminPassword ? 'text' : 'password'"
+                    required
+                    minlength="6"
+                    maxlength="100"
+                    :placeholder="t('setup.adminPasswordPlaceholder')"
+                  />
+                  <button
+                    type="button"
+                    class="password-toggle"
+                    :aria-label="showAdminPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                    @click="showAdminPassword = !showAdminPassword"
+                  >
+                    <svg v-if="showAdminPassword" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 3l18 18" />
+                      <path d="M10.7 5.1A10.7 10.7 0 0 1 12 5c5.5 0 9 5 9 7a9.7 9.7 0 0 1-2 2.9" />
+                      <path d="M6.1 6.1C4.1 7.5 3 9.8 3 12c0 2 3.5 7 9 7 1.7 0 3.2-.5 4.5-1.2" />
+                      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+                      <path d="M14.1 9.9A3 3 0 0 0 12 9" />
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               <div class="form-group">
                 <label for="confirmPassword">{{ t('auth.confirmPassword') }}</label>
-                <input
-                  id="confirmPassword"
-                  v-model="confirmPassword"
-                  type="password"
-                  required
-                  :placeholder="t('setup.confirmPasswordPlaceholder')"
-                />
+                <div class="password-field">
+                  <input
+                    id="confirmPassword"
+                    v-model="confirmPassword"
+                    :type="showConfirmPassword ? 'text' : 'password'"
+                    required
+                    :placeholder="t('setup.confirmPasswordPlaceholder')"
+                  />
+                  <button
+                    type="button"
+                    class="password-toggle"
+                    :aria-label="showConfirmPassword ? 'Ẩn mật khẩu' : 'Hiện mật khẩu'"
+                    @click="showConfirmPassword = !showConfirmPassword"
+                  >
+                    <svg v-if="showConfirmPassword" viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 3l18 18" />
+                      <path d="M10.7 5.1A10.7 10.7 0 0 1 12 5c5.5 0 9 5 9 7a9.7 9.7 0 0 1-2 2.9" />
+                      <path d="M6.1 6.1C4.1 7.5 3 9.8 3 12c0 2 3.5 7 9 7 1.7 0 3.2-.5 4.5-1.2" />
+                      <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2" />
+                      <path d="M14.1 9.9A3 3 0 0 0 12 9" />
+                    </svg>
+                    <svg v-else viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="M3 12s3.5-7 9-7 9 7 9 7-3.5 7-9 7-9-7-9-7z" />
+                      <circle cx="12" cy="12" r="3" />
+                    </svg>
+                  </button>
+                </div>
               </div>
 
               <div class="error-message" v-if="errorMessage">
@@ -135,6 +175,8 @@ export default {
     })
     
     const confirmPassword = ref('')
+    const showAdminPassword = ref(false)
+    const showConfirmPassword = ref(false)
     const adminInfo = ref({})
 
     const checkSetupStatus = async () => {
@@ -145,7 +187,7 @@ export default {
         if (response.data.needs_setup) {
           needsSetup.value = true
         } else {
-          // 系统已初始化，跳转到登录页
+          // Hệ thống đã được khởi tạo, chuyển sang trang đăng nhập
           router.push('/login')
         }
       } catch (error) {
@@ -157,7 +199,7 @@ export default {
     }
 
     const initializeSystem = async () => {
-      // 验证密码确认
+      // Kiểm tra phần xác nhận mật khẩu
       if (form.value.admin_password !== confirmPassword.value) {
         errorMessage.value = t('setup.passwordMismatch')
         return
@@ -195,6 +237,8 @@ export default {
       errorMessage,
       form,
       confirmPassword,
+      showAdminPassword,
+      showConfirmPassword,
       adminInfo,
       t,
       initializeSystem
@@ -333,6 +377,47 @@ export default {
   outline: none;
   border-color: rgba(0, 122, 255, 0.34);
   box-shadow: 0 0 0 4px rgba(0, 122, 255, 0.08);
+}
+
+.password-field {
+  position: relative;
+}
+
+.password-field input {
+  padding-right: 52px;
+}
+
+.password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 10px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  transform: translateY(-50%);
+  border: 0;
+  border-radius: 50%;
+  background: transparent;
+  color: rgba(60, 60, 67, 0.58);
+  cursor: pointer;
+  transition: background var(--apple-transition-fast), color var(--apple-transition-fast);
+}
+
+.password-toggle:hover {
+  background: rgba(0, 122, 255, 0.08);
+  color: var(--apple-blue);
+}
+
+.password-toggle svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
 }
 
 .error-message {

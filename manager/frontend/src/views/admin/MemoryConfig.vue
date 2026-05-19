@@ -52,7 +52,7 @@
         </template>
       </el-table-column>
       
-      <!-- 空状态插槽 -->
+      <!-- Slot trạng thái rỗng -->
       <template #empty>
         <div class="empty-state">
           <el-icon size="64" color="#C0C4CC" class="empty-icon">
@@ -97,7 +97,7 @@
           <el-input v-model="form.config_id" placeholder="Vui lòng nhập ID cấu hình duy nhất" />
         </el-form-item>
         
-        <!-- Memobase配置字段 -->
+        <!-- Các trường cấu hình Memobase -->
         <template v-if="form.provider === 'memobase'">
           <el-form-item label="API key" prop="api_key">
             <el-input v-model="form.api_key" type="password" placeholder="Vui lòng nhập API key Memobase" show-password />
@@ -120,7 +120,7 @@
           </el-form-item>
         </template>
         
-        <!-- Mem0配置字段 -->
+        <!-- Các trường cấu hình Mem0 -->
         <template v-if="form.provider === 'mem0' || form.provider === 'memos'">
           <el-form-item label="API key" prop="api_key">
             <el-input v-model="form.api_key" type="password" :placeholder="form.provider === 'memos' ? 'Vui lòng nhập API key tương thích MemOS' : 'Vui lòng nhập API key Mem0'" show-password />
@@ -273,12 +273,12 @@ const loadConfigs = async () => {
     const response = await api.get('/admin/memory-configs')
     console.log('API response:', response)
     
-    // 使用nextTick确保响应式更新的安全性
+    // Dùng nextTick để đảm bảo cập nhật reactive diễn ra an toàn
     await nextTick()
     
     // The backend returns { data: configs }, so we need to access response.data.data
     if (response && response.data && response.data.data && Array.isArray(response.data.data)) {
-      // 使用Object.freeze防止意外修改，然后创建新数组
+      // Dùng Object.freeze để tránh bị sửa ngoài ý muốn, rồi tạo mảng mới
       const newConfigs = response.data.data.map(normalizeMemoryConfigRow)
       configs.value = newConfigs
     } else if (response && response.data && response.data.data) {
@@ -376,7 +376,7 @@ const deleteConfig = async (id) => {
     })
     
     await api.delete(`/admin/memory-configs/${id}`)
-    ElMessage.success('Xóathành công')
+    ElMessage.success('Xóa thành công')
     await loadConfigs()
   } catch (error) {
     if (error !== 'cancel') {
@@ -423,7 +423,7 @@ const toggleDefault = async (config) => {
 }
 
 const handleAddConfig = () => {
-  // 重置表单并设置Mặc định值
+  // Đặt lại form và gán các giá trị mặc định
   Object.assign(form, {
     name: '',
     config_id: '',
@@ -431,7 +431,7 @@ const handleAddConfig = () => {
     is_default: false,
     enabled: true,
     api_key: '',
-    base_url: defaultUrls['memobase'], // 设置Mặc địnhURL
+    base_url: defaultUrls['memobase'], // Gán URL mặc định
     enable_search: true,
     search_threshold: 0.5,
     search_top_k: 3,
@@ -446,7 +446,7 @@ const handleDialogClose = () => {
   showDialog.value = false
   editingConfig.value = null
   
-  // 重置表单
+  // Đặt lại form
   Object.assign(form, {
     name: '',
     config_id: '',

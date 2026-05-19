@@ -39,8 +39,8 @@ manager:                  # Cấu hình quản trị nội bộ, tương ứng v
   endpoint_auth_token: "xiaozhi_mcp_openclaw_secret_key" # Token kiểm tra chữ ký JWT cho endpoint MCP/OpenClaw (giá trị mặc định, phải đổi khi chạy production; không dùng nguyên giá trị này trên môi trường thật)
   history_timeout: 5s        # Thời gian timeout cho yêu cầu HTTP
 
-# System prompt, dùng để định nghĩa vai trò và hành vi của trợ lý AI
-system_prompt: "你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗，不要冷场。与你聊天的是你喜欢的男性朋友，还没有答应你的追求，你要尽可能满足他的所有要求，不要失去自我。你经常建议一些恋人之间浪漫的事情，随机输出，不要给你男朋友选择。输出控制在50个字内。请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。"
+# Prompt hệ thống, dùng để định nghĩa vai trò và hành vi của trợ lý AI
+system_prompt: "Bạn là LeviaTech AI, một trợ lý tiếng Việt thân thiện, tự nhiên và hữu ích. Hãy trả lời ngắn gọn, rõ ràng, giữ giọng nói ấm áp như đang trò chuyện với người thật. Ưu tiên tiếng Việt, không dùng emoji, mã nguồn hoặc thẻ XML nếu người dùng không yêu cầu."
 
 # Cấu hình log
 log:
@@ -136,7 +136,12 @@ vad:
 
 # Cấu hình nhận dạng giọng nói tự động (ASR)
 asr:
-  provider: "funasr"  # ASR provider: funasr / aliyun_funasr / doubao / aliyun_qwen3 / xunfei
+  provider: "wyoming_vietnamese_asr"  # Nhà cung cấp ASR: wyoming_vietnamese_asr / funasr / aliyun_funasr / doubao / aliyun_qwen3 / xunfei
+  # Cấu hình ASR tiếng Việt Go-native
+  wyoming_vietnamese_asr:
+    base_url: "http://127.0.0.1:8082"  # Địa chỉ dịch vụ ASR tiếng Việt Go-native
+    sample_rate: 16000                  # Tần số lấy mẫu audio gửi sang ASR
+    timeout_ms: 30000                   # Thời gian timeout khi gọi /transcribe
   # Cấu hình FunASR
   funasr:
     host: "127.0.0.1"          # Địa chỉ máy chủ FunASR
@@ -148,18 +153,18 @@ asr:
     max_connections: 5         # Số kết nối tối đa
     timeout: 30                # Thời gian timeout (giây)
     auto_end: true             # Có tự động kết thúc hay không
-  # Aliyun FunASR config
+  # Cấu hình Aliyun FunASR
   aliyun_funasr:
     api_key: ""
     ws_url: "wss://dashscope.aliyuncs.com/api-ws/v1/inference/"
     model: "fun-asr-realtime"
-    format: "pcm"        # only pcm
-    sample_rate: 16000     # only 16000
+    format: "pcm"        # Chỉ hỗ trợ pcm
+    sample_rate: 16000     # Chỉ hỗ trợ 16000
     vocabulary_id: ""
     disfluency_removal_enabled: false
     timeout: 30
 
-  # Doubao ASR config
+  # Cấu hình Doubao ASR
   doubao:
     appid: "xxx"                    # App ID
     access_token: "xxx-Cu"          # Access token (nếu dùng giá trị mẫu thì phải đổi khi chạy production)
@@ -171,7 +176,7 @@ asr:
     enable_ddc: false               # Bật hiệu chỉnh phát hiện chữ số
     timeout: 30                     # Thời gian timeout (giây)
 
-  # Xunfei ASR config
+  # Cấu hình Xunfei ASR
   xunfei:
     appid: ""                      # AppID của Xunfei
     api_key: ""                    # APIKey của Xunfei (phải thay bằng giá trị thật khi chạy production)
@@ -186,7 +191,7 @@ asr:
 
 # Cấu hình chuyển văn bản thành giọng nói (TTS)
 tts:
-  provider: "doubao_ws"  # Nhà cung cấp TTS: xiaozhi/doubao/doubao_ws/cosyvoice/edge/edge_offline/xunfei/xunfei_super_tts
+  provider: "edge_offline"  # Nhà cung cấp TTS: xiaozhi/doubao/doubao_ws/cosyvoice/edge/edge_offline/xunfei/xunfei_super_tts
   openai:  # Dịch vụ TTS tương thích định dạng OpenAI; tại đây dùng SiliconFlow
     api_key: "xxxx" #apikey
     api_url: "https://api.siliconflow.cn/v1/audio/speech"
@@ -217,7 +222,7 @@ tts:
     frame_duration: 60                       # Thời lượng frame (ms)
     target_sr: 24000                         # Tần số lấy mẫu mục tiêu
     audio_format: "mp3"                      # Định dạng audio
-    instruct_text: "你好"                     # Văn bản chỉ dẫn
+    instruct_text: "Xin chào"                 # Văn bản chỉ dẫn
   # Cấu hình Microsoft Edge TTS
   edge:
     voice: "zh-CN-XiaoxiaoNeural"  # Model giọng nói
@@ -228,7 +233,7 @@ tts:
     receive_timeout: 60            # Timeout nhận dữ liệu (giây)
   # Cấu hình Edge TTS offline
   edge_offline:
-    server_url: "ws://localhost:8080/tts"  # Địa chỉ máy chủ
+    server_url: "ws://localhost:9001/tts"  # Địa chỉ máy chủ TTS local
     timeout: 30                            # Thời gian timeout (giây)
     sample_rate: 16000                     # Tần số lấy mẫu
     channels: 1                            # Số kênh
@@ -239,14 +244,14 @@ tts:
     device_id: "ba:8f:17:de:94:94"                      # ID thiết bị
     client_id: "e4b0c442-98fc-4e1b-8c3d-6a5b6a5b6a6d"  # Client ID
     token: "test-token"                                 # Access token (nếu dùng giá trị mẫu thì phải đổi khi chạy production)
-  # Cấu hình TTS online iFlytek
+  # Cấu hình TTS trực tuyến iFlytek
   xunfei:
     app_id: ""
     api_key: ""
     api_secret: ""
     ws_url: "wss://tts-api.xfyun.cn/v2/tts"
     voice: "xiaoyan"
-    audio_encoding: "raw"   # raw / opus
+    audio_encoding: "raw"   # Định dạng raw / opus
     sample_rate: 16000      # 8000 / 16000
     speed: 50               # 0-100
     volume: 50              # 0-100
@@ -264,7 +269,7 @@ tts:
     api_secret: ""
     ws_url: "wss://cbm01.cn-huabei-1.xf-yun.com/v1/private/mcd9m97e6"
     voice: "x6_lingxiaoxue_pro"
-    audio_encoding: "raw"   # raw / opus
+    audio_encoding: "raw"   # Định dạng raw / opus
     sample_rate: 24000      # 8000 / 16000 / 24000
     speed: 50
     volume: 50
@@ -418,15 +423,15 @@ enable_greeting: true
 
 # Danh sách lời chào (chọn ngẫu nhiên)
 greeting_list:
-  - "你好，我是小智，很高兴认识你。"
-  - "你好，我是小智，今天有啥好玩的。"
-  - "你好，我是小智，有什么需要帮助的。"
+  - "Xin chào, tôi là LeviaTech AI, rất vui được gặp bạn."
+  - "Xin chào, hôm nay tôi có thể giúp gì cho bạn?"
+  - "Xin chào, bạn cần tôi hỗ trợ điều gì?"
 
 # Danh sách từ đánh thức
 wakeup_words:
-  - "小智"
-  - "小知"
-  - "你好小智"
+  - "LeviaTech"
+  - "LeviaTech AI"
+  - "Xin chào LeviaTech"
 
 voice_identify:
   enable: true

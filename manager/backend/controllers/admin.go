@@ -33,7 +33,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// 辅助函数：获取map的keys
+// Hàm hỗ trợ: lấy danh sách key của map
 func getMapKeys(m map[string]interface{}) []string {
 	keys := make([]string, 0, len(m))
 	for k := range m {
@@ -115,9 +115,134 @@ type AdminController struct {
 
 var errDatabaseUnavailable = errors.New("database connection is unavailable")
 
-// 通用配置管理
-// GetDeviceConfigs 根据设备ID获取设备关联的配置信息
-// 如果Thiết bị không tồn tại，则返回全局默认配置
+type healthCheckItem struct {
+	Name      string `json:"name"`
+	Status    string `json:"status"`
+	URL       string `json:"url,omitempty"`
+	LatencyMS int64  `json:"latency_ms"`
+	Message   string `json:"message"`
+}
+
+func (ac *AdminController) HealthCheck(c *gin.Context) {
+	items := []healthCheckItem{{Name: "Backend", Status: "healthy", Message: "Backend đang phản hồi"}}
+	items = append(items, ac.checkDatabaseHealth())
+	items = append(items, checkHTTPHealth("Main-server TTS", "http://main-server:9001/healthz", 2*time.Second))
+	items = append(items, checkHTTPHealth("Piper voices", "http://main-server:9001/piper/voices", 3*time.Second))
+	items = append(items, checkTCPHealth("ASR voice-server", "voice-server:9000", 2*time.Second))
+	items = append(items, ac.checkConfigReadiness())
+
+	overall := "healthy"
+	for _, item := range items {
+		if item.Status == "unreachable" {
+			overall = "unreachable"
+			break
+		}
+		if item.Status == "degraded" || item.Status == "unknown" || item.Status == "disabled" {
+			overall = "degraded"
+		}
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"status":     overall,
+		"checked_at": time.Now().Format(time.RFC3339),
+		"items":      items,
+	})
+}
+
+func (ac *AdminController) checkDatabaseHealth() healthCheckItem {
+	start := time.Now()
+	item := healthCheckItem{Name: "Database", Status: "healthy", Message: "Database đang phản hồi"}
+	sqlDB, err := ac.DB.DB()
+	if err != nil {
+		item.Status = "unreachable"
+		item.Message = err.Error()
+		return item
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+	if err := sqlDB.PingContext(ctx); err != nil {
+		item.Status = "unreachable"
+		item.Message = err.Error()
+	}
+	item.LatencyMS = time.Since(start).Milliseconds()
+	return item
+}
+
+func checkHTTPHealth(name, rawURL string, timeout time.Duration) healthCheckItem {
+	start := time.Now()
+	item := healthCheckItem{Name: name, Status: "healthy", URL: rawURL, Message: "Dịch vụ đang phản hồi"}
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, rawURL, nil)
+	if err != nil {
+		item.Status = "unknown"
+		item.Message = err.Error()
+		return item
+	}
+	resp, err := http.DefaultClient.Do(req)
+	item.LatencyMS = time.Since(start).Milliseconds()
+	if err != nil {
+		item.Status = "unreachable"
+		item.Message = err.Error()
+		return item
+	}
+	defer resp.Body.Close()
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		item.Status = "degraded"
+		item.Message = fmt.Sprintf("HTTP %d", resp.StatusCode)
+		return item
+	}
+	if strings.HasSuffix(rawURL, "/piper/voices") {
+		var payload struct {
+			Voices []interface{} `json:"voices"`
+		}
+		if err := json.NewDecoder(io.LimitReader(resp.Body, 1<<20)).Decode(&payload); err == nil {
+			if len(payload.Voices) == 0 {
+				item.Status = "degraded"
+				item.Message = "Chưa tìm thấy giọng Piper"
+			} else {
+				item.Message = fmt.Sprintf("Tìm thấy %d giọng Piper", len(payload.Voices))
+			}
+		}
+	}
+	return item
+}
+
+func checkTCPHealth(name, address string, timeout time.Duration) healthCheckItem {
+	start := time.Now()
+	item := healthCheckItem{Name: name, Status: "healthy", URL: address, Message: "Cổng dịch vụ đang mở"}
+	conn, err := net.DialTimeout("tcp", address, timeout)
+	item.LatencyMS = time.Since(start).Milliseconds()
+	if err != nil {
+		item.Status = "unreachable"
+		item.Message = err.Error()
+		return item
+	}
+	conn.Close()
+	return item
+}
+
+func (ac *AdminController) checkConfigReadiness() healthCheckItem {
+	requiredTypes := []string{"vad", "asr", "llm", "tts", "memory", "knowledge_search"}
+	missing := []string{}
+	for _, configType := range requiredTypes {
+		var count int64
+		if err := ac.DB.Model(&models.Config{}).Where("type = ? AND enabled = ?", configType, true).Count(&count).Error; err != nil {
+			return healthCheckItem{Name: "Config readiness", Status: "unknown", Message: err.Error()}
+		}
+		if count == 0 {
+			missing = append(missing, configType)
+		}
+	}
+	if len(missing) > 0 {
+		return healthCheckItem{Name: "Config readiness", Status: "degraded", Message: "Thiếu cấu hình đang bật: " + strings.Join(missing, ", ")}
+	}
+	return healthCheckItem{Name: "Config readiness", Status: "healthy", Message: "Đã có cấu hình tối thiểu"}
+}
+
+// Quản lý cấu hình dùng chung
+// GetDeviceConfigs lấy cấu hình liên kết theo ID thiết bị.
+// Nếu thiết bị không tồn tại, trả về cấu hình mặc định toàn cục.
 func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 	deviceID := c.Query("device_id")
 	if deviceID == "" {
@@ -125,7 +250,7 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 		return
 	}
 
-	// 构建配置响应
+	// Xây dựng phản hồi cấu hình
 	type SpeakerGroupInfo struct {
 		ID                 uint     `json:"id"`
 		Name               string   `json:"name"`
@@ -162,7 +287,7 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 		SpeakerChatMode string                      `json:"speaker_chat_mode"`
 		MCPServiceNames string                      `json:"mcp_service_names"`
 		OpenClaw        OpenClawConfigResponse      `json:"openclaw"`
-		ConfigSource    string                      `json:"config_source"` // 新增：配置来源
+		ConfigSource    string                      `json:"config_source"` // Nguồn cấu hình
 	}
 
 	var response ConfigResponse
@@ -173,35 +298,35 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 		EnterKeywords: []string{},
 		ExitKeywords:  []string{},
 	}
-	var configSource string // 记录配置来源
+	var configSource string // Ghi nhận nguồn cấu hình
 
-	// 查找设备
+	// Tìm thiết bị
 	var device models.Device
 	var agent models.Agent
 	var deviceFound bool
 
 	if err := ac.DB.Where("device_name = ?", deviceID).First(&device).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// Thiết bị không tồn tại，使用全局默认配置
+			// Thiết bị không tồn tại, dùng cấu hình mặc định toàn cục.
 			deviceFound = false
 			response.AgentID = ""
 			configSource = "default_global_role"
-			log.Printf("设备 %s 不存在，使用全局默认配置", deviceID)
+			log.Printf("Thiết bị %s không tồn tại, dùng cấu hình mặc định toàn cục", deviceID)
 		} else {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query device"})
 			return
 		}
 	} else {
-		// 设备存在，查找智能体
+		// Thiết bị tồn tại, tìm trợ lý.
 		deviceFound = true
 		response.AgentID = fmt.Sprintf("%d", device.AgentID)
-		log.Printf("设备 %s 存在，AgentID: %d", deviceID, device.AgentID)
+		log.Printf("Thiết bị %s tồn tại, AgentID: %d", deviceID, device.AgentID)
 		if err := ac.DB.First(&agent, device.AgentID).Error; err != nil {
 			if err == gorm.ErrRecordNotFound {
-				// Trợ lý không tồn tại，使用默认配置
+				// Trợ lý không tồn tại, dùng cấu hình mặc định.
 				deviceFound = false
 				configSource = "default_global_role"
-				log.Printf("智能体 %d 不存在，使用全局默认配置", device.AgentID)
+				log.Printf("Trợ lý %d không tồn tại, dùng cấu hình mặc định toàn cục", device.AgentID)
 			} else {
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query agent"})
 				return
@@ -248,7 +373,7 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 			&clone,
 		)
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// 回退：允许命中管理员共享给所有人的复刻音色，解决普通用户使用共享音色时模型覆盖缺失问题。
+			// Fallback: cho phép dùng clone giọng quản trị viên chia sẻ cho mọi người để tránh thiếu model override khi người dùng thường dùng giọng chia sẻ.
 			err = findActiveCloneForVoiceModelOverride(
 				ac.DB.Model(&models.VoiceClone{}).
 					Joins("JOIN users ON users.id = voice_clones.user_id").
@@ -261,7 +386,7 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 		}
 		if err != nil {
 			if !errors.Is(err, gorm.ErrRecordNotFound) {
-				log.Printf("检测复刻音色模型覆盖失败: provider=%s user_id=%d tts_config_id=%s voice_id=%s err=%v", provider, device.UserID, ttsConfigID, voiceID, err)
+				log.Printf("Kiểm tra model override của clone giọng thất bại: provider=%s user_id=%d tts_config_id=%s voice_id=%s err=%v", provider, device.UserID, ttsConfigID, voiceID, err)
 			}
 			cloneVoiceModelCache[cacheKey] = ""
 			return nil
@@ -297,44 +422,44 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 		return resolveCloneVoiceModelOverride(provider, strings.TrimSpace(*ttsConfigID), voice)
 	}
 
-	// ==================== 配置获取逻辑（带优先级） ====================
+	// ==================== Logic lấy cấu hình theo độ ưu tiên ====================
 
-	// 1. 检查设备是否关联了角色（优先级最高）
+	// 1. Kiểm tra thiết bị có liên kết vai trò hay không (ưu tiên cao nhất).
 	if device.RoleID != nil {
 		var role models.Role
 		if err := ac.DB.First(&role, *device.RoleID).Error; err == nil {
 			configSource = "device_role"
 
-			// 使用设备角色的 Prompt
+			// Dùng prompt của vai trò thiết bị.
 			response.Prompt = role.Prompt
-			// 替换 {{assistant_name}} 为智能体昵称（如果设备有绑定智能体）
+			// Thay {{assistant_name}} bằng biệt danh trợ lý nếu thiết bị có liên kết trợ lý.
 			if deviceFound && agent.ID != 0 {
 				response.Prompt = strings.ReplaceAll(response.Prompt, "{{assistant_name}}", getAgentAssistantName(agent))
 			}
 
-			// 使用设备角色的 LLM 配置
+			// Dùng cấu hình LLM của vai trò thiết bị.
 			if role.LLMConfigID != nil && *role.LLMConfigID != "" {
 				if err := ac.DB.Where("config_id = ? AND type = ? AND enabled = ?",
 					*role.LLMConfigID, "llm", true).First(&response.LLM).Error; err != nil {
-					// 回退到默认配置
+					// Quay về cấu hình mặc định.
 					ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "llm", true, true).First(&response.LLM)
 				}
 			} else {
 				ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "llm", true, true).First(&response.LLM)
 			}
 
-			// 使用设备角色的 TTS 配置
+			// Dùng cấu hình TTS của vai trò thiết bị.
 			if role.TTSConfigID != nil && *role.TTSConfigID != "" {
 				if err := ac.DB.Where("config_id = ? AND type = ? AND enabled = ?",
 					*role.TTSConfigID, "tts", true).First(&response.TTS).Error; err != nil {
-					// 回退到默认配置
+					// Quay về cấu hình mặc định.
 					ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "tts", true, true).First(&response.TTS)
 				}
 			} else {
 				ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "tts", true, true).First(&response.TTS)
 			}
 
-			// 使用设备角色的 Voice
+			// Dùng giọng của vai trò thiết bị.
 			if role.Voice != nil && *role.Voice != "" {
 				var ttsConfigData map[string]interface{}
 				if err := json.Unmarshal([]byte(response.TTS.JsonData), &ttsConfigData); err == nil {
@@ -352,37 +477,37 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 		}
 	}
 
-	// 2. 设备未关联角色，检查智能体配置
+	// 2. Nếu thiết bị chưa liên kết vai trò, kiểm tra cấu hình trợ lý.
 	if configSource == "" && deviceFound && agent.ID != 0 {
 		configSource = "agent_config"
 
-		// 使用智能体的 Prompt
+		// Dùng prompt của trợ lý.
 		response.Prompt = agent.CustomPrompt
 		response.Prompt = strings.ReplaceAll(response.Prompt, "{{assistant_name}}", getAgentAssistantName(agent))
 
-		// 使用智能体的 LLM 配置
+		// Dùng cấu hình LLM của trợ lý.
 		if agent.LLMConfigID != nil && *agent.LLMConfigID != "" {
 			if err := ac.DB.Where("config_id = ? AND type = ? AND enabled = ?",
 				*agent.LLMConfigID, "llm", true).First(&response.LLM).Error; err != nil {
-				// 回退到默认配置
+				// Quay về cấu hình mặc định.
 				ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "llm", true, true).First(&response.LLM)
 			}
 		} else {
 			ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "llm", true, true).First(&response.LLM)
 		}
 
-		// 使用智能体的 TTS 配置
+		// Dùng cấu hình TTS của trợ lý.
 		if agent.TTSConfigID != nil && *agent.TTSConfigID != "" {
 			if err := ac.DB.Where("config_id = ? AND type = ? AND enabled = ?",
 				*agent.TTSConfigID, "tts", true).First(&response.TTS).Error; err != nil {
-				// 回退到默认配置
+				// Quay về cấu hình mặc định.
 				ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "tts", true, true).First(&response.TTS)
 			}
 		} else {
 			ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "tts", true, true).First(&response.TTS)
 		}
 
-		// 使用智能体的 Voice
+		// Dùng giọng của trợ lý.
 		if agent.Voice != nil && *agent.Voice != "" {
 			var ttsConfigData map[string]interface{}
 			if err := json.Unmarshal([]byte(response.TTS.JsonData), &ttsConfigData); err == nil {
@@ -399,17 +524,17 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 		}
 	}
 
-	// 3. 使用默认全局角色（兜底）
+	// 3. Dùng vai trò toàn cục mặc định làm fallback.
 	if configSource == "" || configSource == "default_global_role" {
 		configSource = "default_global_role"
 
-		// 查找默认全局角色
+		// Tìm vai trò toàn cục mặc định.
 		var defaultRole models.Role
 		if err := ac.DB.Where("is_default = ? AND role_type = ? AND status = ?",
 			true, "global", "active").First(&defaultRole).Error; err == nil {
 			response.Prompt = defaultRole.Prompt
 
-			// 使用默认全局角色的 LLM 配置
+			// Dùng cấu hình LLM của vai trò toàn cục mặc định.
 			if defaultRole.LLMConfigID != nil && *defaultRole.LLMConfigID != "" {
 				if err := ac.DB.Where("config_id = ? AND type = ? AND enabled = ?",
 					*defaultRole.LLMConfigID, "llm", true).First(&response.LLM).Error; err != nil {
@@ -419,7 +544,7 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 				ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "llm", true, true).First(&response.LLM)
 			}
 
-			// 使用默认全局角色的 TTS 配置
+			// Dùng cấu hình TTS của vai trò toàn cục mặc định.
 			if defaultRole.TTSConfigID != nil && *defaultRole.TTSConfigID != "" {
 				if err := ac.DB.Where("config_id = ? AND type = ? AND enabled = ?",
 					*defaultRole.TTSConfigID, "tts", true).First(&response.TTS).Error; err != nil {
@@ -429,7 +554,7 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 				ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "tts", true, true).First(&response.TTS)
 			}
 
-			// 使用默认全局角色的 Voice
+			// Dùng giọng của vai trò toàn cục mặc định.
 			if defaultRole.Voice != nil && *defaultRole.Voice != "" {
 				var ttsConfigData map[string]interface{}
 				if err := json.Unmarshal([]byte(response.TTS.JsonData), &ttsConfigData); err == nil {
@@ -445,67 +570,67 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 				}
 			}
 		} else {
-			// 如果没有默认角色，使用硬编码的默认 Prompt
-			response.Prompt = "你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗，不要冷场。与你聊天的是你喜欢的男性朋友，还没有答应你的追求，你要尽可能满足他的所有要求，不要失去自我。你经常建议一些恋人之间浪漫的事情，随机输出，不要给你男朋友选择。输出控制在50个字内。请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。"
+			// Nếu không có vai trò mặc định, dùng prompt mặc định hard-code.
+			response.Prompt = "Bạn là Xiaozhi, một trợ lý AI thân thiện, nói chuyện tự nhiên, giọng dễ nghe và thường trả lời ngắn gọn. Hãy giữ cuộc trò chuyện liền mạch, đưa ra gợi ý hữu ích và trả lời như một người thật. Giới hạn trong 50 từ, không trả lời emoji, code hoặc thẻ XML."
 
-			// 使用默认 LLM/TTS 配置
+			// Dùng cấu hình LLM/TTS mặc định.
 			ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "llm", true, true).First(&response.LLM)
 			ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "tts", true, true).First(&response.TTS)
 		}
 
-		// 替换 {{assistant_name}} 为智能体昵称（如果设备有绑定智能体）
+		// Thay {{assistant_name}} bằng biệt danh trợ lý nếu thiết bị có liên kết trợ lý.
 		if deviceFound && agent.ID != 0 {
 			response.Prompt = strings.ReplaceAll(response.Prompt, "{{assistant_name}}", getAgentAssistantName(agent))
 		}
 	}
 
-	// 记录配置来源
+	// Ghi nhận nguồn cấu hình
 	response.ConfigSource = configSource
 
-	// ==================== 其他配置（VAD、ASR、Memory、VoiceIdentify） ====================
+	// ==================== Cấu hình khác (VAD, ASR, Memory, VoiceIdentify) ====================
 
-	// 获取VAD默认配置
+	// Lấy cấu hình VAD mặc định.
 	if err := ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "vad", true, true).First(&response.VAD).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get default VAD config"})
 		return
 	}
-	// 兼容旧格式：如果JsonData只有一个key元素，说明是旧格式（带key），提取出内部配置并更新JsonData
+	// Tương thích định dạng cũ: nếu JsonData chỉ có một key thì trích cấu hình bên trong và cập nhật JsonData.
 	if response.VAD.JsonData != "" {
 		var configData map[string]interface{}
 		if err := json.Unmarshal([]byte(response.VAD.JsonData), &configData); err == nil {
-			// 兼容旧格式：如果只有一个key，说明是旧格式（带key），提取出内部配置
+			// Tương thích định dạng cũ: nếu chỉ có một key thì trích cấu hình bên trong.
 			var actualConfigData map[string]interface{}
 			if len(configData) == 1 {
-				// 旧格式：只有一个key，提取其值
+				// Định dạng cũ: chỉ có một key, trích giá trị của nó.
 				for _, value := range configData {
 					if innerConfig, ok := value.(map[string]interface{}); ok {
 						actualConfigData = innerConfig
 					} else {
-						// 如果不是map类型，直接使用原数据
+						// Nếu không phải kiểu map, dùng nguyên dữ liệu gốc.
 						actualConfigData = configData
 					}
 					break
 				}
 			} else {
-				// 新格式：不带key，直接使用configData
+				// Định dạng mới: không kèm key, dùng trực tiếp configData.
 				actualConfigData = configData
 			}
-			// 重新序列化为不带key的格式
+			// Tuần tự hóa lại theo định dạng không kèm key.
 			if updatedJsonData, err := json.Marshal(actualConfigData); err == nil {
 				response.VAD.JsonData = string(updatedJsonData)
 			}
 		}
 	}
 
-	// 获取ASR默认配置
+	// Lấy cấu hình ASR mặc định.
 	if err := ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "asr", true, true).First(&response.ASR).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get default ASR config"})
 		return
 	}
 
-	// 获取Memory默认配置
+	// Lấy cấu hình Memory mặc định.
 	if result := ac.DB.Where("type = ? AND is_default = ? AND enabled = ?", "memory", true, true).Limit(1).Find(&response.Memory); result.Error != nil || result.RowsAffected == 0 {
-		// 允许没有默认 Memory 配置：显式回退为 nomemo（不启用长记忆）。
+		// Cho phép không có cấu hình Memory mặc định: fallback rõ ràng về nomemo.
 		response.Memory = models.Config{
 			Type:     "memory",
 			Name:     "No Memory",
@@ -515,30 +640,30 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 			Enabled:  true,
 		}
 		if result.Error != nil {
-			log.Printf("加载默认Memory配置失败，已回退nomemo: %v", result.Error)
+			log.Printf("Tải cấu hình Memory mặc định thất bại, đã fallback về nomemo: %v", result.Error)
 		}
 	}
 
-	// 获取VoiceIdentify配置：检查智能体是否关联了声纹组
+	// Lấy cấu hình VoiceIdentify: kiểm tra trợ lý có liên kết nhóm giọng hay không.
 	response.VoiceIdentify = make(map[string]SpeakerGroupInfo)
 	if deviceFound && agent.ID != 0 {
 		var speakerGroups []models.SpeakerGroup
 		if err := ac.DB.Where("agent_id = ? AND status = ?", agent.ID, "active").
 			Order("created_at DESC").Find(&speakerGroups).Error; err == nil && len(speakerGroups) > 0 {
-			// 遍历所有声纹组
+			// Duyệt tất cả nhóm giọng.
 			for _, speakerGroup := range speakerGroups {
-				// 查询该声纹组下的所有样本
+				// Truy vấn tất cả mẫu trong nhóm giọng.
 				var samples []models.SpeakerSample
 				ac.DB.Where("speaker_group_id = ? AND status = ?", speakerGroup.ID, "active").
 					Find(&samples)
 
-				// 提取样本 UUID 列表
+				// Trích danh sách UUID mẫu.
 				uuids := make([]string, 0)
 				for _, sample := range samples {
 					uuids = append(uuids, sample.UUID)
 				}
 
-				// 以声纹组名称为 key，构建配置数据
+				// Dùng tên nhóm giọng làm key để dựng dữ liệu cấu hình.
 				response.VoiceIdentify[speakerGroup.Name] = SpeakerGroupInfo{
 					ID:                 speakerGroup.ID,
 					Name:               speakerGroup.Name,
@@ -553,7 +678,7 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 		}
 	}
 
-	// 下发智能体关联知识库（含 provider），供主程序本地RAG使用
+	// Gửi kho tri thức liên kết với trợ lý (kèm provider) cho RAG cục bộ của chương trình chính.
 	response.KnowledgeBases = make([]KnowledgeBaseInfo, 0)
 	if deviceFound && agent.ID != 0 {
 		var links []models.AgentKnowledgeBase
@@ -605,7 +730,7 @@ func (ac *AdminController) GetDeviceConfigs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": response})
 }
 
-// getSystemConfigsData 获取系统配置数据（与 GetSystemConfigs 返回的 data 一致），供接口与 WebSocket 推送复用
+// getSystemConfigsData lấy dữ liệu cấu hình hệ thống, dùng chung cho API và WebSocket push.
 func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 	if ac == nil || ac.DB == nil {
 		return nil, errDatabaseUnavailable
@@ -616,13 +741,13 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		return nil, err
 	}
 
-	// 按类型分组配置
+	// Nhóm cấu hình theo loại.
 	configsByType := make(map[string][]models.Config)
 	for _, config := range allConfigs {
 		configsByType[config.Type] = append(configsByType[config.Type], config)
 	}
 
-	// 从 configs 中选出“当前使用”的一条：默认配置优先，否则第一条
+	// Chọn cấu hình hiện dùng: ưu tiên mặc định, nếu không có thì lấy dòng đầu tiên.
 	getSelectedConfig := func(configs []models.Config) *models.Config {
 		if len(configs) == 0 {
 			return nil
@@ -635,14 +760,14 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		return &configs[0]
 	}
 
-	// 为每种类型选择最佳配置并解析json_data
+	// Chọn cấu hình tốt nhất cho từng loại và phân tích json_data.
 	selectAndParseConfig := func(configs []models.Config) interface{} {
 		selected := getSelectedConfig(configs)
 		if selected == nil {
 			return nil
 		}
 
-		// 解析json_data
+		// Phân tích json_data.
 		if selected.JsonData != "" {
 			var parsedData interface{}
 			if err := json.Unmarshal([]byte(selected.JsonData), &parsedData); err != nil {
@@ -676,10 +801,10 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		}
 	}
 
-	// 特殊处理MCP配置，将mcp和local_mcp分开
+	// Xử lý riêng cấu hình MCP, tách mcp và local_mcp.
 	selectAndParseMCPConfig := func(configs []models.Config) (interface{}, interface{}) {
 		var selectedConfig models.Config
-		// 优先选择默认配置
+		// Ưu tiên chọn cấu hình mặc định.
 		for _, config := range configs {
 			if config.IsDefault {
 				selectedConfig = config
@@ -687,16 +812,16 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 			}
 		}
 
-		// 如果没有默认配置，选择第一个配置
+		// Nếu không có cấu hình mặc định, chọn cấu hình đầu tiên.
 		if selectedConfig.ID == 0 {
 			selectedConfig = configs[0]
 		}
 
-		// 解析json_data
+		// Phân tích json_data.
 		if selectedConfig.JsonData != "" {
 			var parsedData interface{}
 			if err := json.Unmarshal([]byte(selectedConfig.JsonData), &parsedData); err != nil {
-				// 如果解析失败，返回原始json_data字符串
+				// Nếu phân tích thất bại, trả về chuỗi json_data gốc.
 				result := gin.H{
 					"name": selectedConfig.Name,
 					"type": selectedConfig.Type,
@@ -705,7 +830,7 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 				return result, nil
 			}
 
-			// 将解析后的数据包装在正确的格式中
+			// Bọc dữ liệu đã phân tích theo đúng định dạng.
 			result := gin.H{
 				"name": selectedConfig.Name,
 				"type": selectedConfig.Type,
@@ -715,27 +840,27 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 			var localMcpData interface{}
 
 			if parsedData != nil {
-				// 如果解析的数据是map类型，分离mcp和local_mcp
+				// Nếu dữ liệu đã phân tích là map, tách mcp và local_mcp.
 				if dataMap, ok := parsedData.(map[string]interface{}); ok {
-					// 处理mcp部分
+					// Xử lý phần mcp.
 					if mcp, exists := dataMap["mcp"]; exists {
 						mcpData = mcp
 					} else {
-						// 兼容旧格式：如果直接有global字段
+						// Tương thích định dạng cũ: nếu có trực tiếp trường global.
 						if global, exists := dataMap["global"]; exists {
 							mcpData = gin.H{"global": global}
 						} else {
-							// 如果没有mcp或global字段，将整个数据作为mcp
+							// Nếu không có trường mcp hoặc global, dùng toàn bộ dữ liệu làm mcp.
 							mcpData = dataMap
 						}
 					}
 
-					// 处理local_mcp部分
+					// Xử lý phần local_mcp.
 					if localMcp, exists := dataMap["local_mcp"]; exists {
 						localMcpData = localMcp
 					}
 
-					// 将其他字段合并到mcp中
+					// Gộp các trường khác vào mcp.
 					if mcpMap, ok := mcpData.(map[string]interface{}); ok {
 						for k, v := range dataMap {
 							if k != "mcp" && k != "local_mcp" {
@@ -744,7 +869,7 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 						}
 					}
 				} else {
-					// 否则作为data字段
+					// Nếu không thì dùng làm trường data.
 					result["data"] = parsedData
 					mcpData = result
 				}
@@ -753,7 +878,7 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 			return mcpData, localMcpData
 		}
 
-		// 如果没有json_data，返回基本配置信息
+		// Nếu không có json_data, trả về thông tin cấu hình cơ bản.
 		result := gin.H{
 			"name": selectedConfig.Name,
 			"type": selectedConfig.Type,
@@ -761,13 +886,13 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		return result, nil
 	}
 
-	// 构建响应数据。DB 的 enabled 列仅用于 vad/asr/llm/tts 等列表项的开关；mqtt/mqtt_server 的业务启用由 json_data 中的 enable 表示，不再用 DB 列覆盖
+	// Dựng dữ liệu phản hồi. Cột enabled DB chỉ dùng làm công tắc danh sách; enable nghiệp vụ của mqtt/mqtt_server lấy từ json_data.
 	response := gin.H{}
 
 	if configs, exists := configsByType["mqtt"]; exists && len(configs) > 0 {
 		data := selectAndParseConfig(configs)
 		/*if b, err := json.Marshal(data); err == nil {
-			log.Printf("[getSystemConfigsData] mqtt 配置: %s", string(b))
+			log.Printf("[getSystemConfigsData] Cấu hình mqtt: %s", string(b))
 		}*/
 		response["mqtt"] = data
 
@@ -775,7 +900,7 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 	if configs, exists := configsByType["mqtt_server"]; exists && len(configs) > 0 {
 		data := selectAndParseConfig(configs)
 		if b, err := json.Marshal(data); err == nil {
-			log.Printf("[getSystemConfigsData] mqtt_server 配置: %s", string(b))
+			log.Printf("[getSystemConfigsData] Cấu hình mqtt_server: %s", string(b))
 		}
 		response["mqtt_server"] = data
 	}
@@ -792,19 +917,19 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		response["chat"] = selectAndParseConfig(configs)
 	}
 
-	// 特殊处理MCP配置，将mcp和local_mcp分开
+	// Xử lý riêng cấu hình MCP, tách mcp và local_mcp.
 	if configs, exists := configsByType["mcp"]; exists && len(configs) > 0 {
 		mcpData, localMcpData := selectAndParseMCPConfig(configs)
 		if mcpData != nil {
 			if mcpMap := asMap(mcpData); mcpMap != nil {
 				mergedMCP, mergeWarnings, err := ac.mergeMCPWithEnabledMarketServices(mcpMap)
 				if err != nil {
-					log.Printf("聚合市场MCP服务失败，回退为人工配置: %v", err)
+					log.Printf("Gộp dịch vụ MCP market thất bại, fallback về cấu hình thủ công: %v", err)
 					response["mcp"] = mcpMap
 				} else {
 					response["mcp"] = mergedMCP
 					if len(mergeWarnings) > 0 {
-						log.Printf("聚合市场MCP服务告警: %s", strings.Join(mergeWarnings, " | "))
+						log.Printf("Cảnh báo khi gộp dịch vụ MCP market: %s", strings.Join(mergeWarnings, " | "))
 					}
 				}
 			} else {
@@ -816,12 +941,12 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		}
 	}
 
-	// 处理独立的local_mcp配置（如果存在）
+	// Xử lý cấu hình local_mcp độc lập nếu có.
 	if configs, exists := configsByType["local_mcp"]; exists && len(configs) > 0 {
 		response["local_mcp"] = selectAndParseConfig(configs)
 	}
 
-	// 处理知识库全局配置：knowledge.default_provider + knowledge.providers
+	// Xử lý cấu hình toàn cục kho tri thức: knowledge.default_provider + knowledge.providers.
 	if configs, exists := configsByType["knowledge_search"]; exists && len(configs) > 0 {
 		selectedByProvider := make(map[string]models.Config)
 		for _, cfg := range configs {
@@ -869,7 +994,7 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		}
 	}
 
-	// 当未配置人工 mcp(type=mcp) 但已存在市场导入服务时，补齐默认 mcp/local_mcp，确保可下发聚合结果
+	// Khi chưa cấu hình mcp thủ công nhưng đã có dịch vụ import từ market, bổ sung mcp/local_mcp mặc định để có thể gửi kết quả gộp.
 	if _, exists := response["mcp"]; !exists {
 		mergedMCP, mergeWarnings, err := ac.mergeMCPWithEnabledMarketServices(defaultMCPMap())
 		if err == nil {
@@ -881,24 +1006,24 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 					response["local_mcp"] = defaultLocalMCPMap()
 				}
 				if len(mergeWarnings) > 0 {
-					log.Printf("聚合市场MCP服务告警: %s", strings.Join(mergeWarnings, " | "))
+					log.Printf("Cảnh báo khi gộp dịch vụ MCP market: %s", strings.Join(mergeWarnings, " | "))
 				}
 			}
 		}
 	}
 
-	// 处理 voice_identify 配置（与控制台配置结构一致，包含 base_url、threshold、enable）
-	// 业务启用由 json_data 中的 enable 表示；DB 的 enabled 列仅作列表项开关，不覆盖业务 enable
+	// Xử lý cấu hình voice_identify, gồm base_url, threshold, enable.
+	// Trạng thái bật nghiệp vụ lấy từ enable trong json_data; cột enabled DB chỉ là công tắc danh sách.
 	baseURL := os.Getenv("SPEAKER_SERVICE_URL")
-	enabled := true  // 默认启用
-	threshold := 0.4 // 默认阈值
+	enabled := true  // Mặc định bật
+	threshold := 0.4 // Ngưỡng mặc định
 
 	if configs, exists := configsByType["voice_identify"]; exists && len(configs) > 0 {
 		selected := getSelectedConfig(configs)
 		if selected != nil && selected.JsonData != "" {
 			var configData map[string]interface{}
 			if err := json.Unmarshal([]byte(selected.JsonData), &configData); err == nil {
-				// 业务 enable 优先从 json_data 读取
+				// Ưu tiên đọc enable nghiệp vụ từ json_data.
 				if v, ok := configData["enable"]; ok {
 					if b, ok := v.(bool); ok {
 						enabled = b
@@ -917,7 +1042,7 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 			}
 		}
 	}
-	// 如果获取到了 base_url，添加到响应中
+	// Nếu lấy được base_url, thêm vào phản hồi.
 	if baseURL != "" {
 		response["voice_identify"] = gin.H{
 			"base_url":  baseURL,
@@ -926,32 +1051,32 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		}
 	}
 
-	// 处理 TTS 配置，返回格式与 config.yaml 一致，使用 config_id 作为 key
+	// Xử lý cấu hình TTS, trả về cùng định dạng config.yaml, dùng config_id làm key.
 	if ttsConfigs, exists := configsByType["tts"]; exists && len(ttsConfigs) > 0 {
 		ttsConfigMap := make(gin.H)
 		for _, config := range ttsConfigs {
-			if config.Enabled { // 只返回启用的配置
+			if config.Enabled { // Chỉ trả về cấu hình đang bật.
 				configData := make(map[string]interface{})
 				if config.JsonData != "" {
 					json.Unmarshal([]byte(config.JsonData), &configData)
 				}
 
-				// 组装成与 config.yaml 相同的格式
+				// Lắp ráp theo cùng định dạng config.yaml.
 				provider := configprovider.NormalizeExistingProvider("tts", config.Provider, config.ConfigID, configData)
 				configItem := gin.H{
 					"provider":   provider,
 					"name":       config.Name,
 					"is_default": config.IsDefault,
 				}
-				// 将 configData 中的字段展开到 configItem 中
+				// Mở rộng các trường configData vào configItem.
 				for k, v := range configData {
 					configItem[k] = v
 				}
 				configItem["provider"] = provider
-				// 使用 config_id 作为 key
+				// Dùng config_id làm key.
 				ttsConfigMap[config.ConfigID] = configItem
 
-				// 如果当前配置是默认配置，将 config_id 赋值给顶层的 provider 字段
+				// Nếu cấu hình hiện tại là mặc định, gán config_id vào trường provider cấp cao nhất.
 				if config.IsDefault {
 					ttsConfigMap["provider"] = config.ConfigID
 				}
@@ -962,54 +1087,54 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		}
 	}
 
-	// 处理 VAD 配置，返回格式与 config.yaml 一致，使用 config_id 作为 key
-	// 兼容新旧格式：带key的格式（{"webrtc_vad": {...}}）和不带key的格式（{...}）
+	// Xử lý cấu hình VAD, trả về cùng định dạng config.yaml, dùng config_id làm key.
+	// Tương thích định dạng cũ/mới: có key ({"webrtc_vad": {...}}) và không có key ({...}).
 	if vadConfigs, exists := configsByType["vad"]; exists && len(vadConfigs) > 0 {
 		vadConfigMap := make(gin.H)
 		for _, config := range vadConfigs {
-			if config.Enabled { // 只返回启用的配置
+			if config.Enabled { // Chỉ trả về cấu hình đang bật.
 				configData := make(map[string]interface{})
 				if config.JsonData != "" {
 					if err := json.Unmarshal([]byte(config.JsonData), &configData); err != nil {
-						// Phân tích JSON thất bại，跳过此配置
+						// Phân tích JSON thất bại, bỏ qua cấu hình này.
 						continue
 					}
 				}
 
-				// 兼容旧格式：如果只有一个key，说明是旧格式（带key），提取出内部配置
+				// Tương thích định dạng cũ: nếu chỉ có một key thì trích cấu hình bên trong.
 				var actualConfigData map[string]interface{}
 				if len(configData) == 1 {
-					// 旧格式：只有一个key，提取其值
+					// Định dạng cũ: chỉ có một key, trích giá trị của nó.
 					for _, value := range configData {
 						if innerConfig, ok := value.(map[string]interface{}); ok {
 							actualConfigData = innerConfig
 						} else {
-							// 如果不是map类型，直接使用原数据
+							// Nếu không phải kiểu map, dùng nguyên dữ liệu gốc.
 							actualConfigData = configData
 						}
 						break
 					}
 				} else {
-					// 新格式：不带key，直接使用configData
+					// Định dạng mới: không kèm key, dùng trực tiếp configData.
 					actualConfigData = configData
 				}
 
-				// 组装成与 config.yaml 相同的格式
+				// Lắp ráp theo cùng định dạng config.yaml.
 				provider := configprovider.NormalizeExistingProvider("vad", config.Provider, config.ConfigID, actualConfigData)
 				configItem := gin.H{
 					"provider":   provider,
 					"name":       config.Name,
 					"is_default": config.IsDefault,
 				}
-				// 将 actualConfigData 中的字段展开到 configItem 中
+				// Mở rộng các trường actualConfigData vào configItem.
 				for k, v := range actualConfigData {
 					configItem[k] = v
 				}
 				configItem["provider"] = provider
-				// 使用 config_id 作为 key
+				// Dùng config_id làm key.
 				vadConfigMap[config.ConfigID] = configItem
 
-				// 如果当前配置是默认配置，将 config_id 赋值给顶层的 provider 字段
+				// Nếu cấu hình hiện tại là mặc định, gán config_id vào trường provider cấp cao nhất.
 				if config.IsDefault {
 					vadConfigMap["provider"] = config.ConfigID
 				}
@@ -1020,32 +1145,32 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		}
 	}
 
-	// 处理 ASR 配置，返回格式与 config.yaml 一致，使用 config_id 作为 key
+	// Xử lý cấu hình ASR, trả về cùng định dạng config.yaml, dùng config_id làm key.
 	if asrConfigs, exists := configsByType["asr"]; exists && len(asrConfigs) > 0 {
 		asrConfigMap := make(gin.H)
 		for _, config := range asrConfigs {
-			if config.Enabled { // 只返回启用的配置
+			if config.Enabled { // Chỉ trả về cấu hình đang bật.
 				configData := make(map[string]interface{})
 				if config.JsonData != "" {
 					json.Unmarshal([]byte(config.JsonData), &configData)
 				}
 
-				// 组装成与 config.yaml 相同的格式
+				// Lắp ráp theo cùng định dạng config.yaml.
 				provider := configprovider.NormalizeExistingProvider("asr", config.Provider, config.ConfigID, configData)
 				configItem := gin.H{
 					"provider":   provider,
 					"name":       config.Name,
 					"is_default": config.IsDefault,
 				}
-				// 将 configData 中的字段展开到 configItem 中
+				// Mở rộng các trường configData vào configItem.
 				for k, v := range configData {
 					configItem[k] = v
 				}
 				configItem["provider"] = provider
-				// 使用 config_id 作为 key
+				// Dùng config_id làm key.
 				asrConfigMap[config.ConfigID] = configItem
 
-				// 如果当前配置是默认配置，将 config_id 赋值给顶层的 provider 字段
+				// Nếu cấu hình hiện tại là mặc định, gán config_id vào trường provider cấp cao nhất.
 				if config.IsDefault {
 					asrConfigMap["provider"] = config.ConfigID
 				}
@@ -1056,32 +1181,32 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		}
 	}
 
-	// 处理 LLM 配置，返回格式与 config.yaml 一致，使用 config_id 作为 key
+	// Xử lý cấu hình LLM, trả về cùng định dạng config.yaml, dùng config_id làm key.
 	if llmConfigs, exists := configsByType["llm"]; exists && len(llmConfigs) > 0 {
 		llmConfigMap := make(gin.H)
 		for _, config := range llmConfigs {
-			if config.Enabled { // 只返回启用的配置
+			if config.Enabled { // Chỉ trả về cấu hình đang bật.
 				configData := make(map[string]interface{})
 				if config.JsonData != "" {
 					json.Unmarshal([]byte(config.JsonData), &configData)
 				}
 
-				// 组装成与 config.yaml 相同的格式
+				// Lắp ráp theo cùng định dạng config.yaml.
 				provider := configprovider.NormalizeExistingProvider("llm", config.Provider, config.ConfigID, configData)
 				configItem := gin.H{
 					"provider":   provider,
 					"name":       config.Name,
 					"is_default": config.IsDefault,
 				}
-				// 将 configData 中的字段展开到 configItem 中
+				// Mở rộng các trường configData vào configItem.
 				for k, v := range configData {
 					configItem[k] = v
 				}
 				configItem["provider"] = provider
-				// 使用 config_id 作为 key
+				// Dùng config_id làm key.
 				llmConfigMap[config.ConfigID] = configItem
 
-				// 如果当前配置是默认配置，将 config_id 赋值给顶层的 provider 字段
+				// Nếu cấu hình hiện tại là mặc định, gán config_id vào trường provider cấp cao nhất.
 				if config.IsDefault {
 					llmConfigMap["provider"] = config.ConfigID
 				}
@@ -1092,7 +1217,7 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		}
 	}
 
-	// 处理 Vision 配置：与 config.yaml 结构一致，vision_base + vllm（顶层 provider + 子项仅业务字段）
+	// Xử lý cấu hình Vision: cùng cấu trúc config.yaml, vision_base + vllm.
 	if visionConfigs, exists := configsByType["vision"]; exists && len(visionConfigs) > 0 {
 		visionResponse := make(gin.H)
 		vllmMap := make(gin.H)
@@ -1121,7 +1246,7 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 				if provider != "" {
 					configData["provider"] = provider
 				}
-				// 与 YAML 一致：子项只存业务配置，不含 name/is_default，provider 为真实供应商
+				// Đồng bộ YAML: mục con chỉ lưu cấu hình nghiệp vụ, không gồm name/is_default, provider là nhà cung cấp thật.
 				vllmMap[config.ConfigID] = configData
 			}
 		}
@@ -1136,13 +1261,13 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 		}
 	}
 
-	// 处理 VAD 配置
+	// Xử lý cấu hình VAD.
 	if configs, exists := configsByType["vad"]; exists && len(configs) > 0 {
 		response["vad"] = selectAndParseConfig(configs)
 	}
 
-	// 处理 Vision 配置：vision_base 为顶层字段，其余为 vision.vllm[config_id]
-	// config.Enabled 此处仅作列表项开关（该条配置是否纳入返回），业务相关字段来自 json_data
+	// Xử lý cấu hình Vision: vision_base là trường cấp cao nhất, phần còn lại là vision.vllm[config_id].
+	// config.Enabled ở đây chỉ là công tắc danh sách; trường nghiệp vụ lấy từ json_data.
 	if visionConfigs, exists := configsByType["vision"]; exists && len(visionConfigs) > 0 {
 		visionMap := make(gin.H)
 		for _, config := range visionConfigs {
@@ -1181,7 +1306,7 @@ func (ac *AdminController) getSystemConfigsData() (gin.H, error) {
 	return response, nil
 }
 
-// GetSystemConfigs 获取系统配置信息，包括mqtt, mqtt_server, udp, ota, mcp, local_mcp, voice_identify, tts, vad, asr, llm, vision, auth, chat
+// GetSystemConfigs lấy thông tin cấu hình hệ thống.
 func (ac *AdminController) GetSystemConfigs(c *gin.Context) {
 	data, err := ac.getSystemConfigsData()
 	if err != nil {
@@ -1195,7 +1320,7 @@ func (ac *AdminController) GetSystemConfigs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
-// notifySystemConfigChanged 在 Save 成功后调用：先同步拉取最新配置，再异步推送，保证推送的是保存后的数据
+// notifySystemConfigChanged gọi sau khi lưu thành công: lấy cấu hình mới nhất rồi push bất đồng bộ.
 func (ac *AdminController) notifySystemConfigChanged() {
 	if ac.WebSocketController == nil {
 		return
@@ -1207,14 +1332,14 @@ func (ac *AdminController) notifySystemConfigChanged() {
 	go ac.WebSocketController.BroadcastSystemConfig(data)
 }
 
-// TestConfigs 一键测试配置：OTA 在 manager 内测，VAD/ASR/LLM/TTS 经 WebSocket 发主程序测，结果按 config_id 对应
-// 请求体可选 data：若提供某类型（vad/asr/llm/tts），则用该 data 覆盖 DB 作为下发主程序的配置（用于未保存草稿测试）
+// TestConfigs kiểm tra cấu hình một lần: OTA kiểm tra trong manager; VAD/ASR/LLM/TTS gửi qua WebSocket tới chương trình chính.
+// Body có thể có data: nếu cung cấp loại nào thì dùng data đó thay DB để kiểm tra bản nháp chưa lưu.
 func (ac *AdminController) TestConfigs(c *gin.Context) {
 	var body struct {
-		Types      []string               `json:"types"`       // 要测试的类型：ota, vad, asr, llm, tts
-		ConfigIDs  map[string][]string    `json:"config_ids"`  // 按类型指定 config_id 列表，不传则测该类型全部已启用
-		ClientUUID string                 `json:"client_uuid"` // 指定主程序连接，不传则任选一个
-		Data       map[string]interface{} `json:"data"`        // 可选，按类型覆盖配置源（用于编辑态/向导未保存测试）
+		Types      []string               `json:"types"`       // Loại cần kiểm tra: ota, vad, asr, llm, tts
+		ConfigIDs  map[string][]string    `json:"config_ids"`  // Chỉ định danh sách config_id theo loại; bỏ trống thì kiểm tra toàn bộ cấu hình đã bật của loại đó
+		ClientUUID string                 `json:"client_uuid"` // Chỉ định kết nối chương trình chính; bỏ trống thì chọn một kết nối bất kỳ
+		Data       map[string]interface{} `json:"data"`        // Tùy chọn, ghi đè nguồn cấu hình theo loại để kiểm tra bản nháp
 	}
 	_ = c.ShouldBindJSON(&body)
 	if len(body.Types) == 0 {
@@ -1232,7 +1357,7 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 		"tts": gin.H{},
 	}
 
-	// OTA：优先用请求体 data.ota（页面表单），否则从 DB 加载
+	// OTA: ưu tiên dùng data.ota từ body, nếu không thì tải từ DB.
 	if contains(body.Types, "ota") {
 		var otaData map[string]interface{}
 		if body.Data != nil {
@@ -1255,14 +1380,14 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 				}
 				cfg := models.Config{ConfigID: configID, JsonData: string(jsonBytes)}
 				otaResult := ac.testOTAConfigWithMQTTUDP(cfg)
-				// 将OTATestResult转换为gin.H格式，保持向后兼容
+				// Chuyển OTATestResult sang định dạng gin.H để giữ tương thích.
 				result["ota"].(gin.H)[configID] = gin.H{
 					"ok":              otaResult.WebSocket.Ok && (otaResult.MQTTUDP == nil || otaResult.MQTTUDP.Ok),
 					"message":         otaResult.WebSocket.Message,
 					"first_packet_ms": otaResult.WebSocket.FirstPacketMs,
 					"websocket":       otaResult.WebSocket,
 					"mqtt_udp":        otaResult.MQTTUDP,
-					"ota_response":    otaResult.OTAResponse, // 添加OTA响应体
+					"ota_response":    otaResult.OTAResponse, // Thêm body phản hồi OTA
 				}
 			}
 		} else {
@@ -1278,21 +1403,21 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 			} else {
 				for _, cfg := range otaConfigs {
 					otaResult := ac.testOTAConfigWithMQTTUDP(cfg)
-					// 将OTATestResult转换为gin.H格式，保持向后兼容
+					// Chuyển OTATestResult sang định dạng gin.H để giữ tương thích.
 					result["ota"].(gin.H)[cfg.ConfigID] = gin.H{
 						"ok":              otaResult.WebSocket.Ok && (otaResult.MQTTUDP == nil || otaResult.MQTTUDP.Ok),
 						"message":         otaResult.WebSocket.Message,
 						"first_packet_ms": otaResult.WebSocket.FirstPacketMs,
 						"websocket":       otaResult.WebSocket,
 						"mqtt_udp":        otaResult.MQTTUDP,
-						"ota_response":    otaResult.OTAResponse, // 添加OTA响应体
+						"ota_response":    otaResult.OTAResponse, // Thêm body phản hồi OTA
 					}
 				}
 			}
 		}
 	}
 
-	// VAD/ASR/LLM/TTS：经 WebSocket 发主程序
+	// VAD/ASR/LLM/TTS: gửi tới chương trình chính qua WebSocket.
 	needMainProgram := contains(body.Types, "vad") || contains(body.Types, "asr") || contains(body.Types, "llm") || contains(body.Types, "tts")
 	if needMainProgram && ac.WebSocketController != nil {
 		clientUUID := body.ClientUUID
@@ -1316,7 +1441,7 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 		} else {
 			fullData, err := ac.getSystemConfigsData()
 			if err != nil {
-				fillResultError(result, body.Types, "vad", "asr", "llm", "tts", "获取系统配置失败")
+				fillResultError(result, body.Types, "vad", "asr", "llm", "tts", "Lấy cấu hình hệ thống thất bại")
 			} else {
 				for _, typ := range []string{"vad", "asr", "llm", "tts"} {
 					if v, ok := fullData[typ]; ok {
@@ -1324,10 +1449,10 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 							log.Printf("[config_test] fullData[%s] keys: %v", typ, getMapKeys(m))
 						}
 					} else {
-						log.Printf("[config_test] fullData[%s] 不存在", typ)
+						log.Printf("[config_test] fullData[%s] không tồn tại", typ)
 					}
 				}
-				// 若请求体带了 data 且某类型有值，则用 body.Data 覆盖该类型的配置源；否则用 fullData
+				// Nếu body có data và loại đó có giá trị thì dùng body.Data làm nguồn cấu hình, ngược lại dùng fullData.
 				subset := gin.H{}
 				for _, typ := range []string{"vad", "asr", "llm", "tts"} {
 					if !contains(body.Types, typ) {
@@ -1338,7 +1463,7 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 						if v, ok := body.Data[typ]; ok {
 							if m, ok := v.(map[string]interface{}); ok && len(m) > 0 {
 								typeMap = m
-								log.Printf("[config_test] 使用请求体 data[%s] 作为配置源", typ)
+								log.Printf("[config_test] Dùng data[%s] trong body làm nguồn cấu hình", typ)
 							}
 						}
 					}
@@ -1357,7 +1482,7 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 									continue
 								}
 							}
-							// fullData 中无该 id（如未启用），从 DB 按 type+config_id 查一条并加入
+							// Nếu fullData không có id này, tra DB theo type+config_id rồi thêm vào.
 							item := ac.getConfigItemByTypeAndID(typ, id)
 							if item != nil {
 								filtered[id] = item
@@ -1379,10 +1504,10 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 				}
 				reqBody := map[string]interface{}{
 					"data":      subset,
-					"test_text": "配置测试",
+					"test_text": "Kiểm tra cấu hình",
 				}
-				// 发送前打印下发的配置摘要，便于 debug
-				log.Printf("[config_test] 发送请求 client=%s data 各类型条目数: vad=%d asr=%d llm=%d tts=%d",
+				// In tóm tắt cấu hình trước khi gửi để tiện debug.
+				log.Printf("[config_test] Gửi yêu cầu client=%s số mục từng loại: vad=%d asr=%d llm=%d tts=%d",
 					clientUUID,
 					countSubsetKeys(subset["vad"]), countSubsetKeys(subset["asr"]),
 					countSubsetKeys(subset["llm"]), countSubsetKeys(subset["tts"]))
@@ -1390,7 +1515,7 @@ func (ac *AdminController) TestConfigs(c *gin.Context) {
 				defer cancel()
 				resp, err := ac.WebSocketController.SendRequestToClient(ctx, clientUUID, "POST", "/api/config/test", reqBody)
 				if err != nil {
-					fillResultError(result, body.Types, "vad", "asr", "llm", "tts", "主程序测试请求失败: "+err.Error())
+					fillResultError(result, body.Types, "vad", "asr", "llm", "tts", "Yêu cầu kiểm tra chương trình chính thất bại: "+err.Error())
 				} else if resp.Status != 200 {
 					errMsg := resp.Error
 					if errMsg == "" && resp.Body != nil {
@@ -1432,7 +1557,7 @@ func contains(s []string, x string) bool {
 	return false
 }
 
-// countSubsetKeys 统计 subset 中除 provider 外的 config 条目数，用于 debug 日志
+// countSubsetKeys đếm số mục config trong subset, trừ provider, dùng cho log debug.
 func countSubsetKeys(v interface{}) int {
 	m, ok := v.(map[string]interface{})
 	if !ok {
@@ -1447,7 +1572,7 @@ func countSubsetKeys(v interface{}) int {
 	return n
 }
 
-// getConfigItemByTypeAndID 按 type+config_id 从 DB 查一条配置，返回与 getSystemConfigsData 一致的 configItem 结构（供测试请求指定 config_ids 时补全）
+// getConfigItemByTypeAndID tra cấu hình theo type+config_id từ DB và trả về cấu trúc configItem tương thích getSystemConfigsData.
 func (ac *AdminController) getConfigItemByTypeAndID(typ, configID string) map[string]interface{} {
 	var config models.Config
 	if err := ac.DB.Where("type = ? AND config_id = ?", typ, configID).First(&config).Error; err != nil {
@@ -1464,7 +1589,7 @@ func (ac *AdminController) getConfigItemByTypeAndID(typ, configID string) map[st
 	for k, v := range configData {
 		item[k] = v
 	}
-	// 补全 provider（引擎类型），主程序资源池创建依赖此字段
+	// Bổ sung provider vì nhóm tài nguyên chương trình chính phụ thuộc trường này.
 	if config.Provider != "" {
 		item["provider"] = config.Provider
 	}
@@ -1480,21 +1605,21 @@ func fillResultError(result gin.H, types []string, keys ...string) {
 	}
 }
 
-// OTATestResult OTA测试结果结构
+// OTATestResult là cấu trúc kết quả kiểm tra OTA.
 type OTATestResult struct {
 	WebSocket   OTATestItem  `json:"websocket"`
 	MQTTUDP     *OTATestItem `json:"mqtt_udp,omitempty"`
-	OTAResponse string       `json:"ota_response,omitempty"` // OTA接口响应内容
+	OTAResponse string       `json:"ota_response,omitempty"` // Nội dung phản hồi OTA
 }
 
-// OTATestItem 单个测试项结果
+// OTATestItem là kết quả một mục kiểm tra.
 type OTATestItem struct {
 	Ok            bool   `json:"ok"`
 	Message       string `json:"message"`
 	FirstPacketMs int64  `json:"first_packet_ms"`
 }
 
-// MQTTUDPTestConfig MQTT UDP测试配置
+// MQTTUDPTestConfig là cấu hình kiểm tra MQTT UDP.
 type MQTTUDPTestConfig struct {
 	Endpoint       string `json:"endpoint"`
 	ClientID       string `json:"client_id"`
@@ -1504,7 +1629,7 @@ type MQTTUDPTestConfig struct {
 	SubscribeTopic string `json:"subscribe_topic"`
 }
 
-// UDPConfig UDP配置（从hello响应中获取）
+// UDPConfig là cấu hình UDP lấy từ phản hồi hello.
 type UDPConfig struct {
 	Server     string `json:"server"`
 	Port       int    `json:"port"`
@@ -1513,7 +1638,7 @@ type UDPConfig struct {
 	Nonce      string `json:"nonce"`
 }
 
-// helloMessage MQTT hello消息结构
+// helloMessage là cấu trúc message hello MQTT.
 type helloMessage struct {
 	Type        string      `json:"type"`
 	Version     int         `json:"version"`
@@ -1521,7 +1646,7 @@ type helloMessage struct {
 	AudioParams interface{} `json:"audio_params,omitempty"`
 }
 
-// helloResponse MQTT hello响应结构（与test/mqtt_udp保持一致）
+// helloResponse là cấu trúc phản hồi hello MQTT.
 type helloResponse struct {
 	Type        string    `json:"type"`
 	SessionID   string    `json:"session_id"`
@@ -1542,38 +1667,38 @@ const (
 	otaHTTPPath     = "/xiaozhi/ota/"
 )
 
-// testMQTTUDPConfig 测试MQTT UDP连接
-// 参考 test/mqtt_udp 逻辑：设置默认消息处理器，发送hello，等待响应
-// 返回 ok, message, 耗时(ms)
+// testMQTTUDPConfig kiểm tra kết nối MQTT UDP.
+// Tham chiếu logic test/mqtt_udp: đặt handler mặc định, gửi hello và chờ phản hồi.
+// Trả về ok, message và thời gian(ms).
 func testMQTTUDPConfig(mqttConfig MQTTUDPTestConfig) (bool, string, int64) {
 	t0 := time.Now()
 
-	// 验证MQTT配置完整性
+	// Kiểm tra cấu hình MQTT đầy đủ.
 	if mqttConfig.Endpoint == "" {
-		return false, "MQTT endpoint为空，请检查配置", 0
+		return false, "MQTT endpoint trống, vui lòng kiểm tra cấu hình", 0
 	}
 	if mqttConfig.ClientID == "" {
-		return false, "MQTT ClientID为空", 0
+		return false, "MQTT ClientID trống", 0
 	}
 	if mqttConfig.PublishTopic == "" {
-		return false, "MQTT发布主题为空", 0
+		return false, "MQTT publish topic trống", 0
 	}
-	// 注意：不需要校验 subscribe_topic，也不需要主动订阅
+	// Lưu ý: không cần kiểm tra subscribe_topic và không cần chủ động subscribe.
 
-	// 解析endpoint
+	// Phân tích endpoint.
 	endpoint := mqttConfig.Endpoint
 	port := "1883"
 	protocol := "tcp"
 	if strings.Contains(endpoint, ":") {
 		parts := strings.Split(endpoint, ":")
 		if len(parts) != 2 {
-			return false, "MQTT endpoint格式错误，应为 host:port", 0
+			return false, "Định dạng MQTT endpoint sai, phải là host:port", 0
 		}
 		endpoint = parts[0]
 		port = parts[1]
-		// 验证端口号
+		// Kiểm tra số cổng.
 		if _, err := strconv.Atoi(port); err != nil {
-			return false, "MQTT端口号无效: " + port, 0
+			return false, "Cổng MQTT không hợp lệ: " + port, 0
 		}
 	}
 	if port == "8883" || port == "8884" {
@@ -1581,11 +1706,11 @@ func testMQTTUDPConfig(mqttConfig MQTTUDPTestConfig) (bool, string, int64) {
 	}
 	brokerURL := fmt.Sprintf("%s://%s:%s", protocol, endpoint, port)
 
-	// 等待hello响应的channel
+	// Channel chờ phản hồi hello.
 	helloChan := make(chan *helloResponse, 1)
 	errChan := make(chan error, 1)
 
-	// 创建MQTT客户端选项
+	// Tạo tùy chọn MQTT client.
 	opts := mqtt.NewClientOptions()
 	opts.AddBroker(brokerURL)
 	opts.SetClientID(mqttConfig.ClientID)
@@ -1594,17 +1719,17 @@ func testMQTTUDPConfig(mqttConfig MQTTUDPTestConfig) (bool, string, int64) {
 	opts.SetKeepAlive(60 * time.Second)
 	opts.SetConnectTimeout(5 * time.Second)
 	opts.SetCleanSession(true)
-	opts.SetAutoReconnect(false) // 测试时禁用自动重连
+	opts.SetAutoReconnect(false) // Tắt tự reconnect khi kiểm tra
 
-	// 设置默认消息处理器（参考 test/mqtt_udp）
+	// Đặt handler message mặc định theo test/mqtt_udp.
 	opts.SetDefaultPublishHandler(func(client mqtt.Client, msg mqtt.Message) {
-		// 解析消息
+		// Phân tích message.
 		var message map[string]interface{}
 		if err := json.Unmarshal(msg.Payload(), &message); err != nil {
-			errChan <- fmt.Errorf("解析消息失败: %v", err)
+			errChan <- fmt.Errorf("Phân tích message thất bại: %v", err)
 			return
 		}
-		// 根据消息类型处理
+		// Xử lý theo loại message.
 		msgType, ok := message["type"].(string)
 		if !ok {
 			return
@@ -1612,41 +1737,41 @@ func testMQTTUDPConfig(mqttConfig MQTTUDPTestConfig) (bool, string, int64) {
 		if msgType == "hello" {
 			var resp helloResponse
 			if err := json.Unmarshal(msg.Payload(), &resp); err != nil {
-				errChan <- fmt.Errorf("解析hello响应失败: %v", err)
+				errChan <- fmt.Errorf("Phân tích phản hồi hello thất bại: %v", err)
 				return
 			}
 			helloChan <- &resp
 		}
 	})
 
-	// 设置TLS配置（如果是SSL/TLS）
+	// Đặt cấu hình TLS nếu dùng SSL/TLS.
 	if protocol == "tls" {
 		tlsConfig := &tls.Config{
-			InsecureSkipVerify: true, // 测试环境跳过证书验证
+			InsecureSkipVerify: true, // Bỏ qua xác thực chứng chỉ trong môi trường kiểm tra.
 		}
 		opts.SetTLSConfig(tlsConfig)
 	}
 
-	// 连接MQTT
+	// Kết nối MQTT.
 	client := mqtt.NewClient(opts)
 	connectToken := client.Connect()
 	if connectToken.Wait() && connectToken.Error() != nil {
 		errMsg := connectToken.Error().Error()
-		// 提供更详细的错误信息
+		// Cung cấp thông tin lỗi chi tiết hơn.
 		if strings.Contains(errMsg, "connection refused") {
-			return false, fmt.Sprintf("MQTT服务器拒绝连接 (%s:%s)，请检查服务器是否启动", endpoint, port), time.Since(t0).Milliseconds()
+			return false, fmt.Sprintf("MQTT server từ chối kết nối (%s:%s), vui lòng kiểm tra server đã khởi động chưa", endpoint, port), time.Since(t0).Milliseconds()
 		} else if strings.Contains(errMsg, "i/o timeout") {
-			return false, fmt.Sprintf("MQTT连接超时 (%s:%s)，请检查网络和防火墙", endpoint, port), time.Since(t0).Milliseconds()
+			return false, fmt.Sprintf("Kết nối MQTT timeout (%s:%s), vui lòng kiểm tra mạng và tường lửa", endpoint, port), time.Since(t0).Milliseconds()
 		} else if strings.Contains(errMsg, "authentication") || strings.Contains(errMsg, "not authorized") {
-			return false, "MQTT认证失败，请检查用户名和密码（由签名密钥生成）", time.Since(t0).Milliseconds()
+			return false, "Xác thực MQTT thất bại, vui lòng kiểm tra username và password được tạo từ signing key", time.Since(t0).Milliseconds()
 		}
-		return false, "MQTT连接失败: " + errMsg, time.Since(t0).Milliseconds()
+		return false, "Kết nối MQTT thất bại: " + errMsg, time.Since(t0).Milliseconds()
 	}
 	defer client.Disconnect(250)
 
 	mqttConnectMs := time.Since(t0).Milliseconds()
 
-	// 创建hello消息并发送
+	// Tạo và gửi message hello.
 	helloMsg := helloMessage{
 		Type:      "hello",
 		Version:   3,
@@ -1660,113 +1785,113 @@ func testMQTTUDPConfig(mqttConfig MQTTUDPTestConfig) (bool, string, int64) {
 	}
 	helloData, err := json.Marshal(helloMsg)
 	if err != nil {
-		return false, "构建hello消息失败: " + err.Error(), mqttConnectMs
+		return false, "Dựng message hello thất bại: " + err.Error(), mqttConnectMs
 	}
 
-	// 发布hello消息（不需要主动订阅，等待默认消息处理器接收响应）
+	// Publish message hello; không cần chủ động subscribe, chờ handler mặc định nhận phản hồi.
 	pubToken := client.Publish(mqttConfig.PublishTopic, 0, false, helloData)
 	if pubToken.Wait() && pubToken.Error() != nil {
-		return false, "发布hello消息失败 (" + mqttConfig.PublishTopic + "): " + pubToken.Error().Error(), mqttConnectMs
+		return false, "Publish message hello thất bại (" + mqttConfig.PublishTopic + "): " + pubToken.Error().Error(), mqttConnectMs
 	}
 
-	// 等待hello响应（超时5秒）
+	// Chờ phản hồi hello, timeout 5 giây.
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	select {
 	case resp := <-helloChan:
-		// 收到hello响应，检查UDP配置是否完整
+		// Nhận phản hồi hello, kiểm tra cấu hình UDP đầy đủ.
 		if resp.UDP.Server == "" {
-			return false, "服务器未返回UDP server地址", mqttConnectMs
+			return false, "Server không trả về địa chỉ UDP server", mqttConnectMs
 		}
 		if resp.UDP.Port <= 0 || resp.UDP.Port > 65535 {
-			return false, fmt.Sprintf("服务器返回的UDP端口无效: %d", resp.UDP.Port), mqttConnectMs
+			return false, fmt.Sprintf("Server trả về cổng UDP không hợp lệ: %d", resp.UDP.Port), mqttConnectMs
 		}
-		// 测试UDP连接
+		// Kiểm tra kết nối UDP.
 		udpOK, udpMsg, udpMs := testUDPConnection(resp.UDP)
 		totalMs := mqttConnectMs + udpMs
 		if udpOK {
-			return true, fmt.Sprintf("MQTT(%dms)与UDP(%dms)均正常", mqttConnectMs, udpMs), totalMs
+			return true, fmt.Sprintf("MQTT(%dms) và UDP(%dms) đều bình thường", mqttConnectMs, udpMs), totalMs
 		} else {
-			return false, "MQTT正常但UDP失败: " + udpMsg, totalMs
+			return false, "MQTT bình thường nhưng UDP thất bại: " + udpMsg, totalMs
 		}
 	case err := <-errChan:
 		return false, err.Error(), mqttConnectMs
 	case <-ctx.Done():
-		return false, fmt.Sprintf("等待hello响应超时(5s)，已发送hello到 %s", mqttConfig.PublishTopic), mqttConnectMs
+		return false, fmt.Sprintf("Chờ phản hồi hello timeout (5s), đã gửi hello tới %s", mqttConfig.PublishTopic), mqttConnectMs
 	}
 }
 
-// testUDPConnection 测试UDP连接
+// testUDPConnection kiểm tra kết nối UDP.
 func testUDPConnection(udpConfig UDPConfig) (bool, string, int64) {
 	t0 := time.Now()
 
-	// 验证UDP配置
+	// Kiểm tra cấu hình UDP.
 	if udpConfig.Server == "" {
-		return false, "UDP server地址为空", 0
+		return false, "Địa chỉ UDP server trống", 0
 	}
 	if udpConfig.Port <= 0 || udpConfig.Port > 65535 {
-		return false, fmt.Sprintf("UDP端口无效: %d", udpConfig.Port), 0
+		return false, fmt.Sprintf("Cổng UDP không hợp lệ: %d", udpConfig.Port), 0
 	}
 
-	// 解析UDP地址
+	// Phân tích địa chỉ UDP.
 	udpAddr := fmt.Sprintf("%s:%d", udpConfig.Server, udpConfig.Port)
 	addr, err := net.ResolveUDPAddr("udp", udpAddr)
 	if err != nil {
-		return false, "解析UDP地址失败 (" + udpAddr + "): " + err.Error(), 0
+		return false, "Phân tích địa chỉ UDP thất bại (" + udpAddr + "): " + err.Error(), 0
 	}
 
-	// 创建UDP连接
+	// Tạo kết nối UDP.
 	conn, err := net.DialUDP("udp", nil, addr)
 	if err != nil {
 		if strings.Contains(err.Error(), "connection refused") {
-			return false, fmt.Sprintf("UDP服务器拒绝连接 (%s)，请检查UDP服务器是否启动", udpAddr), time.Since(t0).Milliseconds()
+			return false, fmt.Sprintf("UDP server từ chối kết nối (%s), vui lòng kiểm tra UDP server đã khởi động chưa", udpAddr), time.Since(t0).Milliseconds()
 		} else if strings.Contains(err.Error(), "no route to host") || strings.Contains(err.Error(), "network is unreachable") {
-			return false, fmt.Sprintf("无法路由到UDP服务器 (%s)，请检查网络连接", udpAddr), time.Since(t0).Milliseconds()
+			return false, fmt.Sprintf("Không thể định tuyến tới UDP server (%s), vui lòng kiểm tra kết nối mạng", udpAddr), time.Since(t0).Milliseconds()
 		} else if strings.Contains(err.Error(), "timeout") {
-			return false, fmt.Sprintf("UDP连接超时 (%s)，请检查防火墙设置", udpAddr), time.Since(t0).Milliseconds()
+			return false, fmt.Sprintf("Kết nối UDP timeout (%s), vui lòng kiểm tra tường lửa", udpAddr), time.Since(t0).Milliseconds()
 		}
-		return false, "UDP连接失败 (" + udpAddr + "): " + err.Error(), time.Since(t0).Milliseconds()
+		return false, "Kết nối UDP thất bại (" + udpAddr + "): " + err.Error(), time.Since(t0).Milliseconds()
 	}
 	defer conn.Close()
 
-	// 设置读写超时
+	// Đặt timeout đọc/ghi.
 	deadline := time.Now().Add(2 * time.Second)
 	err = conn.SetReadDeadline(deadline)
 	if err != nil {
-		return false, "设置UDP超时失败: " + err.Error(), time.Since(t0).Milliseconds()
+		return false, "Đặt timeout UDP thất bại: " + err.Error(), time.Since(t0).Milliseconds()
 	}
 
-	// 发送测试数据包（模拟音频数据）
+	// Gửi gói kiểm tra mô phỏng dữ liệu âm thanh.
 	testData := []byte("ping")
 	_, err = conn.Write(testData)
 	if err != nil {
-		return false, "UDP发送数据失败: " + err.Error(), time.Since(t0).Milliseconds()
+		return false, "Gửi dữ liệu UDP thất bại: " + err.Error(), time.Since(t0).Milliseconds()
 	}
 
-	// 尝试读取响应（超时返回也认为连接成功，因为UDP可能不返回响应）
+	// Thử đọc phản hồi; timeout vẫn coi là thành công vì UDP có thể không trả phản hồi.
 	buf := make([]byte, 1024)
 	_, err = conn.Read(buf)
 	if err != nil {
-		// UDP读取超时也算成功，因为已经证明连接可以发送数据
+		// UDP đọc timeout vẫn tính là thành công vì đã chứng minh có thể gửi dữ liệu.
 		if netErr, ok := err.(net.Error); ok && netErr.Timeout() {
-			return true, "UDP连接正常（无响应，超时）", time.Since(t0).Milliseconds()
+			return true, "Kết nối UDP bình thường (không có phản hồi, timeout)", time.Since(t0).Milliseconds()
 		}
-		return false, "UDP读取失败: " + err.Error(), time.Since(t0).Milliseconds()
+		return false, "Đọc UDP thất bại: " + err.Error(), time.Since(t0).Milliseconds()
 	}
 
-	return true, "UDP连接正常", time.Since(t0).Milliseconds()
+	return true, "Kết nối UDP bình thường", time.Since(t0).Milliseconds()
 }
 
-// testOTAConfig 两段式检查：1）POST OTA 地址取 JSON 中的 websocket.url；2）对 WebSocket URL 建连验证。
-// 返回 ok, message, first_packet_ms, ota_response（OTA 接口响应 body，便于前端展示）
+// testOTAConfig kiểm tra hai bước: POST OTA lấy websocket.url rồi kết nối WebSocket để xác minh.
+// Trả về ok, message, first_packet_ms, ota_response để frontend hiển thị.
 func (ac *AdminController) testOTAConfig(cfg models.Config) (ok bool, message string, firstPacketMs int64, otaResponseBody string) {
 	if cfg.JsonData == "" {
-		return false, "配置为空", 0, ""
+		return false, "Cấu hình trống", 0, ""
 	}
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(cfg.JsonData), &data); err != nil {
-		return false, "配置解析失败", 0, ""
+		return false, "Phân tích cấu hình thất bại", 0, ""
 	}
 	var wsURLFromConfig string
 	if ext, _ := data["external"].(map[string]interface{}); ext != nil {
@@ -1786,11 +1911,11 @@ func (ac *AdminController) testOTAConfig(cfg models.Config) (ok bool, message st
 		}
 	}
 	if wsURLFromConfig == "" {
-		return false, "未配置 WebSocket URL", 0, ""
+		return false, "Chưa cấu hình WebSocket URL", 0, ""
 	}
 	parsed, err := url.Parse(wsURLFromConfig)
 	if err != nil {
-		return false, "URL 解析失败", 0, ""
+		return false, "Phân tích URL thất bại", 0, ""
 	}
 	scheme := "http"
 	if parsed.Scheme == "wss" {
@@ -1799,10 +1924,10 @@ func (ac *AdminController) testOTAConfig(cfg models.Config) (ok bool, message st
 	otaHTTPURL := scheme + "://" + parsed.Host + otaHTTPPath
 
 	t0 := time.Now()
-	// Part1: POST OTA 地址，带 Device-ID、Client-ID，解析 JSON 取 websocket.url
+	// Phần 1: POST địa chỉ OTA với Device-ID, Client-ID, phân tích JSON lấy websocket.url.
 	req, err := http.NewRequest(http.MethodPost, otaHTTPURL, bytes.NewBuffer([]byte("{}")))
 	if err != nil {
-		return false, "创建 OTA 请求失败", time.Since(t0).Milliseconds(), ""
+		return false, "Tạo yêu cầu OTA thất bại", time.Since(t0).Milliseconds(), ""
 	}
 	req.Header.Set("Device-ID", otaTestDeviceID)
 	req.Header.Set("Client-ID", otaTestClientID)
@@ -1810,29 +1935,29 @@ func (ac *AdminController) testOTAConfig(cfg models.Config) (ok bool, message st
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		return false, "OTA 请求失败: " + err.Error(), time.Since(t0).Milliseconds(), ""
+		return false, "Yêu cầu OTA thất bại: " + err.Error(), time.Since(t0).Milliseconds(), ""
 	}
 	defer resp.Body.Close()
 	body, _ := io.ReadAll(resp.Body)
 	firstPacketMs = time.Since(t0).Milliseconds()
 	otaResponseBody = string(body)
 	if resp.StatusCode != http.StatusOK {
-		return false, "OTA 返回 HTTP " + strconv.Itoa(resp.StatusCode), firstPacketMs, otaResponseBody
+		return false, "OTA trả về HTTP " + strconv.Itoa(resp.StatusCode), firstPacketMs, otaResponseBody
 	}
 	var otaResp map[string]interface{}
 	if err := json.Unmarshal(body, &otaResp); err != nil {
-		return false, "OTA 响应非 JSON", firstPacketMs, otaResponseBody
+		return false, "Phản hồi OTA không phải JSON", firstPacketMs, otaResponseBody
 	}
 	wsObj, _ := otaResp["websocket"].(map[string]interface{})
 	if wsObj == nil {
-		return false, "OTA 响应中无 websocket 字段", firstPacketMs, otaResponseBody
+		return false, "Phản hồi OTA thiếu trường websocket", firstPacketMs, otaResponseBody
 	}
 	wsURL, _ := wsObj["url"].(string)
 	if wsURL == "" {
-		return false, "OTA 响应中无 websocket.url", firstPacketMs, otaResponseBody
+		return false, "Phản hồi OTA thiếu websocket.url", firstPacketMs, otaResponseBody
 	}
 
-	// Part2: WebSocket 建连，带 Device-ID、Client-ID，连通即关闭（建连耗时计入首包）
+	// Phần 2: Kết nối WebSocket với Device-ID, Client-ID; kết nối xong thì đóng.
 	wsT0 := time.Now()
 	header := http.Header{}
 	header.Set("Device-ID", otaTestDeviceID)
@@ -1841,32 +1966,32 @@ func (ac *AdminController) testOTAConfig(cfg models.Config) (ok bool, message st
 	defer cancel()
 	conn, _, err := websocket.DefaultDialer.DialContext(ctx, wsURL, header)
 	if err != nil {
-		return false, "WebSocket 连接失败: " + err.Error(), firstPacketMs + time.Since(wsT0).Milliseconds(), otaResponseBody
+		return false, "Kết nối WebSocket thất bại: " + err.Error(), firstPacketMs + time.Since(wsT0).Milliseconds(), otaResponseBody
 	}
 	conn.Close()
 	wsTotalMs := firstPacketMs + time.Since(wsT0).Milliseconds()
-	return true, "OTA 与 WebSocket 均正常", wsTotalMs, otaResponseBody
+	return true, "OTA và WebSocket đều bình thường", wsTotalMs, otaResponseBody
 }
 
-// testOTAConfigWithMQTTUDP 扩展的OTA测试，支持WebSocket和MQTT UDP双测试
-// 返回完整的测试结果结构
+// testOTAConfigWithMQTTUDP mở rộng kiểm tra OTA, hỗ trợ kiểm tra WebSocket và MQTT UDP.
+// Trả về cấu trúc kết quả kiểm tra đầy đủ.
 func (ac *AdminController) testOTAConfigWithMQTTUDP(cfg models.Config) OTATestResult {
 	result := OTATestResult{
-		WebSocket: OTATestItem{Ok: false, Message: "测试失败", FirstPacketMs: 0},
+		WebSocket: OTATestItem{Ok: false, Message: "Kiểm tra thất bại", FirstPacketMs: 0},
 	}
 
-	// 解析配置
+	// Phân tích cấu hình.
 	if cfg.JsonData == "" {
-		result.WebSocket = OTATestItem{Ok: false, Message: "配置为空", FirstPacketMs: 0}
+		result.WebSocket = OTATestItem{Ok: false, Message: "Cấu hình trống", FirstPacketMs: 0}
 		return result
 	}
 	var data map[string]interface{}
 	if err := json.Unmarshal([]byte(cfg.JsonData), &data); err != nil {
-		result.WebSocket = OTATestItem{Ok: false, Message: "配置解析失败", FirstPacketMs: 0}
+		result.WebSocket = OTATestItem{Ok: false, Message: "Phân tích cấu hình thất bại", FirstPacketMs: 0}
 		return result
 	}
 
-	// 获取WebSocket URL（优先external，为空则尝试test）
+	// Lấy WebSocket URL, ưu tiên external, nếu trống thì thử test.
 	wsURLFromConfig := ""
 	if ext, _ := data["external"].(map[string]interface{}); ext != nil {
 		if ws, _ := ext["websocket"].(map[string]interface{}); ws != nil {
@@ -1881,11 +2006,11 @@ func (ac *AdminController) testOTAConfigWithMQTTUDP(cfg models.Config) OTATestRe
 		}
 	}
 	if wsURLFromConfig == "" {
-		result.WebSocket = OTATestItem{Ok: false, Message: "未配置 WebSocket URL", FirstPacketMs: 0}
+		result.WebSocket = OTATestItem{Ok: false, Message: "Chưa cấu hình WebSocket URL", FirstPacketMs: 0}
 		return result
 	}
 
-	// 确定使用哪个环境的配置（根据WebSocket URL来源）
+	// Xác định cấu hình môi trường cần dùng theo nguồn WebSocket URL.
 	var envConfig map[string]interface{}
 	if ext, _ := data["external"].(map[string]interface{}); ext != nil {
 		if ws, _ := ext["websocket"].(map[string]interface{}); ws != nil {
@@ -1904,7 +2029,7 @@ func (ac *AdminController) testOTAConfigWithMQTTUDP(cfg models.Config) OTATestRe
 		}
 	}
 
-	// 检查是否启用MQTT UDP测试
+	// Kiểm tra có bật kiểm tra MQTT UDP hay không.
 	var mqttEnabled bool
 	if envConfig != nil {
 		if mqtt, _ := envConfig["mqtt"].(map[string]interface{}); mqtt != nil {
@@ -1914,10 +2039,10 @@ func (ac *AdminController) testOTAConfigWithMQTTUDP(cfg models.Config) OTATestRe
 		}
 	}
 
-	// 构建OTA HTTP URL
+	// Dựng OTA HTTP URL.
 	parsed, err := url.Parse(wsURLFromConfig)
 	if err != nil {
-		result.WebSocket = OTATestItem{Ok: false, Message: "URL 解析失败", FirstPacketMs: 0}
+		result.WebSocket = OTATestItem{Ok: false, Message: "Phân tích URL thất bại", FirstPacketMs: 0}
 		return result
 	}
 	scheme := "http"
@@ -1926,11 +2051,11 @@ func (ac *AdminController) testOTAConfigWithMQTTUDP(cfg models.Config) OTATestRe
 	}
 	otaHTTPURL := scheme + "://" + parsed.Host + otaHTTPPath
 
-	// 第一阶段：POST OTA HTTP接口
+	// Giai đoạn 1: POST API OTA HTTP.
 	t0 := time.Now()
 	req, err := http.NewRequest(http.MethodPost, otaHTTPURL, bytes.NewBuffer([]byte("{}")))
 	if err != nil {
-		result.WebSocket = OTATestItem{Ok: false, Message: "创建 OTA 请求失败", FirstPacketMs: time.Since(t0).Milliseconds()}
+		result.WebSocket = OTATestItem{Ok: false, Message: "Tạo yêu cầu OTA thất bại", FirstPacketMs: time.Since(t0).Milliseconds()}
 		return result
 	}
 	req.Header.Set("Device-ID", otaTestDeviceID)
@@ -1939,7 +2064,7 @@ func (ac *AdminController) testOTAConfigWithMQTTUDP(cfg models.Config) OTATestRe
 	httpClient := &http.Client{Timeout: 5 * time.Second}
 	resp, err := httpClient.Do(req)
 	if err != nil {
-		result.WebSocket = OTATestItem{Ok: false, Message: "OTA 请求失败: " + err.Error(), FirstPacketMs: time.Since(t0).Milliseconds()}
+		result.WebSocket = OTATestItem{Ok: false, Message: "Yêu cầu OTA thất bại: " + err.Error(), FirstPacketMs: time.Since(t0).Milliseconds()}
 		return result
 	}
 	defer resp.Body.Close()
@@ -1947,25 +2072,25 @@ func (ac *AdminController) testOTAConfigWithMQTTUDP(cfg models.Config) OTATestRe
 	httpMs := time.Since(t0).Milliseconds()
 
 	if resp.StatusCode != http.StatusOK {
-		result.WebSocket = OTATestItem{Ok: false, Message: "OTA 返回 HTTP " + strconv.Itoa(resp.StatusCode), FirstPacketMs: httpMs}
+		result.WebSocket = OTATestItem{Ok: false, Message: "OTA trả về HTTP " + strconv.Itoa(resp.StatusCode), FirstPacketMs: httpMs}
 		return result
 	}
 
 	var otaResp map[string]interface{}
 	if err := json.Unmarshal(body, &otaResp); err != nil {
-		result.WebSocket = OTATestItem{Ok: false, Message: "OTA 响应非 JSON", FirstPacketMs: httpMs}
+		result.WebSocket = OTATestItem{Ok: false, Message: "Phản hồi OTA không phải JSON", FirstPacketMs: httpMs}
 		return result
 	}
 
-	// 第二阶段：WebSocket测试
+	// Giai đoạn 2: kiểm tra WebSocket.
 	wsObj, _ := otaResp["websocket"].(map[string]interface{})
 	if wsObj == nil {
-		result.WebSocket = OTATestItem{Ok: false, Message: "OTA 响应中无 websocket 字段", FirstPacketMs: httpMs}
+		result.WebSocket = OTATestItem{Ok: false, Message: "Phản hồi OTA thiếu trường websocket", FirstPacketMs: httpMs}
 		return result
 	}
 	wsURL, _ := wsObj["url"].(string)
 	if wsURL == "" {
-		result.WebSocket = OTATestItem{Ok: false, Message: "OTA 响应中无 websocket.url", FirstPacketMs: httpMs}
+		result.WebSocket = OTATestItem{Ok: false, Message: "Phản hồi OTA thiếu websocket.url", FirstPacketMs: httpMs}
 		return result
 	}
 
@@ -1977,31 +2102,31 @@ func (ac *AdminController) testOTAConfigWithMQTTUDP(cfg models.Config) OTATestRe
 	defer cancel()
 	conn, _, err := websocket.DefaultDialer.DialContext(ctx, wsURL, header)
 	if err != nil {
-		result.WebSocket = OTATestItem{Ok: false, Message: "WebSocket 连接失败: " + err.Error(), FirstPacketMs: httpMs + time.Since(wsT0).Milliseconds()}
+		result.WebSocket = OTATestItem{Ok: false, Message: "Kết nối WebSocket thất bại: " + err.Error(), FirstPacketMs: httpMs + time.Since(wsT0).Milliseconds()}
 		return result
 	}
 	conn.Close()
 	wsTotalMs := httpMs + time.Since(wsT0).Milliseconds()
-	result.WebSocket = OTATestItem{Ok: true, Message: "WebSocket 连接正常", FirstPacketMs: wsTotalMs}
+	result.WebSocket = OTATestItem{Ok: true, Message: "Kết nối WebSocket bình thường", FirstPacketMs: wsTotalMs}
 
-	// 保存OTA响应体（用于前端显示）
+	// Lưu body phản hồi OTA để frontend hiển thị.
 	result.OTAResponse = string(body)
 
-	// 第三阶段：MQTT UDP测试（如果启用）
-	// 参考 test/mqtt_udp 逻辑：从OTA响应获取MQTT配置，发送hello，等待响应，测试UDP
+	// Giai đoạn 3: kiểm tra MQTT UDP nếu bật.
+	// Theo logic test/mqtt_udp: lấy cấu hình MQTT từ phản hồi OTA, gửi hello, chờ phản hồi và kiểm tra UDP.
 	if mqttEnabled {
-		// 从OTA响应中获取MQTT配置
+		// Lấy cấu hình MQTT từ phản hồi OTA.
 		mqttObj, hasMQTT := otaResp["mqtt"].(map[string]interface{})
 		if !hasMQTT {
 			result.MQTTUDP = &OTATestItem{
 				Ok:            false,
-				Message:       "OTA响应未返回MQTT配置，无法测试MQTT UDP",
+				Message:       "Phản hồi OTA không trả về cấu hình MQTT, không thể kiểm tra MQTT UDP",
 				FirstPacketMs: 0,
 			}
 			return result
 		}
 
-		// 解析MQTT配置字段
+		// Phân tích các trường cấu hình MQTT.
 		endpoint, _ := mqttObj["endpoint"].(string)
 		clientID, _ := mqttObj["client_id"].(string)
 		username, _ := mqttObj["username"].(string)
@@ -2009,24 +2134,24 @@ func (ac *AdminController) testOTAConfigWithMQTTUDP(cfg models.Config) OTATestRe
 		publishTopic, _ := mqttObj["publish_topic"].(string)
 		subscribeTopic, _ := mqttObj["subscribe_topic"].(string)
 
-		// 验证必要字段（不需要校验 subscribe_topic）
+		// Kiểm tra trường bắt buộc, không cần kiểm tra subscribe_topic.
 		if endpoint == "" {
-			result.MQTTUDP = &OTATestItem{Ok: false, Message: "OTA响应中MQTT endpoint为空", FirstPacketMs: 0}
+			result.MQTTUDP = &OTATestItem{Ok: false, Message: "MQTT endpoint trong phản hồi OTA trống", FirstPacketMs: 0}
 			return result
 		}
 		if publishTopic == "" {
-			result.MQTTUDP = &OTATestItem{Ok: false, Message: "OTA响应中MQTT publish_topic为空", FirstPacketMs: 0}
+			result.MQTTUDP = &OTATestItem{Ok: false, Message: "MQTT publish_topic trong phản hồi OTA trống", FirstPacketMs: 0}
 			return result
 		}
 
-		// 构建MQTT测试配置
+		// Dựng cấu hình kiểm tra MQTT.
 		otaMqttConfig := &MQTTUDPTestConfig{
 			Endpoint:       endpoint,
 			ClientID:       clientID,
 			Username:       username,
 			Password:       password,
 			PublishTopic:   publishTopic,
-			SubscribeTopic: subscribeTopic, // 保留但不校验，可能用于日志
+			SubscribeTopic: subscribeTopic, // Giữ lại nhưng không kiểm tra, có thể dùng cho log
 		}
 
 		mqttOK, mqttMsg, mqttMs := testMQTTUDPConfig(*otaMqttConfig)
@@ -2040,21 +2165,21 @@ func (ac *AdminController) testOTAConfigWithMQTTUDP(cfg models.Config) OTATestRe
 	return result
 }
 
-// generateMQTTUsername 生成MQTT用户名
+// generateMQTTUsername tạo username MQTT.
 func generateMQTTUsername(deviceID, signatureKey string) string {
 	h := hmac.New(sha256.New, []byte(signatureKey))
 	h.Write([]byte(deviceID + "-username"))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// generateMQTTPassword 生成MQTT密码
+// generateMQTTPassword tạo password MQTT.
 func generateMQTTPassword(deviceID, signatureKey string) string {
 	h := hmac.New(sha256.New, []byte(signatureKey))
 	h.Write([]byte(deviceID + "-password"))
 	return hex.EncodeToString(h.Sum(nil))
 }
 
-// GetConfigs 获取所有配置列表
+// GetConfigs lấy danh sách toàn bộ cấu hình.
 func (ac *AdminController) GetConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Find(&configs).Error; err != nil {
@@ -2064,7 +2189,7 @@ func (ac *AdminController) GetConfigs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": configs})
 }
 
-// GetConfig 获取单个配置
+// GetConfig lấy một cấu hình.
 func (ac *AdminController) GetConfig(c *gin.Context) {
 	id := c.Param("id")
 	var config models.Config
@@ -2097,16 +2222,16 @@ func (ac *AdminController) CreateConfig(c *gin.Context) {
 		return
 	}
 
-	// 检查是否已存在Memory配置
+	// Kiểm tra đã tồn tại cấu hình Memory hay chưa.
 	var existingCount int64
 	ac.DB.Model(&models.Config{}).Where("type = ?", "memory").Count(&existingCount)
 
-	// 如果不存在任何Memory配置，自动设置为默认配置
+	// Nếu chưa có cấu hình Memory nào, tự động đặt làm mặc định.
 	if existingCount == 0 {
 		config.IsDefault = true
 	}
 
-	// 如果设置为默认配置，先取消其他同类型的默认配置
+	// Nếu đặt làm mặc định, hủy mặc định của cấu hình cùng loại trước.
 	if config.IsDefault {
 		ac.DB.Model(&models.Config{}).Where("type = ? AND is_default = ?", config.Type, true).Update("is_default", false)
 	}
@@ -2135,12 +2260,12 @@ func (ac *AdminController) UpdateConfig(c *gin.Context) {
 		return
 	}
 
-	// 如果设置为默认配置，先取消其他同类型的默认配置
+	// Nếu đặt làm mặc định, hủy mặc định của cấu hình cùng loại trước.
 	if updateData.IsDefault {
 		ac.DB.Model(&models.Config{}).Where("type = ? AND is_default = ? AND id != ?", config.Type, true, id).Update("is_default", false)
 	}
 
-	// 更新配置
+	// Cập nhật cấu hình.
 	config.Name = updateData.Name
 	config.Provider = updateData.Provider
 	config.JsonData = updateData.JsonData
@@ -2166,7 +2291,7 @@ func (ac *AdminController) DeleteConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
-// 设置默认配置
+// Đặt cấu hình mặc định.
 func (ac *AdminController) SetDefaultConfig(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var config models.Config
@@ -2176,10 +2301,10 @@ func (ac *AdminController) SetDefaultConfig(c *gin.Context) {
 		return
 	}
 
-	// 先取消其他同类型的默认配置
+	// Hủy mặc định của cấu hình cùng loại trước.
 	ac.DB.Model(&models.Config{}).Where("type = ? AND is_default = ?", config.Type, true).Update("is_default", false)
 
-	// 设置当前配置为默认
+	// Đặt cấu hình hiện tại làm mặc định.
 	config.IsDefault = true
 	if err := ac.DB.Save(&config).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đặt cấu hình mặc định thất bại"})
@@ -2190,7 +2315,7 @@ func (ac *AdminController) SetDefaultConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Đặt cấu hình mặc định thành công", "data": config})
 }
 
-// 获取默认配置
+// Lấy cấu hình mặc định.
 func (ac *AdminController) GetDefaultConfig(c *gin.Context) {
 	configType := c.Param("type")
 	var config models.Config
@@ -2203,7 +2328,7 @@ func (ac *AdminController) GetDefaultConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": config})
 }
 
-// GlobalRole管理
+// Quản lý GlobalRole.
 func (ac *AdminController) GetGlobalRoles(c *gin.Context) {
 	var roles []models.GlobalRole
 	if err := ac.DB.Find(&roles).Error; err != nil {
@@ -2259,7 +2384,7 @@ func (ac *AdminController) DeleteGlobalRole(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
-// 用户管理
+// Quản lý người dùng.
 func (ac *AdminController) GetUsers(c *gin.Context) {
 	var users []models.User
 	if err := ac.DB.Find(&users).Error; err != nil {
@@ -2270,11 +2395,11 @@ func (ac *AdminController) GetUsers(c *gin.Context) {
 }
 
 func (ac *AdminController) CreateUser(c *gin.Context) {
-	// 添加明显的调试标记
-	log.Println("=== [CreateUser] 方法开始执行 ===")
-	log.Println("=== [CreateUser] 这是CreateUser方法的开始 ===")
+	// Thêm dấu hiệu debug rõ ràng.
+	log.Println("=== [CreateUser] Bắt đầu thực thi phương thức ===")
+	log.Println("=== [CreateUser] Đây là điểm bắt đầu của CreateUser ===")
 
-	// 由于User模型的Password字段使用了json:"-"标签，需要手动解析
+	// Vì trường Password của model User dùng tag json:"-", cần phân tích thủ công.
 	var requestData struct {
 		Username string `json:"username"`
 		Email    string `json:"email"`
@@ -2282,62 +2407,62 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 		Role     string `json:"role"`
 	}
 
-	// 直接尝试绑定到map以查看原始数据
+	// Bind trực tiếp vào map để xem dữ liệu gốc.
 	var rawMap map[string]interface{}
 	if err := c.ShouldBindJSON(&rawMap); err != nil {
-		log.Printf("[CreateUser] 绑定到map失败: %v", err)
+		log.Printf("[CreateUser] Bind vào map thất bại: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Phân tích JSON thất bại"})
 		return
 	}
-	log.Printf("[CreateUser] 原始JSON数据: %+v", rawMap)
+	log.Printf("[CreateUser] Dữ liệu JSON gốc: %+v", rawMap)
 
-	// 手动提取字段
+	// Trích trường thủ công.
 	username, _ := rawMap["username"].(string)
 	email, _ := rawMap["email"].(string)
 	password, _ := rawMap["password"].(string)
 	role, _ := rawMap["role"].(string)
 
-	// 更新requestData
+	// Cập nhật requestData.
 	requestData.Username = username
 	requestData.Email = email
 	requestData.Password = password
 	requestData.Role = role
 
-	// 验证必要字段
+	// Kiểm tra trường bắt buộc.
 	if requestData.Username == "" || requestData.Email == "" || requestData.Password == "" {
-		log.Printf("[CreateUser] 缺少必要字段: username=%s, email=%s, password长度=%d",
+		log.Printf("[CreateUser] Thiếu trường bắt buộc: username=%s, email=%s, độ dài password=%d",
 			requestData.Username, requestData.Email, len(requestData.Password))
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên đăng nhập, email và mật khẩu là các trường bắt buộc"})
 		return
 	}
 
-	log.Printf("[CreateUser] 接收到用户创建请求 - 用户名: %s, 邮箱: %s, 角色: %s", requestData.Username, requestData.Email, requestData.Role)
-	log.Printf("[CreateUser] 原始密码长度: %d", len(requestData.Password))
-	log.Printf("[CreateUser] 原始密码内容: %s", requestData.Password)
+	log.Printf("[CreateUser] Nhận yêu cầu tạo người dùng - username: %s, email: %s, role: %s", requestData.Username, requestData.Email, requestData.Role)
+	log.Printf("[CreateUser] Độ dài mật khẩu gốc: %d", len(requestData.Password))
+	log.Printf("[CreateUser] Nội dung mật khẩu gốc: %s", requestData.Password)
 
-	// 检查用户名是否已存在
+	// Kiểm tra username đã tồn tại hay chưa.
 	var existingUser models.User
 	err := ac.DB.Where("username = ?", requestData.Username).First(&existingUser).Error
 	if err == nil {
 		// Tên đăng nhập đã tồn tại
-		log.Printf("[CreateUser] 用户名 %s 已存在", requestData.Username)
+		log.Printf("[CreateUser] Username %s đã tồn tại", requestData.Username)
 		c.JSON(http.StatusConflict, gin.H{"error": "Tên đăng nhập đã tồn tại"})
 		return
 	} else if !errors.Is(err, gorm.ErrRecordNotFound) {
-		// 数据库查询出错
-		log.Printf("[CreateUser] 数据库查询失败: %v", err)
+		// Truy vấn cơ sở dữ liệu lỗi.
+		log.Printf("[CreateUser] Truy vấn cơ sở dữ liệu thất bại: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo người dùng thất bại"})
 		return
 	}
 
-	// Người dùng không tồn tại，创建新用户
-	log.Printf("[CreateUser] 创建新用户: %s", requestData.Username)
+	// Người dùng không tồn tại, tạo người dùng mới.
+	log.Printf("[CreateUser] Tạo người dùng mới: %s", requestData.Username)
 	var user models.User
 	user.Username = requestData.Username
 	user.Email = requestData.Email
 	user.Role = requestData.Role
 
-	// 加密密码
+	// Mã hóa mật khẩu.
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(requestData.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("[CreateUser] Mã hóa mật khẩu thất bại: %v", err)
@@ -2345,17 +2470,17 @@ func (ac *AdminController) CreateUser(c *gin.Context) {
 		return
 	}
 	user.Password = string(hashedPassword)
-	log.Printf("[CreateUser] 密码加密成功 - 哈希长度: %d, 哈希前缀: %s", len(user.Password), user.Password[:10])
+	log.Printf("[CreateUser] Mã hóa mật khẩu thành công - độ dài hash: %d, tiền tố hash: %s", len(user.Password), user.Password[:10])
 
 	if err := ac.DB.Create(&user).Error; err != nil {
-		log.Printf("[CreateUser] 数据库Tạo người dùng thất bại: %v", err)
+		log.Printf("[CreateUser] Tạo người dùng trong cơ sở dữ liệu thất bại: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo người dùng thất bại"})
 		return
 	}
 
-	log.Printf("[CreateUser] 用户创建成功 - ID: %d, 用户名: %s", user.ID, user.Username)
+	log.Printf("[CreateUser] Tạo người dùng thành công - ID: %d, username: %s", user.ID, user.Username)
 
-	// 不返回密码
+	// Không trả về mật khẩu.
 	user.Password = ""
 	c.JSON(http.StatusCreated, gin.H{"data": user})
 }
@@ -2375,7 +2500,7 @@ func (ac *AdminController) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// 如果更新密码，需要加密
+	// Nếu cập nhật mật khẩu thì cần mã hóa.
 	if password, ok := updateData["password"]; ok && password != "" {
 		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password.(string)), bcrypt.DefaultCost)
 		if err != nil {
@@ -2390,7 +2515,7 @@ func (ac *AdminController) UpdateUser(c *gin.Context) {
 		return
 	}
 
-	// 重新查询用户信息（不包含密码）
+	// Truy vấn lại thông tin người dùng, không gồm mật khẩu.
 	ac.DB.First(&user, id)
 	user.Password = ""
 	c.JSON(http.StatusOK, gin.H{"data": user})
@@ -2405,7 +2530,7 @@ func (ac *AdminController) DeleteUser(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
-// 重置用户密码
+// Đặt lại mật khẩu người dùng.
 func (ac *AdminController) ResetUserPassword(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 
@@ -2418,7 +2543,7 @@ func (ac *AdminController) ResetUserPassword(c *gin.Context) {
 		return
 	}
 
-	// 查找用户
+	// Tìm người dùng.
 	var user models.User
 	if err := ac.DB.First(&user, id).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -2429,7 +2554,7 @@ func (ac *AdminController) ResetUserPassword(c *gin.Context) {
 		return
 	}
 
-	// 加密新密码
+	// Mã hóa mật khẩu mới.
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(requestData.NewPassword), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("[ResetUserPassword] Mã hóa mật khẩu thất bại: %v", err)
@@ -2437,14 +2562,14 @@ func (ac *AdminController) ResetUserPassword(c *gin.Context) {
 		return
 	}
 
-	// 更新用户密码
+	// Cập nhật mật khẩu người dùng.
 	if err := ac.DB.Model(&user).Update("password", string(hashedPassword)).Error; err != nil {
-		log.Printf("[ResetUserPassword] 更新密码失败: %v", err)
+		log.Printf("[ResetUserPassword] Cập nhật mật khẩu thất bại: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đặt lại mật khẩu thất bại"})
 		return
 	}
 
-	log.Printf("[ResetUserPassword] 管理员重置用户密码成功 - 用户ID: %d, 用户名: %s", user.ID, user.Username)
+	log.Printf("[ResetUserPassword] Quản trị viên đặt lại mật khẩu thành công - userID: %d, username: %s", user.ID, user.Username)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Đặt lại mật khẩu thành công",
 		"data": gin.H{
@@ -2454,7 +2579,7 @@ func (ac *AdminController) ResetUserPassword(c *gin.Context) {
 	})
 }
 
-// GetUserVoiceCloneQuotas 获取用户声音复刻额度（按 tts_config_id 维度）
+// GetUserVoiceCloneQuotas lấy hạn mức clone giọng của người dùng theo tts_config_id.
 func (ac *AdminController) GetUserVoiceCloneQuotas(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
@@ -2542,7 +2667,7 @@ func (ac *AdminController) GetUserVoiceCloneQuotas(c *gin.Context) {
 		})
 	}
 
-	// 保留已删除的历史配置额度，避免“额度配置丢失不可见”
+	// Giữ hạn mức cấu hình lịch sử đã xóa để tránh mất hiển thị hạn mức.
 	for _, quota := range quotas {
 		if configIDSet[quota.TTSConfigID] {
 			continue
@@ -2561,7 +2686,7 @@ func (ac *AdminController) GetUserVoiceCloneQuotas(c *gin.Context) {
 		}
 		result = append(result, gin.H{
 			"tts_config_id":   quota.TTSConfigID,
-			"tts_config_name": "(已删除配置)",
+			"tts_config_name": "(Cấu hình đã xóa)",
 			"provider":        "",
 			"enabled":         false,
 			"max_count":       maxCount,
@@ -2578,7 +2703,7 @@ func (ac *AdminController) GetUserVoiceCloneQuotas(c *gin.Context) {
 	}})
 }
 
-// UpdateUserVoiceCloneQuotas 批量更新用户声音复刻额度
+// UpdateUserVoiceCloneQuotas cập nhật hàng loạt hạn mức clone giọng của người dùng.
 func (ac *AdminController) UpdateUserVoiceCloneQuotas(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil || id <= 0 {
@@ -2646,7 +2771,7 @@ func (ac *AdminController) UpdateUserVoiceCloneQuotas(c *gin.Context) {
 		if validConfigIDSet[configID] {
 			continue
 		}
-		// 历史已删除配置仅允许设置为 -1（删除额度记录）
+		// Cấu hình lịch sử đã xóa chỉ được đặt -1 để xóa bản ghi hạn mức.
 		if itemByConfigID[configID] == -1 {
 			continue
 		}
@@ -2722,7 +2847,7 @@ func (ac *AdminController) UpdateUserVoiceCloneQuotas(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Cập nhật hạn mức thành công"})
 }
 
-// GetUserVoiceOptionsAdmin 获取指定用户可用音色，供管理员创建/编辑智能体时使用。
+// GetUserVoiceOptionsAdmin lấy giọng khả dụng của người dùng chỉ định cho quản trị viên tạo/sửa trợ lý.
 func (ac *AdminController) GetUserVoiceOptionsAdmin(c *gin.Context) {
 	userID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -2748,7 +2873,7 @@ func (ac *AdminController) GetUserVoiceOptionsAdmin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": voices})
 }
 
-// GetUserVoiceClonesAdmin 获取指定用户的复刻音色，供管理员创建/编辑智能体时使用。
+// GetUserVoiceClonesAdmin lấy clone giọng của người dùng chỉ định cho quản trị viên tạo/sửa trợ lý.
 func (ac *AdminController) GetUserVoiceClonesAdmin(c *gin.Context) {
 	userID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -2762,7 +2887,7 @@ func (ac *AdminController) GetUserVoiceClonesAdmin(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": clones})
 }
 
-// 设备管理
+// Quản lý thiết bị
 func (ac *AdminController) GetDevices(c *gin.Context) {
 	devices, err := NewDeviceService(ac.DB).List(scopeFromContext(c))
 	if err != nil {
@@ -2772,7 +2897,7 @@ func (ac *AdminController) GetDevices(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": devices})
 }
 
-// 验证设备代码是否存在
+// Kiểm tra mã thiết bị có tồn tại hay không.
 func (ac *AdminController) ValidateDeviceCode(c *gin.Context) {
 	deviceCode := c.Query("code")
 	if deviceCode == "" {
@@ -2800,7 +2925,7 @@ func (ac *AdminController) CreateDevice(c *gin.Context) {
 	}
 	device, err := NewDeviceService(ac.DB).Create(scopeFromContext(c), req)
 	if err != nil {
-		writeServiceError(c, err, "创建设备失败")
+		writeServiceError(c, err, "Tạo thiết bị thất bại")
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{
@@ -2821,7 +2946,7 @@ func (ac *AdminController) UpdateDevice(c *gin.Context) {
 	}
 	device, err := NewDeviceService(ac.DB).Update(scopeFromContext(c), id, req)
 	if err != nil {
-		writeServiceError(c, err, "更新设备失败")
+		writeServiceError(c, err, "Cập nhật thiết bị thất bại")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": device})
@@ -2833,13 +2958,13 @@ func (ac *AdminController) DeleteDevice(c *gin.Context) {
 		return
 	}
 	if err := NewDeviceService(ac.DB).Delete(scopeFromContext(c), id); err != nil {
-		writeServiceError(c, err, "删除设备失败")
+		writeServiceError(c, err, "Xóa thiết bị thất bại")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
-// 智能体管理
+// Quản lý trợ lý
 func (ac *AdminController) GetAgents(c *gin.Context) {
 	result, err := NewAgentService(ac.DB).List(scopeFromContext(c))
 	if err != nil {
@@ -2849,7 +2974,7 @@ func (ac *AdminController) GetAgents(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// GetDeviceMcpTools 获取设备维度MCP工具列表（管理员版本）
+// GetDeviceMcpTools lấy danh sách công cụ MCP theo thiết bị (bản quản trị viên).
 func (ac *AdminController) GetDeviceMcpTools(c *gin.Context) {
 	deviceID := c.Param("id")
 	if deviceID == "" {
@@ -2872,7 +2997,7 @@ func (ac *AdminController) GetDeviceMcpTools(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"tools": tools}})
 }
 
-// CallAgentMcpTool 调用智能体维度MCP工具（管理员版本）
+// CallAgentMcpTool gọi công cụ MCP theo trợ lý (bản quản trị viên).
 func (ac *AdminController) CallAgentMcpTool(c *gin.Context) {
 	agentID := c.Param("id")
 	var req struct {
@@ -2904,7 +3029,7 @@ func (ac *AdminController) CallAgentMcpTool(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// CallDeviceMcpTool 调用设备维度MCP工具（管理员版本）
+// CallDeviceMcpTool gọi công cụ MCP theo thiết bị (bản quản trị viên).
 func (ac *AdminController) CallDeviceMcpTool(c *gin.Context) {
 	deviceID := c.Param("id")
 	var req struct {
@@ -2936,7 +3061,7 @@ func (ac *AdminController) CallDeviceMcpTool(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// GetAgentMCPEndpoint 获取智能体的MCP接入点URL
+// GetAgentMCPEndpoint lấy URL endpoint MCP của trợ lý.
 func (ac *AdminController) GetAgentMCPEndpoint(c *gin.Context) {
 	agentID := c.Param("id")
 	if agentID == "" {
@@ -2944,7 +3069,7 @@ func (ac *AdminController) GetAgentMCPEndpoint(c *gin.Context) {
 		return
 	}
 
-	// 从JWT中间件获取当前用户ID
+	// Lấy ID người dùng hiện tại từ JWT middleware.
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Người dùng chưa được xác thực"})
@@ -2956,18 +3081,18 @@ func (ac *AdminController) GetAgentMCPEndpoint(c *gin.Context) {
 		return
 	}
 
-	// 使用公共函数生成MCP接入点
+	// Dùng hàm chung để tạo endpoint MCP.
 	endpoint, err := GenerateAgentMCPEndpoint(ac.DB, agentID, userID, ac.EndpointAuthToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	// 返回单个endpoint字符串
+	// Trả về một chuỗi endpoint.
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"endpoint": endpoint}})
 }
 
-// GetAgentOpenClawEndpoint 获取智能体的OpenClaw接入点URL
+// GetAgentOpenClawEndpoint lấy URL endpoint OpenClaw của trợ lý.
 func (ac *AdminController) GetAgentOpenClawEndpoint(c *gin.Context) {
 	agentID := c.Param("id")
 	if agentID == "" {
@@ -2975,7 +3100,7 @@ func (ac *AdminController) GetAgentOpenClawEndpoint(c *gin.Context) {
 		return
 	}
 
-	// 从JWT中间件获取当前用户ID
+	// Lấy ID người dùng hiện tại từ JWT middleware.
 	userIDInterface, exists := c.Get("user_id")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Người dùng chưa được xác thực"})
@@ -3034,7 +3159,7 @@ func (ac *AdminController) GetAgentOpenClawEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
-// CallAgentOpenClawChatTest 调用智能体 OpenClaw 对话测试（管理员版本）
+// CallAgentOpenClawChatTest gọi kiểm tra hội thoại OpenClaw của trợ lý (bản quản trị viên).
 func (ac *AdminController) CallAgentOpenClawChatTest(c *gin.Context) {
 	agentID := c.Param("id")
 	if agentID == "" {
@@ -3134,13 +3259,13 @@ func (ac *AdminController) CallAgentOpenClawChatTest(c *gin.Context) {
 	if err != nil {
 		msg := err.Error()
 		switch {
-		case strings.Contains(strings.ToLower(msg), "not connected"), strings.Contains(msg, "未连接"):
+		case strings.Contains(strings.ToLower(msg), "not connected"), strings.Contains(msg, "chưa kết nối"):
 			c.JSON(http.StatusConflict, gin.H{"error": msg})
-		case strings.Contains(strings.ToLower(msg), "timeout"), strings.Contains(msg, "超时"):
+		case strings.Contains(strings.ToLower(msg), "timeout"), strings.Contains(msg, "timeout"):
 			c.JSON(http.StatusGatewayTimeout, gin.H{"error": msg})
-		case strings.Contains(strings.ToLower(msg), "missing"), strings.Contains(msg, "参数"):
+		case strings.Contains(strings.ToLower(msg), "missing"), strings.Contains(msg, "tham số"):
 			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		case strings.Contains(msg, "没有连接的客户端"):
+		case strings.Contains(msg, "không có client đang kết nối"):
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": msg})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Kiểm tra hội thoại OpenClaw thất bại: " + msg})
@@ -3151,11 +3276,11 @@ func (ac *AdminController) CallAgentOpenClawChatTest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// GetAgentMcpTools 获取智能体的MCP工具列表
+// GetAgentMcpTools lấy danh sách công cụ MCP của trợ lý.
 func (ac *AdminController) GetAgentMcpTools(c *gin.Context) {
 	agentID := c.Param("id")
 
-	// 管理员验证函数：验证智能体是否存在（管理员可以查看任意用户的智能体）
+	// Hàm xác thực quản trị viên: kiểm tra trợ lý tồn tại.
 	adminAgentValidator := func(agentID string) error {
 		var agent models.Agent
 		if err := ac.DB.Where("id = ?", agentID).First(&agent).Error; err != nil {
@@ -3164,7 +3289,7 @@ func (ac *AdminController) GetAgentMcpTools(c *gin.Context) {
 		return nil
 	}
 
-	// 使用公共函数
+	// Dùng hàm chung.
 	GetAgentMcpToolsCommon(c, agentID, ac.WebSocketController, adminAgentValidator)
 }
 
@@ -3176,7 +3301,7 @@ func (ac *AdminController) CreateAgent(c *gin.Context) {
 	}
 	agent, err := NewAgentService(ac.DB).Create(scopeFromContext(c), req)
 	if err != nil {
-		writeServiceError(c, err, "创建智能体失败")
+		writeServiceError(c, err, "Tạo trợ lý thất bại")
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"data": agent})
@@ -3194,7 +3319,7 @@ func (ac *AdminController) UpdateAgent(c *gin.Context) {
 	}
 	agent, err := NewAgentService(ac.DB).Update(scopeFromContext(c), id, req)
 	if err != nil {
-		writeServiceError(c, err, "更新智能体失败")
+		writeServiceError(c, err, "Cập nhật trợ lý thất bại")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": agent})
@@ -3206,13 +3331,13 @@ func (ac *AdminController) DeleteAgent(c *gin.Context) {
 		return
 	}
 	if err := NewAgentService(ac.DB).Delete(scopeFromContext(c), id); err != nil {
-		writeServiceError(c, err, "删除智能体失败")
+		writeServiceError(c, err, "Xóa trợ lý thất bại")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
-// VAD配置管理（兼容前端）
+// Quản lý cấu hình VAD, tương thích frontend.
 func (ac *AdminController) GetVADConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "vad").Find(&configs).Error; err != nil {
@@ -3240,7 +3365,7 @@ func (ac *AdminController) DeleteVADConfig(c *gin.Context) {
 	ac.deleteConfigWithType(c, "vad")
 }
 
-// ASR配置管理（兼容前端）
+// Quản lý cấu hình ASR, tương thích frontend.
 func (ac *AdminController) GetASRConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "asr").Find(&configs).Error; err != nil {
@@ -3268,7 +3393,7 @@ func (ac *AdminController) DeleteASRConfig(c *gin.Context) {
 	ac.deleteConfigWithType(c, "asr")
 }
 
-// LLM配置管理（兼容前端）
+// Quản lý cấu hình LLM, tương thích frontend.
 func (ac *AdminController) GetLLMConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "llm").Find(&configs).Error; err != nil {
@@ -3296,7 +3421,7 @@ func (ac *AdminController) DeleteLLMConfig(c *gin.Context) {
 	ac.deleteConfigWithType(c, "llm")
 }
 
-// TTS配置管理（兼容前端）
+// Quản lý cấu hình TTS, tương thích frontend.
 func (ac *AdminController) GetTTSConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "tts").Find(&configs).Error; err != nil {
@@ -3324,7 +3449,7 @@ func (ac *AdminController) DeleteTTSConfig(c *gin.Context) {
 	ac.deleteConfigWithType(c, "tts")
 }
 
-// Speaker配置管理（兼容前端）
+// Quản lý cấu hình Speaker, tương thích frontend.
 func (ac *AdminController) GetSpeakerConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "voice_identify").Find(&configs).Error; err != nil {
@@ -3341,9 +3466,9 @@ func (ac *AdminController) CreateSpeakerConfig(c *gin.Context) {
 		return
 	}
 	config.Type = "voice_identify"
-	// 声纹配置只有一个，自动设置为默认配置
+	// Chỉ có một cấu hình giọng, tự động đặt làm mặc định.
 	config.IsDefault = true
-	// 如果已存在配置，先删除旧的
+	// Nếu cấu hình đã tồn tại, xóa cấu hình cũ trước.
 	ac.DB.Where("type = ?", "voice_identify").Delete(&models.Config{})
 	ac.createConfigWithType(c, &config)
 }
@@ -3363,17 +3488,17 @@ func (ac *AdminController) UpdateSpeakerConfig(c *gin.Context) {
 		return
 	}
 
-	// 声纹配置只有一个，始终设置为默认配置
+	// Chỉ có một cấu hình giọng, luôn đặt làm mặc định.
 	updateData.IsDefault = true
 
-	// 更新配置
+	// Cập nhật cấu hình.
 	config.Name = updateData.Name
 	config.Provider = updateData.Provider
 	config.JsonData = updateData.JsonData
 	config.Enabled = updateData.Enabled
 	config.IsDefault = updateData.IsDefault
 
-	// 如果提供了新的config_id，则更新它
+	// Nếu cung cấp config_id mới thì cập nhật.
 	if updateData.ConfigID != "" {
 		config.ConfigID = updateData.ConfigID
 	}
@@ -3390,7 +3515,7 @@ func (ac *AdminController) DeleteSpeakerConfig(c *gin.Context) {
 	ac.deleteConfigWithType(c, "voice_identify")
 }
 
-// Vision配置管理（兼容前端）
+// Quản lý cấu hình Vision, tương thích frontend.
 func (ac *AdminController) GetVisionConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ? AND config_id != ?", "vision", "vision_base").Find(&configs).Error; err != nil {
@@ -3400,12 +3525,12 @@ func (ac *AdminController) GetVisionConfigs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": configs})
 }
 
-// GetVisionBaseConfig 获取Vision基础配置
+// GetVisionBaseConfig lấy cấu hình Vision cơ bản.
 func (ac *AdminController) GetVisionBaseConfig(c *gin.Context) {
 	var config models.Config
 	if err := ac.DB.Where("type = ? AND config_id = ?", "vision", "vision_base").First(&config).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// 如果没有找到基础配置，返回默认值
+			// Nếu không tìm thấy cấu hình cơ bản, trả về giá trị mặc định.
 			c.JSON(http.StatusOK, gin.H{"data": map[string]interface{}{
 				"enable_auth": false,
 				"vision_url":  "",
@@ -3425,7 +3550,7 @@ func (ac *AdminController) GetVisionBaseConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": configData})
 }
 
-// UpdateVisionBaseConfig 更新Vision基础配置
+// UpdateVisionBaseConfig cập nhật cấu hình Vision cơ bản.
 func (ac *AdminController) UpdateVisionBaseConfig(c *gin.Context) {
 	var requestData map[string]interface{}
 	if err := c.ShouldBindJSON(&requestData); err != nil {
@@ -3442,7 +3567,7 @@ func (ac *AdminController) UpdateVisionBaseConfig(c *gin.Context) {
 	var config models.Config
 	if err := ac.DB.Where("type = ? AND config_id = ?", "vision", "vision_base").First(&config).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
-			// 创建新的基础配置
+			// Tạo cấu hình cơ bản mới.
 			config = models.Config{
 				Type:      "vision",
 				Name:      "vision_base",
@@ -3461,7 +3586,7 @@ func (ac *AdminController) UpdateVisionBaseConfig(c *gin.Context) {
 			return
 		}
 	} else {
-		// 更新现有配置
+		// Cập nhật cấu hình hiện có.
 		config.JsonData = string(jsonData)
 		if err := ac.DB.Save(&config).Error; err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update Vision base config"})
@@ -3473,7 +3598,7 @@ func (ac *AdminController) UpdateVisionBaseConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Vision base config updated successfully"})
 }
 
-// GetChatSettings 获取聊天设置（auth.enable + chat.*）
+// GetChatSettings lấy cài đặt chat (auth.enable + chat.*).
 func (ac *AdminController) GetChatSettings(c *gin.Context) {
 	response := gin.H{
 		"auth": gin.H{
@@ -3523,7 +3648,7 @@ func (ac *AdminController) GetChatSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": response})
 }
 
-// UpdateChatSettings 更新聊天设置（auth.enable + chat.*）
+// UpdateChatSettings cập nhật cài đặt chat (auth.enable + chat.*).
 func (ac *AdminController) UpdateChatSettings(c *gin.Context) {
 	var req struct {
 		Auth struct {
@@ -3682,7 +3807,7 @@ func (ac *AdminController) DeleteVisionConfig(c *gin.Context) {
 	ac.deleteConfigWithType(c, "vision")
 }
 
-// OTA配置管理（兼容前端）
+// Quản lý cấu hình OTA, tương thích frontend.
 func (ac *AdminController) GetOTAConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "ota").Find(&configs).Error; err != nil {
@@ -3710,7 +3835,7 @@ func (ac *AdminController) DeleteOTAConfig(c *gin.Context) {
 	ac.deleteConfigWithType(c, "ota")
 }
 
-// MQTT配置管理（兼容前端）
+// Quản lý cấu hình MQTT, tương thích frontend.
 func (ac *AdminController) GetMQTTConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "mqtt").Find(&configs).Error; err != nil {
@@ -3738,7 +3863,7 @@ func (ac *AdminController) DeleteMQTTConfig(c *gin.Context) {
 	ac.deleteConfigWithType(c, "mqtt")
 }
 
-// MQTT Server配置管理（兼容前端）
+// Quản lý cấu hình MQTT Server, tương thích frontend.
 func (ac *AdminController) GetMQTTServerConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "mqtt_server").Find(&configs).Error; err != nil {
@@ -3766,7 +3891,7 @@ func (ac *AdminController) DeleteMQTTServerConfig(c *gin.Context) {
 	ac.deleteConfigWithType(c, "mqtt_server")
 }
 
-// UDP配置管理（兼容前端）
+// Quản lý cấu hình UDP, tương thích frontend.
 func (ac *AdminController) GetUDPConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "udp").Find(&configs).Error; err != nil {
@@ -3794,7 +3919,7 @@ func (ac *AdminController) DeleteUDPConfig(c *gin.Context) {
 	ac.deleteConfigWithType(c, "udp")
 }
 
-// ToggleConfigEnable 切换配置的启用状态
+// ToggleConfigEnable chuyển trạng thái bật/tắt cấu hình.
 func (ac *AdminController) ToggleConfigEnable(c *gin.Context) {
 	id, err := strconv.Atoi(c.Param("id"))
 	if err != nil {
@@ -3812,7 +3937,7 @@ func (ac *AdminController) ToggleConfigEnable(c *gin.Context) {
 		return
 	}
 
-	// 切换启用状态
+	// Chuyển trạng thái bật/tắt.
 	config.Enabled = !config.Enabled
 	if err := ac.DB.Save(&config).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Cập nhật trạng thái cấu hình thất bại"})
@@ -3820,9 +3945,9 @@ func (ac *AdminController) ToggleConfigEnable(c *gin.Context) {
 	}
 
 	ac.notifySystemConfigChanged()
-	status := "禁用"
+	status := "tắt"
 	if config.Enabled {
-		status = "启用"
+		status = "bật"
 	}
 
 	c.JSON(http.StatusOK, gin.H{
@@ -3831,17 +3956,17 @@ func (ac *AdminController) ToggleConfigEnable(c *gin.Context) {
 	})
 }
 
-// 辅助方法
+// Hàm hỗ trợ
 func (ac *AdminController) createConfigWithType(c *gin.Context, config *models.Config) {
-	// 如果没有提供config_id，自动生成一个
+	// Nếu không cung cấp config_id, tự động tạo một ID.
 	if config.ConfigID == "" {
-		// 使用类型_名称_时间戳的格式生成唯一ID
+		// Tạo ID duy nhất theo định dạng loại_tên_timestamp.
 		timestamp := time.Now().Unix()
 		safeName := strings.ToLower(strings.ReplaceAll(strings.ReplaceAll(config.Name, " ", "_"), "-", "_"))
 		config.ConfigID = fmt.Sprintf("%s_%s_%d", config.Type, safeName, timestamp)
 	}
 
-	// 如果设置为默认配置，先取消其他同类型的默认配置
+	// Nếu đặt làm mặc định, hủy mặc định của cấu hình cùng loại trước.
 	if config.IsDefault {
 		ac.DB.Model(&models.Config{}).Where("type = ? AND is_default = ?", config.Type, true).Update("is_default", false)
 	}
@@ -3855,7 +3980,7 @@ func (ac *AdminController) createConfigWithType(c *gin.Context, config *models.C
 	c.JSON(http.StatusCreated, gin.H{"data": *config})
 }
 
-// configUpdateBody 用于 updateConfigWithType，json_data 兼容前端传 string 或 object
+// configUpdateBody dùng cho updateConfigWithType; json_data tương thích string hoặc object từ frontend.
 type configUpdateBody struct {
 	Name      string      `json:"name"`
 	ConfigID  string      `json:"config_id"`
@@ -3880,23 +4005,23 @@ func (ac *AdminController) updateConfigWithType(c *gin.Context, configType strin
 		return
 	}
 
-	// 如果设置为默认配置，先取消其他同类型的默认配置
+	// Nếu đặt làm mặc định, hủy mặc định của cấu hình cùng loại trước.
 	if updateData.IsDefault {
 		ac.DB.Model(&models.Config{}).Where("type = ? AND is_default = ? AND id != ?", configType, true, id).Update("is_default", false)
 	}
 
-	// 更新配置
+	// Cập nhật cấu hình.
 	config.Name = updateData.Name
 	config.Provider = updateData.Provider
 	config.Enabled = updateData.Enabled
 	config.IsDefault = updateData.IsDefault
 
-	// json_data：兼容 string 或 object，避免前端传对象时绑定失败
+	// json_data tương thích string hoặc object để tránh lỗi bind khi frontend gửi object.
 	switch v := updateData.JsonData.(type) {
 	case string:
 		config.JsonData = v
 	case nil:
-		// 未传则保持原值
+		// Không truyền thì giữ giá trị cũ.
 	default:
 		bytes, err := json.Marshal(v)
 		if err != nil {
@@ -3906,7 +4031,7 @@ func (ac *AdminController) updateConfigWithType(c *gin.Context, configType strin
 		config.JsonData = string(bytes)
 	}
 
-	// 如果提供了新的config_id，则更新它
+	// Nếu cung cấp config_id mới thì cập nhật.
 	if updateData.ConfigID != "" {
 		config.ConfigID = updateData.ConfigID
 	}
@@ -3930,10 +4055,10 @@ func (ac *AdminController) deleteConfigWithType(c *gin.Context, configType strin
 	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
-// 导入导出配置相关方法
-// ExportConfigs 导出所有配置为YAML格式
+// Các hàm import/export cấu hình.
+// ExportConfigs xuất toàn bộ cấu hình dạng YAML.
 func (ac *AdminController) ExportConfigs(c *gin.Context) {
-	// 构建导出配置结构 - 只包含实际存在的模块
+	// Dựng cấu trúc export, chỉ gồm module thực sự tồn tại.
 	type ExportConfig struct {
 		VAD           map[string]interface{} `yaml:"vad,omitempty"`
 		ASR           map[string]interface{} `yaml:"asr,omitempty"`
@@ -3970,21 +4095,21 @@ func (ac *AdminController) ExportConfigs(c *gin.Context) {
 		LocalMCP:      make(map[string]interface{}),
 	}
 
-	// 获取所有配置
+	// Lấy toàn bộ cấu hình.
 	var configs []models.Config
 	if err := ac.DB.Find(&configs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get configs"})
 		return
 	}
 
-	// 获取全局角色
+	// Lấy vai trò toàn cục.
 	var globalRoles []models.GlobalRole
 	if err := ac.DB.Find(&globalRoles).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to get global roles"})
 		return
 	}
 
-	// 处理配置数据 - provider字段与is_default对应，key与ConfigID对应
+	// Xử lý dữ liệu cấu hình: provider tương ứng is_default, key tương ứng ConfigID.
 	for _, config := range configs {
 		var jsonData map[string]interface{}
 		if err := json.Unmarshal([]byte(config.JsonData), &jsonData); err != nil {
@@ -3992,31 +4117,31 @@ func (ac *AdminController) ExportConfigs(c *gin.Context) {
 			continue
 		}
 
-		// 根据配置类型组织数据
+		// Tổ chức dữ liệu theo loại cấu hình.
 		switch config.Type {
 		case "vad":
-			// 兼容旧格式：如果只有一个key，说明是旧格式（带key），提取出内部配置
+			// Tương thích định dạng cũ: nếu chỉ có một key thì trích cấu hình bên trong.
 			var actualConfigData map[string]interface{}
 			if len(jsonData) == 1 {
-				// 旧格式：只有一个key，提取其值
+				// Định dạng cũ: chỉ có một key, trích giá trị của nó.
 				for _, value := range jsonData {
 					if innerConfig, ok := value.(map[string]interface{}); ok {
 						actualConfigData = innerConfig
 					} else {
-						// 如果不是map类型，直接使用原数据
+						// Nếu không phải kiểu map, dùng nguyên dữ liệu gốc.
 						actualConfigData = jsonData
 					}
 					break
 				}
 			} else {
-				// 新格式：不带key，直接使用jsonData
+				// Định dạng mới: không kèm key, dùng trực tiếp jsonData.
 				actualConfigData = jsonData
 			}
-			// 如果是默认配置，设置provider字段
+			// Nếu là cấu hình mặc định, đặt trường provider.
 			if config.IsDefault {
 				exportConfig.VAD["provider"] = config.ConfigID
 			}
-			// 使用ConfigID作为key
+			// Dùng ConfigID làm key.
 			exportConfig.VAD[config.ConfigID] = configprovider.ExportData(config.Type, config.ConfigID, config.Provider, actualConfigData)
 		case "asr":
 			if config.IsDefault {
@@ -4034,14 +4159,14 @@ func (ac *AdminController) ExportConfigs(c *gin.Context) {
 			}
 			exportConfig.TTS[config.ConfigID] = configprovider.ExportData(config.Type, config.ConfigID, config.Provider, jsonData)
 		case "vision":
-			// 特殊处理vision配置
+			// Xử lý riêng cấu hình vision.
 			if config.ConfigID == "vision_base" {
-				// 处理基础配置（enable_auth, vision_url等）
+				// Xử lý cấu hình cơ bản (enable_auth, vision_url...).
 				for key, value := range jsonData {
 					exportConfig.Vision[key] = value
 				}
 			} else {
-				// 处理vllm配置
+				// Xử lý cấu hình vllm.
 				if exportConfig.Vision["vllm"] == nil {
 					exportConfig.Vision["vllm"] = make(map[string]interface{})
 				}
@@ -4053,22 +4178,22 @@ func (ac *AdminController) ExportConfigs(c *gin.Context) {
 				}
 			}
 		case "ota":
-			// ota、mqtt、mqtt_server、udp不需要provider字段，直接合并配置
+			// ota, mqtt, mqtt_server, udp không cần trường provider, gộp trực tiếp cấu hình.
 			for key, value := range jsonData {
 				exportConfig.OTA[key] = value
 			}
 		case "mqtt":
-			// ota、mqtt、mqtt_server、udp不需要provider字段，直接合并配置
+			// ota, mqtt, mqtt_server, udp không cần trường provider, gộp trực tiếp cấu hình.
 			for key, value := range jsonData {
 				exportConfig.MQTT[key] = value
 			}
 		case "mqtt_server":
-			// ota、mqtt、mqtt_server、udp不需要provider字段，直接合并配置
+			// ota, mqtt, mqtt_server, udp không cần trường provider, gộp trực tiếp cấu hình.
 			for key, value := range jsonData {
 				exportConfig.MQTTServer[key] = value
 			}
 		case "udp":
-			// ota、mqtt、mqtt_server、udp不需要provider字段，直接合并配置
+			// ota, mqtt, mqtt_server, udp không cần trường provider, gộp trực tiếp cấu hình.
 			for key, value := range jsonData {
 				exportConfig.UDP[key] = value
 			}
@@ -4091,7 +4216,7 @@ func (ac *AdminController) ExportConfigs(c *gin.Context) {
 				exportConfig.Chat[key] = value
 			}
 		case "mcp":
-			// 处理MCP配置，将mcp和local_mcp分开
+			// Xử lý cấu hình MCP, tách mcp và local_mcp.
 			if mcpData, exists := jsonData["mcp"]; exists {
 				if mcpMap, ok := mcpData.(map[string]interface{}); ok {
 					for key, value := range mcpMap {
@@ -4099,56 +4224,56 @@ func (ac *AdminController) ExportConfigs(c *gin.Context) {
 					}
 				}
 			}
-			// 兼容旧格式：如果直接有global字段
+			// Tương thích định dạng cũ: nếu có trực tiếp trường global.
 			if globalData, exists := jsonData["global"]; exists {
 				exportConfig.MCP["global"] = globalData
 			}
 		case "local_mcp":
-			// 处理local_mcp配置
+			// Xử lý cấu hình local_mcp.
 			for key, value := range jsonData {
 				exportConfig.LocalMCP[key] = value
 			}
 		}
 	}
 
-	// 只处理数据库中的实际配置，不设置默认值
+	// Chỉ xử lý cấu hình thực tế trong DB, không đặt giá trị mặc định.
 
-	// 转换为YAML
+	// Chuyển thành YAML.
 	yamlData, err := yaml.Marshal(exportConfig)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal YAML"})
 		return
 	}
 
-	// 设置响应头
+	// Đặt header phản hồi.
 	c.Header("Content-Type", "application/x-yaml")
 	c.Header("Content-Disposition", "attachment; filename=config.yaml")
 	c.Data(http.StatusOK, "application/x-yaml", yamlData)
 }
 
-// ImportConfigs 从YAML文件导入配置
+// ImportConfigs import cấu hình từ file YAML.
 func (ac *AdminController) ImportConfigs(c *gin.Context) {
-	log.Printf("开始导入配置")
+	log.Printf("Bắt đầu import cấu hình")
 
 	file, err := c.FormFile("file")
 	if err != nil {
-		log.Printf("获取上传文件失败: %v", err)
+		log.Printf("Lấy file upload thất bại: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "No file uploaded"})
 		return
 	}
 
-	log.Printf("文件信息: filename=%s, size=%d", file.Filename, file.Size)
+	log.Printf("Thông tin file: filename=%s, size=%d", file.Filename, file.Size)
 
 	if file.Size == 0 {
-		log.Printf("文件为空")
+		log.Printf("File trống")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "File is empty"})
 		return
 	}
 
-	// 读取文件内容
+	// Đọc nội dung file.
 	src, err := file.Open()
 	if err != nil {
-		log.Printf("打开文件失败: %v", err)
+		log.Printf("Mở file thất bại: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to open file"})
 		return
 	}
@@ -4156,81 +4281,81 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 
 	content, err := io.ReadAll(src)
 	if err != nil {
-		log.Printf("读取文件内容失败: %v", err)
+		log.Printf("Đọc nội dung file thất bại: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to read file"})
 		return
 	}
 
-	log.Printf("文件内容长度: %d", len(content))
+	log.Printf("Độ dài nội dung file: %d", len(content))
 
-	// 解析YAML
+	// Phân tích YAML.
 	var importConfig map[string]interface{}
 	if err := yaml.Unmarshal(content, &importConfig); err != nil {
-		log.Printf("解析YAML失败: %v", err)
+		log.Printf("Phân tích YAML thất bại: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid YAML format"})
 		return
 	}
 
-	log.Printf("YAML解析成功，配置键: %v", getMapKeys(importConfig))
+	log.Printf("Phân tích YAML thành công, key cấu hình: %v", getMapKeys(importConfig))
 
-	// 开始事务
-	log.Printf("开始数据库事务")
+	// Bắt đầu transaction.
+	log.Printf("Bắt đầu transaction cơ sở dữ liệu")
 	tx := ac.DB.Begin()
 	defer func() {
 		if r := recover(); r != nil {
-			log.Printf("发生panic，回滚事务: %v", r)
+			log.Printf("Xảy ra panic, rollback transaction: %v", r)
 			tx.Rollback()
 		}
 	}()
 
-	// 清空现有配置
-	log.Printf("清空现有配置")
+	// Xóa cấu hình hiện có.
+	log.Printf("Xóa cấu hình hiện có")
 	result := tx.Exec("DELETE FROM configs")
 	if result.Error != nil {
-		log.Printf("清空配置失败: %v", result.Error)
+		log.Printf("Xóa cấu hình thất bại: %v", result.Error)
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear existing configs"})
 		return
 	}
-	log.Printf("配置清空成功，删除了 %d 条记录", result.RowsAffected)
+	log.Printf("Xóa cấu hình thành công, đã xóa %d bản ghi", result.RowsAffected)
 
-	// 清空全局角色
-	log.Printf("清空全局角色")
+	// Xóa vai trò toàn cục.
+	log.Printf("Xóa vai trò toàn cục")
 	result2 := tx.Exec("DELETE FROM global_roles")
 	if result2.Error != nil {
-		log.Printf("清空全局角色失败: %v", result2.Error)
+		log.Printf("Xóa vai trò toàn cục thất bại: %v", result2.Error)
 		tx.Rollback()
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to clear existing global roles"})
 		return
 	}
-	log.Printf("全局角色清空成功，删除了 %d 条记录", result2.RowsAffected)
+	log.Printf("Xóa vai trò toàn cục thành công, đã xóa %d bản ghi", result2.RowsAffected)
 
-	// 导入配置 - 只处理实际存在的模块
+	// Import cấu hình, chỉ xử lý module thực sự tồn tại.
 	configTypes := []string{"vad", "asr", "llm", "tts", "memory", "auth", "chat", "ota", "mqtt", "mqtt_server", "udp", "mcp", "local_mcp"}
-	log.Printf("开始导入配置，配置类型: %v", configTypes)
+	log.Printf("Bắt đầu import cấu hình, loại cấu hình: %v", configTypes)
 
-	// 处理 voice_identify 配置（映射到 speaker 类型）
+	// Xử lý cấu hình voice_identify, ánh xạ sang loại speaker.
 	if voiceIdentifyData, exists := importConfig["voice_identify"]; exists {
-		log.Printf("找到 voice_identify 配置数据")
+		log.Printf("Tìm thấy dữ liệu cấu hình voice_identify")
 		if voiceIdentifyMap, ok := voiceIdentifyData.(map[string]interface{}); ok {
-			log.Printf("voice_identify 配置 map keys: %v", getMapKeys(voiceIdentifyMap))
+			log.Printf("voice_identify key map cấu hình: %v", getMapKeys(voiceIdentifyMap))
 
-			// 获取provider字段
+			// Lấy trường provider.
 			var defaultProvider string
 			if provider, exists := voiceIdentifyMap["provider"]; exists {
 				if providerStr, ok := provider.(string); ok {
 					defaultProvider = providerStr
-					log.Printf("voice_identify 默认provider: %s", defaultProvider)
+					log.Printf("provider mặc định voice_identify: %s", defaultProvider)
 				}
 			}
 
-			log.Printf("voice_identify 配置项keys: %v", getMapKeys(voiceIdentifyMap))
-			// 声纹配置只有一个，优先使用provider指定的配置，否则使用第一个配置项
+			log.Printf("key mục cấu hình voice_identify: %v", getMapKeys(voiceIdentifyMap))
+			// Chỉ có một cấu hình giọng, ưu tiên cấu hình do provider chỉ định, nếu không dùng mục đầu tiên.
 			var targetConfigID string
 			if defaultProvider != "" {
 				targetConfigID = defaultProvider
 			} else {
-				// 如果没有provider，使用第一个非provider的配置项
+				// Nếu không có provider, dùng mục đầu tiên không phải provider.
 				for key := range voiceIdentifyMap {
 					if key != "provider" {
 						targetConfigID = key
@@ -4240,24 +4365,24 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 			}
 
 			if targetConfigID == "" {
-				log.Printf("voice_identify 配置中没有找到有效配置项")
+				log.Printf("Không tìm thấy mục cấu hình hợp lệ trong voice_identify")
 			} else {
-				// 只处理目标配置项
+				// Chỉ xử lý mục cấu hình mục tiêu.
 				if configValue, exists := voiceIdentifyMap[targetConfigID]; exists {
 					if configMap, ok := configValue.(map[string]interface{}); ok {
-						log.Printf("处理voice_identify配置项: %s", targetConfigID)
+						log.Printf("Xử lý mục cấu hình voice_identify: %s", targetConfigID)
 						jsonData, err := json.Marshal(configMap)
 						if err != nil {
-							log.Printf("序列化voice_identify配置数据失败: %v", err)
+							log.Printf("Tuần tự hóa dữ liệu cấu hình voice_identify thất bại: %v", err)
 							tx.Rollback()
 							c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal voice_identify config data"})
 							return
 						}
 
-						// 声纹配置只有一个，始终设为默认
+						// Chỉ có một cấu hình giọng, luôn đặt làm mặc định.
 						config := models.Config{
 							Type:      "voice_identify",
-							Name:      "声纹识别配置",
+							Name:      "Cấu hình nhận diện giọng",
 							ConfigID:  "asr_server",
 							Provider:  "asr_server",
 							JsonData:  string(jsonData),
@@ -4265,19 +4390,19 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 							IsDefault: true,
 						}
 
-						log.Printf("准备保存voice_identify配置: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
+						log.Printf("Chuẩn bị lưu cấu hình voice_identify: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
 
-						// 声纹配置只有一个，先删除所有旧的配置
+						// Chỉ có một cấu hình giọng, xóa mọi cấu hình cũ trước.
 						tx.Where("type = ?", "voice_identify").Delete(&models.Config{})
 
-						// 创建新配置
+						// Tạo cấu hình mới.
 						if err := tx.Create(&config).Error; err != nil {
-							log.Printf("创建voice_identify配置失败: %v", err)
+							log.Printf("Tạo cấu hình voice_identify thất bại: %v", err)
 							tx.Rollback()
 							c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create voice_identify config"})
 							return
 						}
-						log.Printf("voice_identify配置创建成功: %s", targetConfigID)
+						log.Printf("Tạo cấu hình voice_identify thành công: %s", targetConfigID)
 					}
 				}
 			}
@@ -4285,48 +4410,48 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 	}
 
 	for _, configType := range configTypes {
-		log.Printf("处理配置类型: %s", configType)
+		log.Printf("Xử lý loại cấu hình: %s", configType)
 		if configData, exists := importConfig[configType]; exists {
-			log.Printf("找到配置类型 %s 的数据", configType)
+			log.Printf("Tìm thấy dữ liệu loại cấu hình %s", configType)
 			if configMap, ok := configData.(map[string]interface{}); ok {
-				// 对于需要provider的模块（vad, asr, llm, tts, memory），处理provider字段
+				// Với module cần provider (vad, asr, llm, tts, memory), xử lý trường provider.
 				if configType == "vad" || configType == "asr" || configType == "llm" || configType == "tts" || configType == "memory" || configType == "voice_identify" {
-					log.Printf("处理需要provider的配置类型: %s", configType)
-					// 获取provider字段
+					log.Printf("Xử lý loại cấu hình cần provider: %s", configType)
+					// Lấy trường provider.
 					var defaultProvider string
 					if provider, exists := configMap["provider"]; exists {
 						if providerStr, ok := provider.(string); ok {
 							defaultProvider = providerStr
-							log.Printf("默认provider: %s", defaultProvider)
+							log.Printf("provider mặc định: %s", defaultProvider)
 						}
 					}
 
-					log.Printf("配置项keys: %v", getMapKeys(configMap))
-					// 遍历所有配置项
+					log.Printf("key mục cấu hình: %v", getMapKeys(configMap))
+					// Duyệt tất cả mục cấu hình.
 					for configID, configValue := range configMap {
-						// 跳过provider字段
+						// Bỏ qua trường provider.
 						if configID == "provider" {
-							log.Printf("跳过provider字段")
+							log.Printf("Bỏ qua trường provider")
 							continue
 						}
 
 						if configMap, ok := configValue.(map[string]interface{}); ok {
-							log.Printf("处理配置项: %s", configID)
+							log.Printf("Xử lý mục cấu hình: %s", configID)
 							providerName := configprovider.NormalizeProvider(configType, configID, configMap)
 							if providerName != "" {
 								configMap["provider"] = providerName
 							}
 							jsonData, err := json.Marshal(configMap)
 							if err != nil {
-								log.Printf("序列化配置数据失败: %v", err)
+								log.Printf("Tuần tự hóa dữ liệu cấu hình thất bại: %v", err)
 								tx.Rollback()
 								c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal config data"})
 								return
 							}
 
-							// 判断是否为默认配置
+							// Kiểm tra có phải cấu hình mặc định hay không.
 							isDefault := (configID == defaultProvider)
-							log.Printf("配置项 %s, 是否默认: %v", configID, isDefault)
+							log.Printf("Mục cấu hình %s, có mặc định: %v", configID, isDefault)
 
 							config := models.Config{
 								Type:      configType,
@@ -4338,13 +4463,13 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 								IsDefault: isDefault,
 							}
 
-							log.Printf("准备保存配置: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
+							log.Printf("Chuẩn bị lưu cấu hình: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
 
-							// 先检查是否已存在相同配置
+							// Kiểm tra trước cấu hình giống nhau đã tồn tại hay chưa.
 							var existingConfig models.Config
 							if err := tx.Where("type = ? AND config_id = ?", config.Type, config.ConfigID).First(&existingConfig).Error; err == nil {
-								log.Printf("配置已存在，将更新: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
-								// 更新现有配置
+								log.Printf("Cấu hình đã tồn tại, sẽ cập nhật: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+								// Cập nhật cấu hình hiện có.
 								existingConfig.Name = config.Name
 								existingConfig.Provider = config.Provider
 								existingConfig.JsonData = config.JsonData
@@ -4356,19 +4481,19 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 									c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update config"})
 									return
 								}
-								log.Printf("配置更新成功: %s", configID)
+								log.Printf("Cập nhật cấu hình thành công: %s", configID)
 							} else if err == gorm.ErrRecordNotFound {
-								log.Printf("Cấu hình không tồn tại，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
-								// 创建新配置
+								log.Printf("Cấu hình không tồn tại, sẽ tạo cấu hình mới: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+								// Tạo cấu hình mới.
 								if err := tx.Create(&config).Error; err != nil {
 									log.Printf("Tạo cấu hình thất bại: %v", err)
 									tx.Rollback()
 									c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create config"})
 									return
 								}
-								log.Printf("配置创建成功: %s", configID)
+								log.Printf("Tạo cấu hình thành công: %s", configID)
 							} else {
-								log.Printf("查询配置时发生错误: %v", err)
+								log.Printf("Xảy ra lỗi khi truy vấn cấu hình: %v", err)
 								tx.Rollback()
 								c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query existing config"})
 								return
@@ -4376,11 +4501,11 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 						}
 					}
 				} else {
-					// 对于不需要provider的模块（ota, mqtt, mqtt_server, udp, mcp, local_mcp），直接创建配置
-					log.Printf("处理不需要provider的配置类型: %s", configType)
+					// Với module không cần provider (ota, mqtt, mqtt_server, udp, mcp, local_mcp), tạo cấu hình trực tiếp.
+					log.Printf("Xử lý loại cấu hình không cần provider: %s", configType)
 					jsonData, err := json.Marshal(configMap)
 					if err != nil {
-						log.Printf("序列化配置数据失败: %v", err)
+						log.Printf("Tuần tự hóa dữ liệu cấu hình thất bại: %v", err)
 						tx.Rollback()
 						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal config data"})
 						return
@@ -4396,13 +4521,13 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 						IsDefault: true,
 					}
 
-					log.Printf("准备保存配置: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
+					log.Printf("Chuẩn bị lưu cấu hình: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
 
-					// 先检查是否已存在相同配置
+					// Kiểm tra trước cấu hình giống nhau đã tồn tại hay chưa.
 					var existingConfig models.Config
 					if err := tx.Where("type = ? AND config_id = ?", config.Type, config.ConfigID).First(&existingConfig).Error; err == nil {
-						log.Printf("配置已存在，将更新: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
-						// 更新现有配置
+						log.Printf("Cấu hình đã tồn tại, sẽ cập nhật: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+						// Cập nhật cấu hình hiện có.
 						existingConfig.Name = config.Name
 						existingConfig.Provider = config.Provider
 						existingConfig.JsonData = config.JsonData
@@ -4414,19 +4539,19 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 							c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update config"})
 							return
 						}
-						log.Printf("配置更新成功: %s", configType)
+						log.Printf("Cập nhật cấu hình thành công: %s", configType)
 					} else if err == gorm.ErrRecordNotFound {
-						log.Printf("Cấu hình không tồn tại，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
-						// 创建新配置
+						log.Printf("Cấu hình không tồn tại, sẽ tạo cấu hình mới: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+						// Tạo cấu hình mới.
 						if err := tx.Create(&config).Error; err != nil {
 							log.Printf("Tạo cấu hình thất bại: %v", err)
 							tx.Rollback()
 							c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create config"})
 							return
 						}
-						log.Printf("配置创建成功: %s", configType)
+						log.Printf("Tạo cấu hình thành công: %s", configType)
 					} else {
-						log.Printf("查询配置时发生错误: %v", err)
+						log.Printf("Xảy ra lỗi khi truy vấn cấu hình: %v", err)
 						tx.Rollback()
 						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query existing config"})
 						return
@@ -4436,14 +4561,14 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 		}
 	}
 
-	// 特殊处理vision配置
-	log.Printf("开始处理vision配置")
+	// Xử lý riêng cấu hình vision.
+	log.Printf("Bắt đầu xử lý cấu hình vision")
 	if visionData, exists := importConfig["vision"]; exists {
-		log.Printf("找到vision配置数据")
+		log.Printf("Tìm thấy dữ liệu cấu hình vision")
 		if visionMap, ok := visionData.(map[string]interface{}); ok {
-			log.Printf("vision配置map keys: %v", getMapKeys(visionMap))
+			log.Printf("key map cấu hình vision: %v", getMapKeys(visionMap))
 
-			// 处理vision的基础配置（enable_auth, vision_url等）
+			// Xử lý cấu hình cơ bản của vision (enable_auth, vision_url...).
 			baseVisionConfig := make(map[string]interface{})
 			for key, value := range visionMap {
 				if key != "vllm" {
@@ -4451,11 +4576,11 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 				}
 			}
 
-			// 保存vision基础配置
+			// Lưu cấu hình vision cơ bản.
 			if len(baseVisionConfig) > 0 {
 				jsonData, err := json.Marshal(baseVisionConfig)
 				if err != nil {
-					log.Printf("序列化vision基础配置数据失败: %v", err)
+					log.Printf("Tuần tự hóa dữ liệu cấu hình vision cơ bản thất bại: %v", err)
 					tx.Rollback()
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal vision base config data"})
 					return
@@ -4471,84 +4596,84 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 					IsDefault: false,
 				}
 
-				log.Printf("准备保存vision基础配置: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
+				log.Printf("Chuẩn bị lưu cấu hình vision cơ bản: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
 
-				// 先检查是否已存在相同配置
+				// Kiểm tra trước cấu hình giống nhau đã tồn tại hay chưa.
 				var existingConfig models.Config
 				if err := tx.Where("type = ? AND config_id = ?", config.Type, config.ConfigID).First(&existingConfig).Error; err == nil {
-					log.Printf("vision基础配置已存在，将更新: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
-					// 更新现有配置
+					log.Printf("Cấu hình vision cơ bản đã tồn tại, sẽ cập nhật: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+					// Cập nhật cấu hình hiện có.
 					existingConfig.Name = config.Name
 					existingConfig.Provider = config.Provider
 					existingConfig.JsonData = config.JsonData
 					existingConfig.Enabled = config.Enabled
 					existingConfig.IsDefault = config.IsDefault
 					if err := tx.Save(&existingConfig).Error; err != nil {
-						log.Printf("更新vision基础配置失败: %v", err)
+						log.Printf("Cập nhật cấu hình vision cơ bản thất bại: %v", err)
 						tx.Rollback()
 						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update vision base config"})
 						return
 					}
-					log.Printf("vision基础配置更新成功")
+					log.Printf("Cập nhật cấu hình vision cơ bản thành công")
 				} else if err == gorm.ErrRecordNotFound {
-					log.Printf("vision基础Cấu hình không tồn tại，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
-					// 创建新配置
+					log.Printf("Cấu hình vision cơ bản không tồn tại, sẽ tạo cấu hình mới: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+					// Tạo cấu hình mới.
 					if err := tx.Create(&config).Error; err != nil {
-						log.Printf("创建vision基础配置失败: %v", err)
+						log.Printf("Tạo cấu hình vision cơ bản thất bại: %v", err)
 						tx.Rollback()
 						c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create vision base config"})
 						return
 					}
-					log.Printf("vision基础配置创建成功")
+					log.Printf("Tạo cấu hình vision cơ bản thành công")
 				} else {
-					log.Printf("查询vision基础配置时发生错误: %v", err)
+					log.Printf("Xảy ra lỗi khi truy vấn cấu hình vision cơ bản: %v", err)
 					tx.Rollback()
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query existing vision base config"})
 					return
 				}
 			}
 
-			// 处理vllm配置
+			// Xử lý cấu hình vllm.
 			if vllmData, exists := visionMap["vllm"]; exists {
-				log.Printf("找到vllm配置数据")
+				log.Printf("Tìm thấy dữ liệu cấu hình vllm")
 				if vllmMap, ok := vllmData.(map[string]interface{}); ok {
-					log.Printf("vllm配置map keys: %v", getMapKeys(vllmMap))
+					log.Printf("key map cấu hình vllm: %v", getMapKeys(vllmMap))
 
-					// 获取vllm的provider字段
+					// Lấy trường provider của vllm.
 					var defaultProvider string
 					if provider, exists := vllmMap["provider"]; exists {
 						if providerStr, ok := provider.(string); ok {
 							defaultProvider = providerStr
-							log.Printf("vllm默认provider: %s", defaultProvider)
+							log.Printf("vllmprovider mặc định: %s", defaultProvider)
 						}
 					}
 
-					log.Printf("vllm配置项keys: %v", getMapKeys(vllmMap))
-					// 遍历所有vllm配置项
+					log.Printf("vllmkey mục cấu hình: %v", getMapKeys(vllmMap))
+					// Duyệt tất cả mục cấu hình vllm.
 					for configID, configValue := range vllmMap {
-						// 跳过provider字段
+						// Bỏ qua trường provider.
 						if configID == "provider" {
-							log.Printf("跳过vllm provider字段")
+							log.Printf("Bỏ qua trường provider vllm")
 							continue
 						}
 
 						if configMap, ok := configValue.(map[string]interface{}); ok {
-							log.Printf("处理vllm配置项: %s", configID)
+							log.Printf("Xử lý mục cấu hình vllm: %s", configID)
 							providerName := configprovider.NormalizeProvider("vision", configID, configMap)
 							if providerName != "" {
 								configMap["provider"] = providerName
 							}
 							jsonData, err := json.Marshal(configMap)
 							if err != nil {
-								log.Printf("序列化vllm配置数据失败: %v", err)
+								log.Printf("Tuần tự hóa dữ liệu cấu hình vllm thất bại: %v", err)
 								tx.Rollback()
 								c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal vllm config data"})
 								return
 							}
 
-							// 判断是否为默认配置
+							// Kiểm tra có phải cấu hình mặc định hay không.
 							isDefault := (configID == defaultProvider)
-							log.Printf("vllm配置项 %s, 是否默认: %v", configID, isDefault)
+							log.Printf("vllmMục cấu hình %s, có mặc định: %v", configID, isDefault)
 
 							config := models.Config{
 								Type:      "vision",
@@ -4560,37 +4685,37 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 								IsDefault: isDefault,
 							}
 
-							log.Printf("准备保存vllm配置: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
+							log.Printf("Chuẩn bị lưu cấu hình vllm: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
 
-							// 先检查是否已存在相同配置
+							// Kiểm tra trước cấu hình giống nhau đã tồn tại hay chưa.
 							var existingConfig models.Config
 							if err := tx.Where("type = ? AND config_id = ?", config.Type, config.ConfigID).First(&existingConfig).Error; err == nil {
-								log.Printf("vllm配置已存在，将更新: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
-								// 更新现有配置
+								log.Printf("vllmCấu hình đã tồn tại, sẽ cập nhật: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+								// Cập nhật cấu hình hiện có.
 								existingConfig.Name = config.Name
 								existingConfig.Provider = config.Provider
 								existingConfig.JsonData = config.JsonData
 								existingConfig.Enabled = config.Enabled
 								existingConfig.IsDefault = config.IsDefault
 								if err := tx.Save(&existingConfig).Error; err != nil {
-									log.Printf("更新vllm配置失败: %v", err)
+									log.Printf("Cập nhật cấu hình vllm thất bại: %v", err)
 									tx.Rollback()
 									c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update vllm config"})
 									return
 								}
-								log.Printf("vllm配置更新成功: %s", configID)
+								log.Printf("vllmCập nhật cấu hình thành công: %s", configID)
 							} else if err == gorm.ErrRecordNotFound {
-								log.Printf("vllmCấu hình không tồn tại，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
-								// 创建新配置
+								log.Printf("vllmCấu hình không tồn tại, sẽ tạo cấu hình mới: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+								// Tạo cấu hình mới.
 								if err := tx.Create(&config).Error; err != nil {
-									log.Printf("创建vllm配置失败: %v", err)
+									log.Printf("Tạo cấu hình vllm thất bại: %v", err)
 									tx.Rollback()
 									c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create vllm config"})
 									return
 								}
-								log.Printf("vllm配置创建成功: %s", configID)
+								log.Printf("vllmTạo cấu hình thành công: %s", configID)
 							} else {
-								log.Printf("查询vllm配置时发生错误: %v", err)
+								log.Printf("Xảy ra lỗi khi truy vấn cấu hình vllm: %v", err)
 								tx.Rollback()
 								c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query existing vllm config"})
 								return
@@ -4602,16 +4727,16 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 		}
 	}
 
-	// 特殊处理local_mcp配置
-	log.Printf("开始处理local_mcp配置")
+	// Xử lý riêng cấu hình local_mcp.
+	log.Printf("Bắt đầu xử lý cấu hình local_mcp")
 	if localMcpData, exists := importConfig["local_mcp"]; exists {
-		log.Printf("找到local_mcp配置数据")
+		log.Printf("Tìm thấy dữ liệu cấu hình local_mcp")
 		if localMcpMap, ok := localMcpData.(map[string]interface{}); ok {
-			log.Printf("local_mcp配置map keys: %v", getMapKeys(localMcpMap))
+			log.Printf("key map cấu hình local_mcp: %v", getMapKeys(localMcpMap))
 
 			jsonData, err := json.Marshal(localMcpMap)
 			if err != nil {
-				log.Printf("序列化local_mcp配置数据失败: %v", err)
+				log.Printf("Tuần tự hóa dữ liệu cấu hình local_mcp thất bại: %v", err)
 				tx.Rollback()
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to marshal local_mcp config data"})
 				return
@@ -4627,37 +4752,37 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 				IsDefault: true,
 			}
 
-			log.Printf("准备保存local_mcp配置: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
+			log.Printf("Chuẩn bị lưu cấu hình local_mcp: Type=%s, Name=%s, ConfigID=%s", config.Type, config.Name, config.ConfigID)
 
-			// 先检查是否已存在相同配置
+			// Kiểm tra trước cấu hình giống nhau đã tồn tại hay chưa.
 			var existingConfig models.Config
 			if err := tx.Where("type = ? AND config_id = ?", config.Type, config.ConfigID).First(&existingConfig).Error; err == nil {
-				log.Printf("local_mcp配置已存在，将更新: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
-				// 更新现有配置
+				log.Printf("local_mcpCấu hình đã tồn tại, sẽ cập nhật: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+				// Cập nhật cấu hình hiện có.
 				existingConfig.Name = config.Name
 				existingConfig.Provider = config.Provider
 				existingConfig.JsonData = config.JsonData
 				existingConfig.Enabled = config.Enabled
 				existingConfig.IsDefault = config.IsDefault
 				if err := tx.Save(&existingConfig).Error; err != nil {
-					log.Printf("更新local_mcp配置失败: %v", err)
+					log.Printf("Cập nhật cấu hình local_mcp thất bại: %v", err)
 					tx.Rollback()
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update local_mcp config"})
 					return
 				}
-				log.Printf("local_mcp配置更新成功")
+				log.Printf("Cập nhật cấu hình local_mcp thành công")
 			} else if err == gorm.ErrRecordNotFound {
-				log.Printf("local_mcpCấu hình không tồn tại，将创建新配置: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
-				// 创建新配置
+				log.Printf("local_mcpCấu hình không tồn tại, sẽ tạo cấu hình mới: Type=%s, ConfigID=%s", config.Type, config.ConfigID)
+				// Tạo cấu hình mới.
 				if err := tx.Create(&config).Error; err != nil {
-					log.Printf("创建local_mcp配置失败: %v", err)
+					log.Printf("Tạo cấu hình local_mcp thất bại: %v", err)
 					tx.Rollback()
 					c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create local_mcp config"})
 					return
 				}
-				log.Printf("local_mcp配置创建成功")
+				log.Printf("Tạo cấu hình local_mcp thành công")
 			} else {
-				log.Printf("查询local_mcp配置时发生错误: %v", err)
+				log.Printf("Xảy ra lỗi khi truy vấn cấu hình local_mcp: %v", err)
 				tx.Rollback()
 				c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to query existing local_mcp config"})
 				return
@@ -4665,20 +4790,20 @@ func (ac *AdminController) ImportConfigs(c *gin.Context) {
 		}
 	}
 
-	// 提交事务
-	log.Printf("提交事务")
+	// Commit transaction.
+	log.Printf("Commit transaction")
 	if err := tx.Commit().Error; err != nil {
 		log.Printf("Commit transaction thất bại: %v", err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to commit transaction"})
 		return
 	}
 
-	log.Printf("配置导入成功")
+	log.Printf("Import cấu hình thành công")
 	ac.notifySystemConfigChanged()
 	c.JSON(http.StatusOK, gin.H{"message": "Configuration imported successfully"})
 }
 
-// MCP配置相关方法
+// Các hàm liên quan cấu hình MCP.
 func (ac *AdminController) GetMCPConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "mcp").Find(&configs).Error; err != nil {
@@ -4697,7 +4822,7 @@ func (ac *AdminController) CreateMCPConfig(c *gin.Context) {
 
 	config.Type = "mcp"
 
-	// 如果设置为默认配置，先取消其他同类型的默认配置
+	// Nếu đặt làm mặc định, hủy mặc định của cấu hình cùng loại trước.
 	if config.IsDefault {
 		ac.DB.Model(&models.Config{}).Where("type = ? AND is_default = ?", config.Type, true).Update("is_default", false)
 	}
@@ -4725,7 +4850,7 @@ func (ac *AdminController) UpdateMCPConfig(c *gin.Context) {
 		return
 	}
 
-	// 如果设置为默认配置，先取消其他同类型的默认配置
+	// Nếu đặt làm mặc định, hủy mặc định của cấu hình cùng loại trước.
 	if updateData.IsDefault {
 		ac.DB.Model(&models.Config{}).Where("type = ? AND is_default = ? AND id != ?", config.Type, true, id).Update("is_default", false)
 	}
@@ -4756,9 +4881,9 @@ func (ac *AdminController) DeleteMCPConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Xóa cấu hình MCP thành công"})
 }
 
-// GenerateAgentMCPEndpoint 公共的MCP接入点生成函数
+// GenerateAgentMCPEndpoint là hàm chung tạo endpoint MCP.
 func GenerateAgentMCPEndpoint(db *gorm.DB, agentID string, userID uint, endpointAuthToken string) (string, error) {
-	// 获取OTA配置中的外网WebSocket URL
+	// Lấy URL WebSocket public trong cấu hình OTA.
 	var otaConfig models.Config
 	if err := db.Where("type = ? AND is_default = ?", "ota", true).First(&otaConfig).Error; err != nil {
 		return "", fmt.Errorf("failed to get OTA config: %v", err)
@@ -4769,7 +4894,7 @@ func GenerateAgentMCPEndpoint(db *gorm.DB, agentID string, userID uint, endpoint
 		return "", fmt.Errorf("failed to parse OTA config: %v", err)
 	}
 
-	// 获取外网WebSocket URL
+	// Lấy URL WebSocket public.
 	externalURL, ok := otaData["external"].(map[string]interface{})
 	if !ok {
 		return "", fmt.Errorf("external config not found in OTA config")
@@ -4785,28 +4910,28 @@ func GenerateAgentMCPEndpoint(db *gorm.DB, agentID string, userID uint, endpoint
 		return "", fmt.Errorf("websocket URL not found in external config")
 	}
 
-	// 解析OTA URL，只取域名部分，保持ws或wss协议不变
+	// Phân tích OTA URL, chỉ lấy domain và giữ nguyên protocol ws/wss.
 	parsedURL, err := url.Parse(wsURL)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse WebSocket URL: %v", err)
 	}
 
-	// 构建基础URL（只包含协议和域名）
+	// Dựng URL cơ sở chỉ gồm protocol và domain.
 	baseURL := fmt.Sprintf("%s://%s", parsedURL.Scheme, parsedURL.Host)
 
-	// 生成MCP JWT token
+	// Tạo token JWT MCP.
 	token, err := generateMCPToken(agentID, userID, endpointAuthToken)
 	if err != nil {
 		return "", fmt.Errorf("failed to generate MCP token: %v", err)
 	}
 
-	// 构建带token的完整endpoint URL，直接使用/mcp路径
+	// Dựng endpoint URL đầy đủ có token, dùng trực tiếp path /mcp.
 	endpointWithToken := fmt.Sprintf("%s/mcp?token=%s", baseURL, token)
 
 	return endpointWithToken, nil
 }
 
-// GenerateAgentOpenClawEndpoint 公共的OpenClaw接入点生成函数
+// GenerateAgentOpenClawEndpoint là hàm chung tạo endpoint OpenClaw.
 func GenerateAgentOpenClawEndpoint(db *gorm.DB, agentID string, userID uint, endpointAuthToken string) (string, error) {
 	var otaConfig models.Config
 	if err := db.Where("type = ? AND is_default = ?", "ota", true).First(&otaConfig).Error; err != nil {
@@ -4849,7 +4974,7 @@ func GenerateAgentOpenClawEndpoint(db *gorm.DB, agentID string, userID uint, end
 	return endpointWithToken, nil
 }
 
-// Memory配置管理
+// Quản lý cấu hình Memory.
 func (ac *AdminController) GetMemoryConfigs(c *gin.Context) {
 	var configs []models.Config
 	if err := ac.DB.Where("type = ?", "memory").Find(&configs).Error; err != nil {
@@ -4866,16 +4991,16 @@ func (ac *AdminController) CreateMemoryConfig(c *gin.Context) {
 		return
 	}
 
-	// 设置配置类型为memory
+	// Đặt loại cấu hình là memory.
 	config.Type = "memory"
 
-	// 验证provider字段
+	// Kiểm tra trường provider.
 	if config.Provider != "memobase" && config.Provider != "mem0" && config.Provider != "memos" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Provider phải là memobase, mem0 hoặc memos"})
 		return
 	}
 
-	// 如果设置为默认配置，先取消其他同类型的默认配置
+	// Nếu đặt làm mặc định, hủy mặc định của cấu hình cùng loại trước.
 	if config.IsDefault {
 		ac.DB.Model(&models.Config{}).Where("type = ? AND is_default = ?", config.Type, true).Update("is_default", false)
 	}
@@ -4903,18 +5028,18 @@ func (ac *AdminController) UpdateMemoryConfig(c *gin.Context) {
 		return
 	}
 
-	// 验证provider字段
+	// Kiểm tra trường provider.
 	if updateData.Provider != "memobase" && updateData.Provider != "mem0" && updateData.Provider != "memos" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Provider phải là memobase, mem0 hoặc memos"})
 		return
 	}
 
-	// 如果设置为默认配置，先取消其他同类型的默认配置
+	// Nếu đặt làm mặc định, hủy mặc định của cấu hình cùng loại trước.
 	if updateData.IsDefault {
 		ac.DB.Model(&models.Config{}).Where("type = ? AND is_default = ? AND id != ?", config.Type, true, id).Update("is_default", false)
 	}
 
-	// 更新配置
+	// Cập nhật cấu hình.
 	config.Name = updateData.Name
 	config.Provider = updateData.Provider
 	config.JsonData = updateData.JsonData
@@ -4938,7 +5063,7 @@ func (ac *AdminController) DeleteMemoryConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
-// 设置默认Memory配置
+// Đặt cấu hình Memory mặc định.
 func (ac *AdminController) SetDefaultMemoryConfig(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var config models.Config
@@ -4948,10 +5073,10 @@ func (ac *AdminController) SetDefaultMemoryConfig(c *gin.Context) {
 		return
 	}
 
-	// 先取消其他同类型的默认配置
+	// Hủy mặc định của cấu hình cùng loại trước.
 	ac.DB.Model(&models.Config{}).Where("type = ? AND is_default = ?", config.Type, true).Update("is_default", false)
 
-	// 设置当前配置为默认
+	// Đặt cấu hình hiện tại làm mặc định.
 	config.IsDefault = true
 	if err := ac.DB.Save(&config).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đặt cấu hình Memory mặc định thất bại"})
@@ -4961,9 +5086,9 @@ func (ac *AdminController) SetDefaultMemoryConfig(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Đặt cấu hình Memory mặc định thành công", "data": config})
 }
 
-// generateMCPToken 生成稳定的MCP JWT Token（同一agentID+userID下保持不变）
+// generateMCPToken tạo JWT Token MCP ổn định cho cùng agentID+userID.
 func generateMCPToken(agentID string, userID uint, endpointAuthToken string) (string, error) {
-	// 创建自定义的JWT Claims
+	// Tạo JWT Claims tùy chỉnh.
 	type MCPClaims struct {
 		UserID     uint   `json:"userId"`
 		AgentID    string `json:"agentId"`
@@ -4972,11 +5097,11 @@ func generateMCPToken(agentID string, userID uint, endpointAuthToken string) (st
 		jwt.RegisteredClaims
 	}
 
-	// 构建endpointId
+	// Dựng endpointId.
 	endpointID := fmt.Sprintf("agent_%s", agentID)
 
-	// 创建JWT claims。
-	// 不设置iat/exp，保证token长期有效且同一agentID+userID生成结果稳定一致。
+	// Tạo JWT claims.
+	// Không đặt iat/exp để token lâu dài và ổn định cho cùng agentID+userID.
 	claims := MCPClaims{
 		UserID:           userID,
 		AgentID:          agentID,
@@ -4985,10 +5110,10 @@ func generateMCPToken(agentID string, userID uint, endpointAuthToken string) (st
 		RegisteredClaims: jwt.RegisteredClaims{},
 	}
 
-	// 使用HS256算法生成JWT token
+	// Tạo JWT token bằng thuật toán HS256.
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)
 
-	// 使用与middleware相同的密钥
+	// Dùng cùng secret với middleware.
 	jwtSecret := []byte(strings.TrimSpace(endpointAuthToken))
 	tokenString, err := token.SignedString(jwtSecret)
 	if err != nil {
@@ -4998,7 +5123,7 @@ func generateMCPToken(agentID string, userID uint, endpointAuthToken string) (st
 	return tokenString, nil
 }
 
-// generateOpenClawToken 生成稳定的OpenClaw JWT Token（同一agentID+userID下保持不变）
+// generateOpenClawToken tạo JWT Token OpenClaw ổn định cho cùng agentID+userID.
 func generateOpenClawToken(agentID string, userID uint, endpointAuthToken string) (string, error) {
 	type OpenClawClaims struct {
 		UserID     uint   `json:"user_id"`
@@ -5027,9 +5152,9 @@ func generateOpenClawToken(agentID string, userID uint, endpointAuthToken string
 	return tokenString, nil
 }
 
-// ==================== 新角色管理 API ====================
+// ==================== API quản lý vai trò mới ====================
 
-// GetGlobalRolesNew 获取全局角色列表（仅 roles 表中的全局角色）
+// GetGlobalRolesNew lấy danh sách vai trò toàn cục trong bảng roles.
 func (ac *AdminController) GetGlobalRolesNew(c *gin.Context) {
 	var globalRoles []models.Role
 	if err := ac.DB.Where("user_id IS NULL AND role_type = ?", "global").
@@ -5042,14 +5167,14 @@ func (ac *AdminController) GetGlobalRolesNew(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": globalRoles})
 }
 
-// GetRolesNew 获取角色列表（全局角色 + 用户角色）
-// 管理员可以查看所有角色，普通用户只能查看全局角色和自己的角色
+// GetRolesNew lấy danh sách vai trò (toàn cục + người dùng).
+// Quản trị viên xem được mọi vai trò; người dùng thường chỉ xem vai trò toàn cục và vai trò của mình.
 func (ac *AdminController) GetRolesNew(c *gin.Context) {
-	// 从JWT中获取用户ID和角色
+	// Lấy userID và role từ JWT.
 	userID, exists := c.Get("user_id")
 	userRole, roleExists := c.Get("role")
 
-	// 查询全局角色
+	// Truy vấn vai trò toàn cục.
 	var globalRoles []models.Role
 	if err := ac.DB.Where("user_id IS NULL AND role_type = ?", "global").
 		Order("sort_order ASC, id ASC").
@@ -5058,10 +5183,10 @@ func (ac *AdminController) GetRolesNew(c *gin.Context) {
 		return
 	}
 
-	// 查询用户角色
+	// Truy vấn vai trò người dùng.
 	var userRoles []models.Role
 	if roleExists && userRole.(string) == "admin" {
-		// 管理员查看所有用户角色
+		// Quản trị viên xem mọi vai trò người dùng.
 		if err := ac.DB.Where("role_type = ?", "user").
 			Order("created_at DESC").
 			Find(&userRoles).Error; err != nil {
@@ -5069,7 +5194,7 @@ func (ac *AdminController) GetRolesNew(c *gin.Context) {
 			return
 		}
 	} else if exists {
-		// 普通用户只查看自己的角色
+		// Người dùng thường chỉ xem vai trò của mình.
 		if err := ac.DB.Where("user_id = ? AND role_type = ?", userID, "user").
 			Order("created_at DESC").
 			Find(&userRoles).Error; err != nil {
@@ -5086,7 +5211,7 @@ func (ac *AdminController) GetRolesNew(c *gin.Context) {
 	})
 }
 
-// GetRoleNew 获取单个角色详情
+// GetRoleNew lấy chi tiết một vai trò.
 func (ac *AdminController) GetRoleNew(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var role models.Role
@@ -5100,7 +5225,7 @@ func (ac *AdminController) GetRoleNew(c *gin.Context) {
 		return
 	}
 
-	// 权限检查：用户角色只能查看自己的角色
+	// Kiểm tra quyền: vai trò người dùng chỉ chủ sở hữu được xem.
 	if role.UserID != nil {
 		userID, exists := c.Get("user_id")
 		userRole, roleExists := c.Get("role")
@@ -5127,7 +5252,7 @@ func normalizeRoleStatus(status string) string {
 	return trimmed
 }
 
-// CreateRoleNew 创建角色（管理员创建全局角色，用户创建自己的角色）
+// CreateRoleNew tạo vai trò; quản trị viên tạo vai trò toàn cục, người dùng tạo vai trò của mình.
 func (ac *AdminController) CreateRoleNew(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	userRole, roleExists := c.Get("role")
@@ -5138,24 +5263,24 @@ func (ac *AdminController) CreateRoleNew(c *gin.Context) {
 		return
 	}
 
-	// 设置角色类型和所属用户
+	// Đặt loại vai trò và người sở hữu.
 	if roleExists && userRole.(string) == "admin" {
-		// 管理员创建全局角色
+		// Quản trị viên tạo vai trò toàn cục.
 		role.RoleType = "global"
 		role.UserID = nil
 	} else if exists {
-		// 普通用户创建自己的角色
+		// Người dùng thường tạo vai trò của mình.
 		role.RoleType = "user"
 		uid := userID.(uint)
 		role.UserID = &uid
-		// 用户角色不能设为默认
+		// Vai trò người dùng không được đặt làm mặc định.
 		role.IsDefault = false
 	} else {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Chưa được ủy quyền"})
 		return
 	}
 
-	// 验证必填字段
+	// Kiểm tra trường bắt buộc.
 	if role.Name == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên vai trò không được để trống"})
 		return
@@ -5171,7 +5296,7 @@ func (ac *AdminController) CreateRoleNew(c *gin.Context) {
 		return
 	}
 
-	// 如果设置为默认角色，先取消其他默认角色
+	// Nếu đặt làm vai trò mặc định, hủy mặc định các vai trò khác trước.
 	if role.IsDefault && role.RoleType == "global" {
 		ac.DB.Model(&models.Role{}).
 			Where("role_type = ? AND is_default = ?", "global", true).
@@ -5186,7 +5311,7 @@ func (ac *AdminController) CreateRoleNew(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{"data": role})
 }
 
-// UpdateRoleNew 更新角色
+// UpdateRoleNew cập nhật vai trò.
 func (ac *AdminController) UpdateRoleNew(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var role models.Role
@@ -5200,7 +5325,7 @@ func (ac *AdminController) UpdateRoleNew(c *gin.Context) {
 		return
 	}
 
-	// 权限检查
+	// Kiểm tra quyền.
 	userID, exists := c.Get("user_id")
 	userRole, roleExists := c.Get("role")
 
@@ -5223,14 +5348,14 @@ func (ac *AdminController) UpdateRoleNew(c *gin.Context) {
 		return
 	}
 
-	// 如果设置为默认角色，先取消其他默认角色
+	// Nếu đặt làm vai trò mặc định, hủy mặc định các vai trò khác trước.
 	if updateData.IsDefault && role.RoleType == "global" {
 		ac.DB.Model(&models.Role{}).
 			Where("role_type = ? AND is_default = ? AND id != ?", "global", true, id).
 			Update("is_default", false)
 	}
 
-	// 更新字段
+	// Cập nhật trường.
 	role.Name = updateData.Name
 	role.Description = updateData.Description
 	role.Prompt = updateData.Prompt
@@ -5250,7 +5375,7 @@ func (ac *AdminController) UpdateRoleNew(c *gin.Context) {
 	}
 	role.Status = normalizedStatus
 
-	// 只有管理员可以修改默认标志和角色类型
+	// Chỉ quản trị viên được sửa cờ mặc định và loại vai trò.
 	if isAdmin {
 		role.IsDefault = updateData.IsDefault
 	}
@@ -5263,7 +5388,7 @@ func (ac *AdminController) UpdateRoleNew(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": role})
 }
 
-// DeleteRoleNew 删除角色
+// DeleteRoleNew xóa vai trò.
 func (ac *AdminController) DeleteRoleNew(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var role models.Role
@@ -5277,7 +5402,7 @@ func (ac *AdminController) DeleteRoleNew(c *gin.Context) {
 		return
 	}
 
-	// 权限检查
+	// Kiểm tra quyền.
 	userID, exists := c.Get("user_id")
 	userRole, roleExists := c.Get("role")
 
@@ -5294,7 +5419,7 @@ func (ac *AdminController) DeleteRoleNew(c *gin.Context) {
 		return
 	}
 
-	// 检查是否有设备正在使用此角色
+	// Kiểm tra có thiết bị đang dùng vai trò này hay không.
 	var deviceCount int64
 	ac.DB.Model(&models.Device{}).Where("role_id = ?", id).Count(&deviceCount)
 	if deviceCount > 0 {
@@ -5312,7 +5437,7 @@ func (ac *AdminController) DeleteRoleNew(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
-// ToggleRoleStatus 切换角色状态（启用/禁用）
+// ToggleRoleStatus chuyển trạng thái vai trò (bật/tắt).
 func (ac *AdminController) ToggleRoleStatus(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var role models.Role
@@ -5326,7 +5451,7 @@ func (ac *AdminController) ToggleRoleStatus(c *gin.Context) {
 		return
 	}
 
-	// 权限检查
+	// Kiểm tra quyền.
 	userID, exists := c.Get("user_id")
 	userRole, roleExists := c.Get("role")
 
@@ -5343,7 +5468,7 @@ func (ac *AdminController) ToggleRoleStatus(c *gin.Context) {
 		return
 	}
 
-	// 切换状态
+	// Chuyển trạng thái.
 	currentStatus := normalizeRoleStatus(role.Status)
 	if currentStatus == "active" {
 		role.Status = "inactive"
@@ -5359,7 +5484,7 @@ func (ac *AdminController) ToggleRoleStatus(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": role})
 }
 
-// SetDefaultRole 设置默认角色（仅全局角色）
+// SetDefaultRole đặt vai trò mặc định, chỉ áp dụng vai trò toàn cục.
 func (ac *AdminController) SetDefaultRole(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
 	var role models.Role
@@ -5375,19 +5500,19 @@ func (ac *AdminController) SetDefaultRole(c *gin.Context) {
 		return
 	}
 
-	// 权限检查：Chỉ quản trị viên mới có thể đặt vai trò mặc định
+	// Kiểm tra quyền: chỉ quản trị viên mới có thể đặt vai trò mặc định.
 	userRole, roleExists := c.Get("role")
 	if !roleExists || userRole.(string) != "admin" {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Chỉ quản trị viên mới có thể đặt vai trò mặc định"})
 		return
 	}
 
-	// 先取消其他默认角色
+	// Hủy mặc định của các vai trò khác trước.
 	ac.DB.Model(&models.Role{}).
 		Where("role_type = ? AND is_default = ?", "global", true).
 		Update("is_default", false)
 
-	// 设置当前角色为默认
+	// Đặt vai trò hiện tại làm mặc định.
 	role.IsDefault = true
 	if err := ac.DB.Save(&role).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đặt vai trò mặc định thất bại"})
@@ -5486,7 +5611,7 @@ func getRequestUserInfo(c *gin.Context) (uint, bool, bool) {
 	return uid, hasUserID, isAdmin
 }
 
-// ApplyRoleToDevice 应用角色到设备（普通用户可操作自己的设备）
+// ApplyRoleToDevice áp dụng vai trò cho thiết bị; người dùng thường thao tác thiết bị của mình.
 func (ac *AdminController) ApplyRoleToDevice(c *gin.Context) {
 	deviceID, err := strconv.Atoi(c.Param("id"))
 	if err != nil || deviceID <= 0 {
@@ -5528,11 +5653,11 @@ func (ac *AdminController) ApplyRoleToDevice(c *gin.Context) {
 		}
 		if role.Status == "" {
 			if err := ac.DB.Model(&role).Update("status", roleStatus).Error; err != nil {
-				log.Printf("更新角色默认状态失败: role_id=%d err=%v", role.ID, err)
+				log.Printf("Cập nhật trạng thái mặc định của vai trò thất bại: role_id=%d err=%v", role.ID, err)
 			}
 		}
 
-		// 普通用户只允许使用全局角色或自己的用户角色
+		// Người dùng thường chỉ được dùng vai trò toàn cục hoặc vai trò của mình.
 		if !isAdmin {
 			if role.RoleType != "global" {
 				if role.UserID == nil || *role.UserID != uid {
@@ -5559,7 +5684,7 @@ func (ac *AdminController) ApplyRoleToDevice(c *gin.Context) {
 	})
 }
 
-// SwitchDeviceRoleByNameInternal 内部接口：按角色名称（模糊匹配）切换设备角色
+// SwitchDeviceRoleByNameInternal là API nội bộ đổi vai trò thiết bị theo tên vai trò.
 func (ac *AdminController) SwitchDeviceRoleByNameInternal(c *gin.Context) {
 	deviceName := strings.TrimSpace(c.Param("device_name"))
 	if deviceName == "" {
@@ -5624,7 +5749,7 @@ func (ac *AdminController) SwitchDeviceRoleByNameInternal(c *gin.Context) {
 	})
 }
 
-// RestoreDeviceDefaultRoleInternal 内部接口：恢复设备默认角色（清空设备绑定角色）
+// RestoreDeviceDefaultRoleInternal là API nội bộ khôi phục vai trò mặc định của thiết bị.
 func (ac *AdminController) RestoreDeviceDefaultRoleInternal(c *gin.Context) {
 	deviceName := strings.TrimSpace(c.Param("device_name"))
 	if deviceName == "" {

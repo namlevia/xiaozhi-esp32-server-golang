@@ -2,26 +2,26 @@
   <div class="simple-login-page">
     <div class="simple-login-card">
       <div class="simple-login-header">
-        <h1>简单登录测试</h1>
-        <p>用于快速验证认证链路和路由跳转。</p>
+        <h1>Kiểm tra đăng nhập đơn giản</h1>
+        <p>Dùng để xác minh nhanh luồng xác thực và chuyển hướng định tuyến.</p>
       </div>
 
       <div class="simple-login-form">
-        <label class="simple-login-label" for="simple-login-username">用户名</label>
+        <label class="simple-login-label" for="simple-login-username">Tên đăng nhập</label>
         <input id="simple-login-username" v-model="username" type="text" class="simple-login-input" />
 
-        <label class="simple-login-label" for="simple-login-password">密码</label>
+        <label class="simple-login-label" for="simple-login-password">Mật khẩu</label>
         <input id="simple-login-password" v-model="password" type="password" class="simple-login-input" />
 
         <button @click="login" class="simple-login-button">
-          登录
+          Đăng nhập
         </button>
       </div>
 
       <div class="debug-info">
-        <h3>调试信息</h3>
-        <p>认证状态: {{ authStore.isAuthenticated }}</p>
-        <p>用户信息: {{ JSON.stringify(authStore.user) }}</p>
+        <h3>Thông tin gỡ lỗi</h3>
+        <p>Trạng thái xác thực: {{ authStore.isAuthenticated }}</p>
+        <p>Thông tin người dùng: {{ JSON.stringify(authStore.user) }}</p>
       </div>
     </div>
   </div>
@@ -46,17 +46,17 @@ const login = async () => {
     })
     
     if (result.success) {
-      alert('登录成功!')
+      alert('Đăng nhập thành công!')
       if (authStore.user?.role === 'admin') {
         router.push('/dashboard')
       } else {
         router.push('/agents')
       }
     } else {
-      alert('登录失败: ' + result.message)
+      alert('Đăng nhập thất bại: ' + result.message)
     }
   } catch (error) {
-    alert('登录错误: ' + error.message)
+    alert('Lỗi đăng nhập: ' + error.message)
   }
 }
 </script>

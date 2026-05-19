@@ -6,20 +6,20 @@ import (
 	. "xiaozhi-esp32-server-golang/internal/data/client"
 )
 
-// ExitChatEvent 退出聊天事件
+// ExitChatEvent là sự kiện thoát chat.
 type ExitChatEvent struct {
-	// 客户端状态
+	// Trạng thái client
 	ClientState *ClientState
 
-	// 退出原因
-	Reason string // "用户主动退出"、"工具调用退出"、"超时退出" 等
+	// Lý do thoát
+	Reason string // "user chủ động thoát", "tool call thoát", "timeout thoát"...
 
-	// 退出触发方式
-	TriggerType string // "exit_words"（退出词检测）、"tool_call"（工具调用）、"timeout"（超时）等
+	// Cách trigger thoát
+	TriggerType string // "exit_words" (phát hiện từ thoát), "tool_call" (tool call), "timeout"...
 
-	// 用户输入的原始文本（如果有）
+	// Text raw user nhập, nếu có
 	UserText string
 
-	// 时间戳
+	// Timestamp
 	Timestamp time.Time
 }

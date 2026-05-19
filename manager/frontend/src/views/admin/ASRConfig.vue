@@ -146,6 +146,11 @@ const form = reactive({
   provider: '',
   is_default: false,
   enabled: true,
+  wyoming_vietnamese_asr: {
+    base_url: 'http://127.0.0.1:8082',
+    sample_rate: 16000,
+    timeout_ms: 30000
+  },
   funasr: {
     host: 'localhost',
     port: 10095,
@@ -205,12 +210,20 @@ const form = reactive({
   }
 })
 
-// 按当前 provider 动态规则，避免未显示的 doubao/funasr 字段触发必填导致Lưu不发请求
+// Dùng rule động theo provider hiện tại để tránh các trường doubao/funasr đang ẩn vẫn bị bắt buộc, làm thao tác lưu không gửi request
 const rules = computed(() => {
   const base = {
     name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
     config_id: [{ required: true, message: 'Vui lòng nhập ID cấu hình', trigger: 'blur' }],
     provider: [{ required: true, message: 'Vui lòng chọn nhà cung cấp', trigger: 'change' }]
+  }
+  if (form.provider === 'wyoming_vietnamese_asr') {
+    return {
+      ...base,
+      'wyoming_vietnamese_asr.base_url': [{ required: true, message: 'Vui lòng nhập URL dịch vụ Go', trigger: 'blur' }],
+      'wyoming_vietnamese_asr.sample_rate': [{ required: true, message: 'Vui lòng chọn sample rate', trigger: 'change' }],
+      'wyoming_vietnamese_asr.timeout_ms': [{ required: true, message: 'Vui lòng nhập timeout', trigger: 'blur' }]
+    }
   }
   if (form.provider === 'funasr') {
     return {
@@ -311,11 +324,15 @@ const editConfig = (config) => {
   try {
     const configObj = JSON.parse(config.json_data || '{}')
     
-    // 兼容新旧格式：检查是否是包装格式（包含provider层）还是直接格式
-    if (configObj.funasr) {
-      // 旧格式：包含provider层
+    // Tương thích cả định dạng cũ lẫn mới: kiểm tra dữ liệu đang bọc theo provider hay là nội dung trực tiếp
+    if (configObj.wyoming_vietnamese_asr) {
+      form.wyoming_vietnamese_asr = { ...form.wyoming_vietnamese_asr, ...configObj.wyoming_vietnamese_asr }
+    } else if (config.provider === 'wyoming_vietnamese_asr' && (configObj.base_url || configObj.api_url || configObj.url)) {
+      form.wyoming_vietnamese_asr = { ...form.wyoming_vietnamese_asr, ...configObj }
+    } else if (configObj.funasr) {
+      // Định dạng cũ: có lớp provider bao ngoài
       const funasrConfig = { ...form.funasr, ...configObj.funasr }
-      // 兼容chunk_size：如果是单个数字或无效格式，转换为Mặc định值 [5, 10, 5]
+      // Tương thích chunk_size: nếu là số đơn hoặc sai định dạng thì đổi về giá trị mặc định [5, 10, 5]
       if (typeof funasrConfig.chunk_size === 'number') {
         funasrConfig.chunk_size = [5, 10, 5]
       } else if (!Array.isArray(funasrConfig.chunk_size) || funasrConfig.chunk_size.length !== 3) {
@@ -323,15 +340,15 @@ const editConfig = (config) => {
       }
       form.funasr = funasrConfig
     } else if (configObj.aliyun_funasr) {
-      // 旧格式：包含provider层
+      // Định dạng cũ: có lớp provider bao ngoài
       form.aliyun_funasr = { ...form.aliyun_funasr, ...configObj.aliyun_funasr }
     } else if (configObj.doubao) {
-      // 旧格式：包含provider层
+      // Định dạng cũ: có lớp provider bao ngoài
       form.doubao = { ...form.doubao, ...configObj.doubao }
     } else if (config.provider === 'funasr' && configObj.host) {
-      // 新格式：直接包含配置内容
+      // Định dạng mới: chứa trực tiếp nội dung cấu hình
       const funasrConfig = { ...form.funasr, ...configObj }
-      // 兼容chunk_size：如果是单个数字或无效格式，转换为Mặc định值 [5, 10, 5]
+      // Tương thích chunk_size: nếu là số đơn hoặc sai định dạng thì đổi về giá trị mặc định [5, 10, 5]
       if (typeof funasrConfig.chunk_size === 'number') {
         funasrConfig.chunk_size = [5, 10, 5]
       } else if (!Array.isArray(funasrConfig.chunk_size) || funasrConfig.chunk_size.length !== 3) {
@@ -339,16 +356,16 @@ const editConfig = (config) => {
       }
       form.funasr = funasrConfig
     } else if (config.provider === 'aliyun_funasr' && (configObj.ws_url || configObj.model || configObj.api_key)) {
-      // 新格式：直接包含配置内容
+      // Định dạng mới: chứa trực tiếp nội dung cấu hình
       form.aliyun_funasr = { ...form.aliyun_funasr, ...configObj }
     } else if (config.provider === 'doubao' && (configObj.appid || configObj.access_token)) {
-      // 新格式：直接包含配置内容
+      // Định dạng mới: chứa trực tiếp nội dung cấu hình
       form.doubao = { ...form.doubao, ...configObj }
     } else if (configObj.aliyun_qwen3) {
-      // 旧格式：包含provider层
+      // Định dạng cũ: có lớp provider bao ngoài
       form.aliyun_qwen3 = { ...form.aliyun_qwen3, ...configObj.aliyun_qwen3 }
     } else if (config.provider === 'aliyun_qwen3' && (configObj.ws_url || configObj.model || configObj.api_key)) {
-      // 新格式：直接包含配置内容
+      // Định dạng mới: chứa trực tiếp nội dung cấu hình
       form.aliyun_qwen3 = { ...form.aliyun_qwen3, ...configObj }
     } else if (configObj.xunfei) {
       form.xunfei = { ...form.xunfei, ...configObj.xunfei }
@@ -371,15 +388,15 @@ const handleSave = async () => {
     if (valid) {
       saving.value = true
       try {
-        // 如果是新增配置且当前没有任何配置，则Tự động设为Cấu hình mặc định
+        // Nếu đang thêm cấu hình mới và hiện chưa có cấu hình nào thì tự đặt làm mặc định
         const isFirstConfig = !editingConfig.value && configs.value.length === 0
         
         const configData = {
           name: form.name,
           config_id: form.config_id,
           provider: form.provider,
-          is_default: isFirstConfig || form.is_default, // 首次添加时Tự động设为Mặc định
-          enabled: form.enabled !== undefined ? form.enabled : true, // 确保enabled字段存在
+          is_default: isFirstConfig || form.is_default, // Khi thêm bản ghi đầu tiên thì tự đặt làm mặc định
+          enabled: form.enabled !== undefined ? form.enabled : true, // Đảm bảo luôn có trường enabled
           json_data: formRef.value.getJsonData()
         }
         
@@ -434,7 +451,7 @@ const toggleDefault = async (config) => {
     await api.put(`/admin/asr-configs/${config.id}`, configData)
     ElMessage.success(config.is_default ? 'Đặt làm mặc định thành công' : 'HủyMặc địnhthành công')
     
-    // Làm mới列表以更新其他配置的Mặc định状态
+    // Làm mới danh sách để cập nhật trạng thái mặc định của các cấu hình khác
     loadConfigs()
   } catch (error) {
     // Khôi phục trạng thái switch
@@ -453,7 +470,7 @@ function formatTestResultLabel(r) {
 }
 function formatTestResultTip(r) {
   if (!r?.ok) return ''
-  return r.first_packet_ms != null ? `Đạt，Thời gian ${r.first_packet_ms}ms` : 'Đạt'
+  return r.first_packet_ms != null ? `Đạt, thời gian ${r.first_packet_ms}ms` : 'Đạt'
 }
 function formatTestMessage(result) {
   const base = result.message || ''
@@ -517,11 +534,11 @@ const testCurrentConfig = async () => {
     return
   }
   const payload = {
+    ...parseJsonData(formRef.value.getJsonData()),
     name: form.name,
     config_id: configId,
     provider: form.provider,
-    is_default: form.is_default,
-    ...parseJsonData(formRef.value.getJsonData())
+    is_default: form.is_default
   }
   testingCurrent.value = true
   try {
@@ -563,6 +580,11 @@ const resetForm = () => {
   form.provider = ''
   form.is_default = false
   form.enabled = true
+  form.wyoming_vietnamese_asr = {
+    base_url: 'http://127.0.0.1:8082',
+    sample_rate: 16000,
+    timeout_ms: 30000
+  }
   form.funasr = {
     host: 'localhost',
     port: 10095,

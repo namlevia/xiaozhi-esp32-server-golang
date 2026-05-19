@@ -8,112 +8,112 @@ import (
 func TestMemoryProvider(t *testing.T) {
 	ctx := context.Background()
 
-	// 创建内存provider
+	// Tạo provider memory
 	config := map[string]interface{}{
 		"max_entries": 10,
 	}
 
 	provider, err := GetUserConfigProvider("memory", config)
 	if err != nil {
-		t.Fatalf("创建内存provider失败: %v", err)
+		t.Fatalf("Tạo provider memory thất bại: %v", err)
 	}
-	// 注意：接口中没有Close方法，所以不需要调用
+	// Lưu ý: interface không có method Close nên không cần gọi.
 
 	userID := "test_user_123"
 
-	// 由于接口中没有SetUserConfig方法，我们只测试GetUserConfig方法
-	// 测试获取不存在用户的配置（应该返回空配置）
+	// Vì interface không có method SetUserConfig nên chỉ test method GetUserConfig.
+	// Test lấy config của user không tồn tại, kỳ vọng trả về config rỗng.
 	retrievedConfig, err := provider.GetUserConfig(ctx, userID)
 	if err != nil {
-		t.Fatalf("获取用户配置失败: %v", err)
+		t.Fatalf("Lấy cấu hình người dùng thất bại: %v", err)
 	}
 
-	// 验证返回的是空配置
+	// Xác minh giá trị trả về là config rỗng
 	if retrievedConfig.Llm.Provider != "" {
-		t.Errorf("期望空配置，但得到了 LLM Provider: %s", retrievedConfig.Llm.Provider)
+		t.Errorf("Kỳ vọng config rỗng, nhưng nhận được LLM Provider: %s", retrievedConfig.Llm.Provider)
 	}
 
-	// 测试系统配置获取
+	// Test lấy config hệ thống
 	systemConfig, err := provider.GetSystemConfig(ctx)
 	if err != nil {
-		t.Fatalf("获取系统配置失败: %v", err)
+		t.Fatalf("Lấy config hệ thống thất bại: %v", err)
 	}
-	_ = systemConfig // 系统配置可能为空，这是正常的
+	_ = systemConfig // Config hệ thống có thể rỗng, đây là bình thường
 }
 
 func TestProviderAdapter(t *testing.T) {
 	ctx := context.Background()
 
-	// 创建内存provider
+	// Tạo provider memory
 	provider, err := GetUserConfigProvider("memory", map[string]interface{}{
 		"max_entries": 5,
 	})
 	if err != nil {
-		t.Fatalf("创建内存provider失败: %v", err)
+		t.Fatalf("Tạo provider memory thất bại: %v", err)
 	}
-	// 注意：接口中没有Close方法，所以不需要调用
+	// Lưu ý: interface không có method Close nên không cần gọi.
 
-	// 测试适配器获取配置
+	// Test adapter lấy config
 	userID := "adapter_test_user"
 
-	// 使用适配器获取配置（可能为空配置）
+	// Dùng adapter lấy config, có thể là config rỗng
 	adapter := NewUserConfigAdapter(provider)
 	retrievedConfig, err := adapter.GetUserConfig(ctx, userID)
 	if err != nil {
-		t.Fatalf("通过适配器获取配置失败: %v", err)
+		t.Fatalf("Lấy config qua adapter thất bại: %v", err)
 	}
 
-	// 验证适配器正常工作（获取到配置结构）
+	// Xác minh adapter hoạt động bình thường, lấy được cấu trúc config
 	if retrievedConfig.SystemPrompt == "" {
-		t.Logf("适配器获取到空的系统提示，这是正常的")
+		t.Logf("Adapter lấy được system prompt rỗng, đây là bình thường")
 	} else {
-		t.Logf("适配器获取到系统提示: %s", retrievedConfig.SystemPrompt)
+		t.Logf("Adapter lấy được system prompt: %s", retrievedConfig.SystemPrompt)
 	}
 }
 
 func TestDefaultConfig(t *testing.T) {
-	// 测试Redis默认配置
+	// Test config mặc định Redis
 	redisConfig := DefaultConfig("redis")
 	if redisConfig["host"] != "localhost" {
-		t.Errorf("Redis默认host配置错误，期望: localhost, 实际: %v", redisConfig["host"])
+		t.Errorf("Config host mặc định Redis sai, kỳ vọng: localhost, thực tế: %v", redisConfig["host"])
 	}
 
-	// 测试Memory默认配置
+	// Test config mặc định memory
 	memoryConfig := DefaultConfig("memory")
 	if memoryConfig["max_entries"] != 1000 {
-		t.Errorf("Memory默认max_entries配置错误，期望: 1000, 实际: %v", memoryConfig["max_entries"])
+		t.Errorf("Config max_entries mặc định memory sai, kỳ vọng: 1000, thực tế: %v", memoryConfig["max_entries"])
 	}
 
-	// 测试不支持的类型
+	// Test loại không được hỗ trợ
 	unknownConfig := DefaultConfig("unknown")
 	if len(unknownConfig) != 0 {
-		t.Errorf("未知类型应返回空配置，实际: %v", unknownConfig)
+		t.Errorf("Loại không xác định nên trả về config rỗng, thực tế: %v", unknownConfig)
 	}
 }
 
 func TestValidateConfig(t *testing.T) {
-	// 测试有效的Redis配置
+	// Test config Redis hợp lệ
 	validRedisConfig := map[string]interface{}{
 		"host": "localhost",
 		"port": 6379,
 	}
 	err := ValidateConfig("redis", validRedisConfig)
 	if err != nil {
-		t.Errorf("有效Redis配置验证失败: %v", err)
+		t.Errorf("Validate config Redis hợp lệ thất bại: %v", err)
 	}
 
-	// 测试无效的Redis配置（缺少host）
+	// Test config Redis không hợp lệ, thiếu host
 	invalidRedisConfig := map[string]interface{}{
 		"port": 6379,
 	}
 	err = ValidateConfig("redis", invalidRedisConfig)
 	if err == nil {
-		t.Error("缺少host的Redis配置应该验证失败")
+		t.Error("Config Redis thiếu host phải validate thất bại")
 	}
 
-	// 测试Memory配置（无需验证）
+	// Test config Memory, không cần validate
 	err = ValidateConfig("memory", map[string]interface{}{})
 	if err != nil {
-		t.Errorf("Memory配置验证失败: %v", err)
+		t.Errorf("Validate config Memory thất bại: %v", err)
 	}
 }

@@ -10,7 +10,7 @@
 - `manager/frontend/src/views/admin/Users.vue`
 - `manager/frontend/src/views/user/APITokens.vue`
 
-## Build/test đã chạy
+## Biên dịch/kiểm thử đã chạy
 
 - Frontend build: `manager/frontend -> npm run build` ✅
 - Backend test: `manager/backend -> go test ./...` ✅
@@ -42,13 +42,13 @@ Các nhóm này còn tiếng Trung nhưng không trả trực tiếp cho end use
 - các README nội bộ trong `internal/**/README.md`, `test/**/README.md`, `manager/backend/config/README.md`
 - các file mock/test như `cmd/mock_ai_server/*`, `test/*`
 
-### 3. Docs gốc song ngữ hoặc docs nguồn Trung văn
+### 3. Docs song ngữ hoặc nội dung đối chiếu thuật ngữ
 
-Các file dưới đây còn nhiều tiếng Trung và được giữ vì là docs nguồn của upstream hoặc docs song ngữ gốc:
+Các phần dưới đây có thể còn tiếng Trung có chủ đích vì dùng để đối chiếu thuật ngữ hoặc giữ nguyên ví dụ kỹ thuật:
 
-- `README.md`
-- toàn bộ thư mục `doc/`
-- một phần `docs/vi_vn_glossary.md` vì bảng glossary có cột 中文 làm đối chiếu thuật ngữ
+- `README.md` nếu còn giữ nội dung song ngữ/upstream
+- một phần `docs/vi_vn_glossary.md` vì bảng glossary có cột `中文` làm đối chiếu thuật ngữ
+- ví dụ prompt, wake word, keyword hoặc tên provider/model cần giữ nguyên để tránh đổi hành vi
 
 ### 4. Phần còn lại đáng chú ý trong UI/runtime nhưng hiện giữ nguyên có chủ đích
 
@@ -72,7 +72,7 @@ Các file dưới đây còn nhiều tiếng Trung và được giữ vì là do
 | Wake words | `小智`, `你好小智` | Từ khóa kích hoạt, đổi có thể ảnh hưởng tương thích |
 | OpenClaw keywords | `打开龙虾`, `退出龙虾` | Trigger keyword mặc định, cần giữ để không phá flow hiện có |
 | Provider/model branding | `智谱AI`, `阿里云`, `豆包` | Tên sản phẩm/nhà cung cấp, không nên dịch bừa |
-| Docs gốc upstream | `doc/*.md`, README song ngữ | Thuộc tài liệu nguồn, không nên xóa/đổi toàn bộ trong sweep an toàn |
+| Docs song ngữ/đối chiếu | `README.md`, `docs/vi_vn_glossary.md` | Giữ phần tiếng Trung khi là ví dụ, keyword hoặc cột đối chiếu thuật ngữ |
 | Workflow/dev comments | `.github/workflows`, comment code | Không phải text user-facing trực tiếp |
 
 ## Kết luận

@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-// 设备更新只写入明确声明的列，避免将历史零时间 created_at 等字段整行回写。
+// Cập nhật thiết bị chỉ ghi các cột được khai báo rõ, tránh ghi ngược cả dòng với các trường lịch sử như created_at zero-time.
 func updateDeviceColumns(db *gorm.DB, deviceID uint, updates map[string]interface{}) error {
 	if deviceID == 0 {
 		return errors.New("device id is required")

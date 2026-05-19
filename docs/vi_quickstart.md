@@ -85,7 +85,7 @@ Repo đã có `config/config.yaml`. Với bước quickstart, bạn thường s�
 - `ota.external.websocket.url`
 - API key ở các provider ASR / TTS / LLM đang dùng
 
-### 5.3. Build và chạy stack
+### 5.3. Biên dịch và chạy stack
 
 Nếu dùng file compose build sẵn trong repo:
 

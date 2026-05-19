@@ -4,7 +4,7 @@
       <el-button type="primary" @click="openCreateDialog">Tạo clone giọng</el-button>
     </div>
 
-    <el-table :data="voiceClones" v-loading="loading" stripe style="width: 100%" table-layout="fixed">
+    <el-table :data="voiceClones" v-loading="loading" empty-text="Chưa có clone giọng" stripe style="width: 100%" table-layout="fixed">
       <el-table-column prop="name" label="Tên" min-width="120" show-overflow-tooltip />
       <el-table-column prop="provider" label="Nhà cung cấp" width="100" show-overflow-tooltip />
       <el-table-column label="Cấu hình TTS" min-width="180" show-overflow-tooltip>
@@ -63,7 +63,7 @@
               :loading="retrySubmittingID === row.id"
               @click="retryClone(row)"
             >
-              Clone lại
+              Tạo lại clone
             </el-button>
             <el-button
               v-if="canAppendRefAudio(row)"

@@ -148,10 +148,10 @@
       @close="resetQuotaDialog"
     >
       <div class="quota-hint">Phân bổ số lần clone theo từng cấu hình TTS: -1 là không giới hạn, 0 là cấm tạo, số nguyên dương là số lần clone tối đa.</div>
-      <el-table :data="quotaRows" v-loading="quotaLoading" style="margin-top: 12px">
+      <el-table :data="quotaRows" v-loading="quotaLoading" empty-text="Chưa có cấu hình hạn mức clone" style="margin-top: 12px">
         <el-table-column prop="tts_config_name" label="Tên cấu hình TTS" min-width="180" />
-        <el-table-column prop="tts_config_id" label="TTS Config ID" min-width="180" />
-        <el-table-column prop="provider" label="Provider" width="120" />
+        <el-table-column prop="tts_config_id" label="ID cấu hình TTS" min-width="180" />
+        <el-table-column prop="provider" label="Nhà cung cấp" width="120" />
         <el-table-column label="Đã dùng" width="100">
           <template #default="{ row }">{{ row.used_count }}</template>
         </el-table-column>
@@ -312,14 +312,14 @@ const handleUserSubmit = async () => {
     userSubmitLoading.value = true
     
     if (isEditMode.value) {
-      // 编辑用户
+      // Chỉnh sửa người dùng
       await api.put(`/admin/users/${currentUser.value.id}`, {
         email: userForm.email,
         role: userForm.role
       })
       ElMessage.success('Cập nhật người dùng thành công')
     } else {
-      // 添加用户
+      // Thêm người dùng
       await api.post('/admin/users', {
         username: userForm.username,
         email: userForm.email,

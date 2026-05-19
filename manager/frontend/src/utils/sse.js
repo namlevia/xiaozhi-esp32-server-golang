@@ -13,7 +13,7 @@ const buildResponseError = (status, payload) => {
   const message =
     (payload && typeof payload === 'object' && payload.error) ||
     (payload && typeof payload === 'object' && payload.message) ||
-    `请求失败 (${status})`
+    `Yêu cầu thất bại (${status})`
   return new Error(String(message))
 }
 
@@ -28,7 +28,7 @@ const normalizeSSEDataLine = (line) => {
 const readSSE = async (response, onEvent) => {
   const reader = response.body?.getReader()
   if (!reader) {
-    throw new Error('浏览器不支持流式读取')
+    throw new Error('Trình duyệt không hỗ trợ đọc luồng dữ liệu')
   }
 
   const decoder = new TextDecoder('utf-8')
@@ -117,7 +117,7 @@ export const postJSONWithSSE = async ({
   onEvent
 }) => {
   if (!url) {
-    throw new Error('请求地址不能为空')
+    throw new Error('Địa chỉ yêu cầu không được để trống')
   }
 
   const controller = new AbortController()
@@ -148,7 +148,7 @@ export const postJSONWithSSE = async ({
     if (contentType.includes('text/event-stream')) {
       const streamResult = await readSSE(response, onEvent)
       if (!response.ok) {
-        throw new Error(`请求失败 (${response.status})`)
+        throw new Error(`Yêu cầu thất bại (${response.status})`)
       }
       return {
         mode: 'sse',
@@ -170,7 +170,7 @@ export const postJSONWithSSE = async ({
     }
   } catch (error) {
     if (error && error.name === 'AbortError') {
-      throw new Error('请求超时')
+      throw new Error('Yêu cầu đã hết thời gian chờ')
     }
     throw error
   } finally {

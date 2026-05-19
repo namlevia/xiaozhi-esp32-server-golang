@@ -18,14 +18,14 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	internalAuthToken := config.ResolveInternalAuthToken(cfg)
 	endpointAuthToken := config.ResolveEndpointAuthToken(cfg)
 
-	// CORS配置
+	// Cấu hình CORS
 	corsConfig := cors.DefaultConfig()
 	corsConfig.AllowAllOrigins = true
 	corsConfig.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "X-API-Token"}
 	corsConfig.AllowCredentials = true
 	r.Use(cors.New(corsConfig))
 
-	// 初始化控制器
+	// Khởi tạo controller
 	authController := &controllers.AuthController{DB: db}
 	webSocketController := controllers.NewWebSocketController(db, endpointAuthToken)
 	adminController := &controllers.AdminController{
@@ -46,9 +46,9 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	voiceCloneController := controllers.NewVoiceCloneController(db, cfg)
 	poolStatsController := controllers.NewPoolStatsController()
 
-	// 初始化聊天历史控制器（使用传入的 cfg，不重新 Load 避免内嵌时读错路径）
+	// Khởi tạo controller lịch sử trò chuyện bằng cfg được truyền vào để tránh đọc sai đường dẫn khi embed.
 	audioBasePath := "./storage/chat_history/audio"
-	maxFileSize := int64(10 * 1024 * 1024) // 默认10MB
+	maxFileSize := int64(10 * 1024 * 1024) // Mặc định 10MB
 	if cfg.History.AudioBasePath != "" {
 		audioBasePath = cfg.History.AudioBasePath
 	}
@@ -61,20 +61,20 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 		MaxFileSize:   maxFileSize,
 	}
 
-	// API路由组
+	// Nhóm route API
 	api := r.Group("/api")
 	{
-		// 公开路由（无需认证）
+		// Route công khai, không cần xác thực
 		api.GET("/captcha/status", authController.GetCaptchaStatus)
 		api.GET("/captcha/challenge", authController.GetSimpleCaptcha)
 		api.POST("/login", authController.Login)
 		api.POST("/register", authController.Register)
 
-		// 数据库初始化相关路由（无需认证）
+		// Route khởi tạo cơ sở dữ liệu, không cần xác thực
 		api.GET("/setup/status", setupController.CheckSetupStatus)
 		api.POST("/setup/initialize", setupController.InitializeDatabase)
 
-		// 内部服务接口（服务间 Token 认证）
+		// API dịch vụ nội bộ, xác thực bằng token giữa dịch vụ
 		internal := api.Group("")
 		internal.Use(middleware.InternalServiceAuth(internalAuthToken))
 		{
@@ -84,25 +84,25 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 
 			internal.GET("/configs", adminController.GetDeviceConfigs)
 			internal.GET("/system/configs", adminController.GetSystemConfigs)
-			internal.POST("/internal/history/messages", chatHistoryController.SaveMessage)                         // 保存消息（内部服务接口）
-			internal.PUT("/internal/history/messages/:message_id/audio", chatHistoryController.UpdateMessageAudio) // 更新消息音频（内部服务接口）
-			internal.GET("/internal/history/messages", chatHistoryController.GetMessagesForInit)                   // 获取消息（用于初始化加载，内部服务接口）
-			internal.POST("/internal/pool/stats", poolStatsController.ReportPoolStats)                             // 上报资源池统计数据（内部服务接口）
+			internal.POST("/internal/history/messages", chatHistoryController.SaveMessage)                         // Lưu tin nhắn (API nội bộ)
+			internal.PUT("/internal/history/messages/:message_id/audio", chatHistoryController.UpdateMessageAudio) // Cập nhật audio tin nhắn (API nội bộ)
+			internal.GET("/internal/history/messages", chatHistoryController.GetMessagesForInit)                   // Lấy tin nhắn cho tải khởi tạo (API nội bộ)
+			internal.POST("/internal/pool/stats", poolStatsController.ReportPoolStats)                             // Báo cáo thống kê nhóm tài nguyên (API nội bộ)
 			internal.POST("/internal/devices/:device_name/switch-role", adminController.SwitchDeviceRoleByNameInternal)
 			internal.POST("/internal/devices/:device_name/restore-default-role", adminController.RestoreDeviceDefaultRoleInternal)
 		}
 
-		// 需要认证的路由
+		// Route cần xác thực
 		auth := api.Group("")
 		auth.Use(middleware.JWTAuth())
 		{
 			auth.GET("/profile", authController.GetProfile)
-			// 通用接口，获取系统中的设备信息
+			// API chung để lấy thông tin thiết bị trong hệ thống
 			auth.GET("/dashboard/stats", userController.GetDashboardStats)
-			// 设备角色接口（管理员和普通用户均可访问，控制器内做权限校验）
+			// API vai trò thiết bị, quản trị viên và người dùng thường đều truy cập được; controller kiểm tra quyền.
 			auth.POST("/devices/:id/apply-role", adminController.ApplyRoleToDevice)
 
-			// 角色管理（文档主路径）
+			// Quản lý vai trò (đường dẫn chính trong tài liệu)
 			auth.GET("/roles", adminController.GetRolesNew)
 			auth.GET("/roles/:id", adminController.GetRoleNew)
 			auth.POST("/roles", adminController.CreateRoleNew)
@@ -110,10 +110,10 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 			auth.DELETE("/roles/:id", adminController.DeleteRoleNew)
 			auth.PATCH("/roles/:id/toggle", adminController.ToggleRoleStatus)
 
-			// 用户路由
+			// Route người dùng
 			user := auth.Group("/user")
 			{
-				// 角色管理
+				// Quản lý vai trò
 				user.GET("/roles", adminController.GetRolesNew)
 				user.GET("/roles/:id", adminController.GetRoleNew)
 				user.POST("/roles", adminController.CreateRoleNew)
@@ -121,18 +121,18 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				user.DELETE("/roles/:id", adminController.DeleteRoleNew)
 				user.PATCH("/roles/:id/toggle", adminController.ToggleRoleStatus)
 
-				// API Token（供OpenAPI调用）
+				// API Token cho OpenAPI
 				user.GET("/api-tokens", userController.ListAPITokens)
 				user.POST("/api-tokens", userController.CreateAPIToken)
 				user.DELETE("/api-tokens/:id", userController.RevokeAPIToken)
 
-				// 设备管理
+				// Quản lý thiết bị
 				user.GET("/devices", userController.GetMyDevices)
 				user.POST("/devices", userController.CreateDevice)
 				user.PUT("/devices/:id", userController.UpdateDevice)
 				user.DELETE("/devices/:id", userController.DeleteDevice)
 
-				// 智能体管理
+				// Quản lý trợ lý
 				user.GET("/agents", userController.GetAgents)
 				user.POST("/agents", userController.CreateAgent)
 				user.GET("/agents/:id", userController.GetAgent)
@@ -144,7 +144,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				user.GET("/agents/:id/knowledge-bases", userController.GetAgentKnowledgeBases)
 				user.PUT("/agents/:id/knowledge-bases", userController.UpdateAgentKnowledgeBases)
 
-				// 用户知识库管理（纯文本）
+				// Quản lý kho tri thức người dùng (văn bản thuần)
 				user.GET("/knowledge-bases", userController.GetKnowledgeBases)
 				user.POST("/knowledge-bases", userController.CreateKnowledgeBase)
 				user.GET("/knowledge-bases/:id", userController.GetKnowledgeBase)
@@ -159,7 +159,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				user.DELETE("/knowledge-bases/:id/documents/:doc_id", userController.DeleteKnowledgeBaseDocument)
 				user.POST("/knowledge-bases/:id/documents/:doc_id/sync", userController.SyncKnowledgeBaseDocument)
 
-				// 角色模板和音色选项
+				// Mẫu vai trò và tùy chọn giọng
 				user.GET("/role-templates", userController.GetRoleTemplates)
 				user.GET("/voice-options", userController.GetVoiceOptions)
 				user.GET("/voice-clone/capabilities", voiceCloneController.GetCloneProviderCapabilities)
@@ -173,18 +173,18 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				user.GET("/voice-clones/:id/audios", voiceCloneController.GetVoiceCloneAudios)
 				user.GET("/voice-clones/audios/:audio_id/file", voiceCloneController.GetVoiceCloneAudioFile)
 
-				// 角色管理（暂时注释，待实现）
+				// Quản lý vai trò (tạm comment, chờ triển khai)
 				// user.GET("/roles", adminController.GetRoles)
 				// user.GET("/roles/:id", adminController.GetRole)
 				// user.POST("/roles", adminController.CreateRole)
 				// user.PUT("/roles/:id", adminController.UpdateRole)
 				// user.DELETE("/roles/:id", adminController.DeleteRole)
 
-				// 配置列表
+				// Danh sách cấu hình
 				user.GET("/llm-configs", userController.GetLLMConfigs)
 				user.GET("/tts-configs", userController.GetTTSConfigs)
 
-				// MCP接入点
+				// Điểm truy cập MCP
 				user.GET("/mcp-services/options", userController.GetMCPServiceOptions)
 				user.GET("/agents/:id/mcp-services/options", userController.GetAgentMCPServiceOptions)
 				user.GET("/agents/:id/mcp-endpoint", userController.GetAgentMCPEndpoint)
@@ -195,10 +195,10 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				user.GET("/devices/:id/mcp-tools", userController.GetDeviceMcpTools)
 				user.POST("/devices/:id/mcp-call", userController.CallDeviceMcpTool)
 
-				// 语音推送
+				// Đẩy giọng nói
 				user.POST("/devices/inject-message", userController.InjectMessage)
 
-				// 声纹组管理
+				// Quản lý nhóm dấu giọng nói
 				user.POST("/speaker-groups", speakerGroupController.CreateSpeakerGroup)
 				user.GET("/speaker-groups", speakerGroupController.GetSpeakerGroups)
 				user.GET("/speaker-groups/:id", speakerGroupController.GetSpeakerGroup)
@@ -206,13 +206,13 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				user.DELETE("/speaker-groups/:id", speakerGroupController.DeleteSpeakerGroup)
 				user.POST("/speaker-groups/:id/verify", speakerGroupController.VerifySpeakerGroup)
 
-				// 声纹样本管理（注意：使用 :id 而不是 :group_id，避免路由冲突）
+				// Quản lý mẫu dấu giọng nói, dùng :id thay vì :group_id để tránh xung đột route.
 				user.POST("/speaker-groups/:id/samples", speakerGroupController.AddSample)
 				user.GET("/speaker-groups/:id/samples", speakerGroupController.GetSamples)
 				user.GET("/speaker-groups/:id/samples/:sample_id/file", speakerGroupController.GetSampleFile)
 				user.DELETE("/speaker-groups/:id/samples/:sample_id", speakerGroupController.DeleteSample)
 
-				// 聊天历史
+				// Lịch sử trò chuyện
 				user.GET("/history/messages", chatHistoryController.GetMessages)
 				user.DELETE("/history/messages/:id", chatHistoryController.DeleteMessage)
 				user.GET("/history/export", chatHistoryController.ExportMessages)
@@ -220,7 +220,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				user.GET("/history/messages/:id/audio", chatHistoryController.GetAudioFile)
 			}
 
-			// 外部OpenAPI路由（支持JWT或API Token）
+			// Route OpenAPI bên ngoài, hỗ trợ JWT hoặc API Token
 			openV1 := api.Group("/open/v1")
 			openV1.Use(middleware.OpenAPIAuth(db))
 			{
@@ -241,11 +241,11 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				openV1.POST("/devices/:id/mcp-call", userController.CallDeviceMcpTool)
 			}
 
-			// 管理员路由
+			// Route quản trị viên
 			admin := auth.Group("/admin")
 			admin.Use(middleware.AdminAuth())
 			{
-				// 通用配置管理
+				// Quản lý cấu hình chung
 				admin.GET("/configs", adminController.GetConfigs)
 				admin.POST("/configs", adminController.CreateConfig)
 				admin.GET("/configs/:id", adminController.GetConfig)
@@ -253,7 +253,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				admin.DELETE("/configs/:id", adminController.DeleteConfig)
 				admin.POST("/configs/:id/toggle", adminController.ToggleConfigEnable)
 
-				// 具体配置类型路由（兼容前端）
+				// Route cho từng loại cấu hình cụ thể, tương thích frontend
 				admin.GET("/vad-configs", adminController.GetVADConfigs)
 				admin.POST("/vad-configs", adminController.CreateVADConfig)
 				admin.PUT("/vad-configs/:id", adminController.UpdateVADConfig)
@@ -284,11 +284,11 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				admin.PUT("/vision-configs/:id", adminController.UpdateVisionConfig)
 				admin.DELETE("/vision-configs/:id", adminController.DeleteVisionConfig)
 
-				// Vision基础配置
+				// Cấu hình vision cơ bản
 				admin.GET("/vision-base-config", adminController.GetVisionBaseConfig)
 				admin.PUT("/vision-base-config", adminController.UpdateVisionBaseConfig)
 
-				// 聊天设置（auth/chat）
+				// Cài đặt trò chuyện (auth/chat)
 				admin.GET("/chat-settings", adminController.GetChatSettings)
 				admin.PUT("/chat-settings", adminController.UpdateChatSettings)
 
@@ -332,27 +332,27 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				admin.PUT("/mcp-market/imported-services/:id", adminController.UpdateMCPMarketImportedService)
 				admin.DELETE("/mcp-market/imported-services/:id", adminController.DeleteMCPMarketImportedService)
 
-				// Memory配置管理
+				// Quản lý cấu hình memory
 				admin.GET("/memory-configs", adminController.GetMemoryConfigs)
 				admin.POST("/memory-configs", adminController.CreateMemoryConfig)
 				admin.PUT("/memory-configs/:id", adminController.UpdateMemoryConfig)
 				admin.DELETE("/memory-configs/:id", adminController.DeleteMemoryConfig)
 				admin.POST("/memory-configs/:id/set-default", adminController.SetDefaultMemoryConfig)
 
-				// 知识库检索配置管理（provider API 调用）
+				// Quản lý cấu hình truy xuất kho tri thức (gọi API provider)
 				admin.GET("/knowledge-search-configs", adminController.GetKnowledgeSearchConfigs)
 				admin.POST("/knowledge-search-configs", adminController.CreateKnowledgeSearchConfig)
 				admin.PUT("/knowledge-search-configs/:id", adminController.UpdateKnowledgeSearchConfig)
 				admin.DELETE("/knowledge-search-configs/:id", adminController.DeleteKnowledgeSearchConfig)
 				admin.POST("/knowledge-search-configs/weknora/models", adminController.ListWeknoraModels)
 
-				// 全局角色管理（保留兼容旧API）
+				// Quản lý vai trò toàn cục, giữ tương thích API cũ
 				admin.GET("/global-roles", adminController.GetGlobalRoles)
 				admin.POST("/global-roles", adminController.CreateGlobalRole)
 				admin.PUT("/global-roles/:id", adminController.UpdateGlobalRole)
 				admin.DELETE("/global-roles/:id", adminController.DeleteGlobalRole)
 
-				// 全局角色管理（新API）
+				// Quản lý vai trò toàn cục (API mới)
 				admin.GET("/roles", adminController.GetRolesNew)
 				admin.GET("/roles/global", adminController.GetGlobalRolesNew)
 				admin.POST("/roles/global", adminController.CreateRoleNew)
@@ -361,14 +361,14 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				admin.PATCH("/roles/global/:id/toggle", adminController.ToggleRoleStatus)
 				admin.PATCH("/roles/global/:id/default", adminController.SetDefaultRole)
 
-				// 设备管理
+				// Quản lý thiết bị
 				admin.GET("/devices", adminController.GetDevices)
 				admin.GET("/devices/validate-code", adminController.ValidateDeviceCode)
 				admin.POST("/devices", adminController.CreateDevice)
 				admin.PUT("/devices/:id", adminController.UpdateDevice)
 				admin.DELETE("/devices/:id", adminController.DeleteDevice)
 
-				// 智能体管理
+				// Quản lý trợ lý
 				admin.GET("/agents", adminController.GetAgents)
 				admin.POST("/agents", adminController.CreateAgent)
 				admin.PUT("/agents/:id", adminController.UpdateAgent)
@@ -381,7 +381,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				admin.GET("/devices/:id/mcp-tools", adminController.GetDeviceMcpTools)
 				admin.POST("/devices/:id/mcp-call", adminController.CallDeviceMcpTool)
 
-				// 用户管理
+				// Quản lý người dùng
 				admin.GET("/users", adminController.GetUsers)
 				admin.POST("/users", adminController.CreateUser)
 				admin.PUT("/users/:id", adminController.UpdateUser)
@@ -398,23 +398,24 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 				admin.GET("/users/:id/voice-clone-quotas", adminController.GetUserVoiceCloneQuotas)
 				admin.PUT("/users/:id/voice-clone-quotas", adminController.UpdateUserVoiceCloneQuotas)
 
-				// 配置导入导出
+				// Import/export cấu hình
 				admin.GET("/configs/export", adminController.ExportConfigs)
 				admin.POST("/configs/import", adminController.ImportConfigs)
-				// 一键测试配置（OTA 在 manager 内，VAD/ASR/LLM/TTS 经 WebSocket 发主程序）
+				// Kiểm tra cấu hình một lần; OTA nằm trong manager, VAD/ASR/LLM/TTS gửi tới chương trình chính qua WebSocket.
 				admin.POST("/configs/test", adminController.TestConfigs)
+				admin.GET("/health-check", adminController.HealthCheck)
 
-				// 资源池统计
+				// Thống kê nhóm tài nguyên
 				admin.GET("/pool/stats", poolStatsController.GetPoolStats)
 				admin.GET("/pool/stats/summary", poolStatsController.GetPoolStatsSummary)
 			}
 		}
 	}
 
-	// WebSocket路由
+	// Route WebSocket
 	r.GET("/ws", webSocketController.HandleWebSocket)
 
-	// 发版时嵌入的前端静态资源（-tags embed_ui）：NoRoute 时先尝试静态文件，再 SPA 回退
+	// Tài nguyên frontend embed khi phát hành (-tags embed_ui): NoRoute thử file tĩnh trước, sau đó fallback SPA.
 	if sub, err := fs.Sub(static.FS, "dist"); err == nil {
 		r.NoRoute(serveEmbedStatic(sub))
 	}
@@ -422,7 +423,7 @@ func Setup(db *gorm.DB, cfg *config.Config) *gin.Engine {
 	return r
 }
 
-// serveEmbedStatic 未匹配路由时：先尝试从 fsys 返回对应静态文件，否则 GET 返回 index.html（SPA 回退）
+// serveEmbedStatic xử lý route không khớp: thử trả file tĩnh từ fsys, nếu không thì GET trả index.html để fallback SPA.
 func serveEmbedStatic(fsys fs.FS) gin.HandlerFunc {
 	indexHTML, _ := fs.ReadFile(fsys, "index.html")
 	fileServer := http.FileServer(http.FS(fsys))

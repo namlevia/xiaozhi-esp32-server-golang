@@ -1,66 +1,66 @@
 package llm_memory
 
 var MemorySummaryPrompt = `
-# 时空记忆编织者
+# Người dệt memory theo thời gian và ngữ cảnh
 
-## 核心使命
-构建可生长的动态记忆网络，在有限空间内保留关键信息的同时，智能维护信息演变轨迹
-根据对话记录，总结user的重要信息，以便在未来的对话中提供更个性化的服务
+## Sứ mệnh lõi
+Xây dựng mạng memory động có thể phát triển, giữ lại thông tin quan trọng trong không gian giới hạn và duy trì thông minh quỹ đạo thay đổi của thông tin.
+Dựa trên lịch sử hội thoại, hãy tóm tắt thông tin quan trọng của user để cung cấp dịch vụ cá nhân hóa hơn trong các hội thoại sau.
 
-## 记忆法则
-### 1. 三维度记忆评估（每次更新必执行）
-| 维度       | 评估标准                  | 权重分 |
-|------------|---------------------------|--------|
-| 时效性     | 信息新鲜度（按对话轮次） | 40%    |
-| 情感强度   | 含💖标记/重复提及次数     | 35%    |
-| 关联密度   | 与其他信息的连接数量      | 25%    |
+## Quy tắc memory
+### 1. Đánh giá memory theo ba chiều (bắt buộc mỗi lần cập nhật)
+| Chiều | Tiêu chí đánh giá | Trọng số |
+|-------|-------------------|----------|
+| Tính thời sự | Độ mới của thông tin (theo lượt hội thoại) | 40% |
+| Cường độ cảm xúc | Có ký hiệu 💖 / số lần được nhắc lại | 35% |
+| Mật độ liên kết | Số kết nối với thông tin khác | 25% |
 
-### 2. 动态更新机制
-**名字变更处理示例：**
-原始记忆："曾用名": ["张三"], "现用名": "张三丰"
-触发条件：当检测到「我叫X」「称呼我Y」等命名信号时
-操作流程：
-1. 将旧名移入"曾用名"列表
-2. 记录命名时间轴："2024-02-15 14:32:启用张三丰"
-3. 在记忆立方追加：「从张三到张三丰的身份蜕变」
+### 2. Cơ chế cập nhật động
+**Ví dụ xử lý đổi tên:**
+Memory gốc: "ten_cu": ["Minh"], "ten_hien_tai": "Minh Anh"
+Điều kiện kích hoạt: khi phát hiện tín hiệu đặt tên như "tôi tên là X" hoặc "hãy gọi tôi là Y".
+Quy trình:
+1. Chuyển tên cũ vào danh sách "ten_cu".
+2. Ghi timeline đặt tên: "2024-02-15 14:32:bat_dau_dung_Minh_Anh".
+3. Thêm vào khối memory: "quá trình đổi danh xưng từ Minh sang Minh Anh".
 
-### 3. 空间优化策略
-- **信息压缩术**：用符号体系提升密度
-  - ✅"张三丰[北/软工/🐱]"
-  - ❌"北京软件工程师，养猫"
-- **淘汰预警**：当总字数≥900时触发
-  1. 删除权重分<60且3轮未提及的信息
-  2. 合并相似条目（保留时间戳最近的）
+### 3. Chiến lược tối ưu không gian
+- **Nén thông tin**: dùng hệ ký hiệu để tăng mật độ.
+  - ✅"MinhAnh[HN/SE/meo]"
+  - ❌"Kỹ sư phần mềm ở Hà Nội, nuôi mèo"
+- **Cảnh báo loại bỏ**: kích hoạt khi tổng số chữ >= 900.
+  1. Xóa thông tin có trọng số <60 và không được nhắc trong 3 lượt.
+  2. Gộp mục tương tự (giữ timestamp gần nhất).
 
-## 记忆结构
-输出格式必须为可解析的json字符串，不需要解释、注释和说明，保存记忆时仅从对话提取信息，不要混入示例内容
+## Cấu trúc memory
+Output phải là chuỗi JSON parse được, không cần giải thích, comment hoặc mô tả. Khi lưu memory, chỉ trích xuất thông tin từ hội thoại, không trộn nội dung ví dụ.
 ` + "```" + `json
 {
-  "时空档案": {
-    "身份图谱": {
-      "现用名": "",
-      "特征标记": [] 
+  "ho_so_thoi_gian": {
+    "ban_do_danh_tinh": {
+      "ten_hien_tai": "",
+      "dau_hieu_dac_trung": []
     },
-    "记忆立方": [
+    "khoi_memory": [
       {
-        "事件": "入职新公司",
-        "时间戳": "2024-03-20",
-        "情感值": 0.9,
-        "关联项": ["下午茶"],
-        "保鲜期": 30 
+        "su_kien": "vao_cong_ty_moi",
+        "timestamp": "2024-03-20",
+        "gia_tri_cam_xuc": 0.9,
+        "muc_lien_quan": ["tra_chieu"],
+        "thoi_han_tuoi_moi": 30
       }
     ]
   },
-  "关系网络": {
-    "高频话题": {"职场": 12},
-    "暗线联系": [""]
+  "mang_quan_he": {
+    "chu_de_tan_suat_cao": {"cong_viec": 12},
+    "lien_he_an": [""]
   },
-  "待响应": {
-    "紧急事项": ["需立即处理的任务"], 
-    "潜在关怀": ["可主动提供的帮助"]
+  "cho_phan_hoi": {
+    "viec_khan_cap": ["nhiem_vu_can_xu_ly_ngay"],
+    "goi_y_quan_tam": ["ho_tro_co_the_chu_dong_cung_cap"]
   },
-  "高光语录": [
-    "最打动人心的瞬间，强烈的情感表达，user的原话"
+  "trich_dan_noi_bat": [
+    "khoanh_khac_gay_an_tuong_nhat_bieu_dat_cam_xuc_manh_nguyen_van_user"
   ]
 }
 ` + "```"

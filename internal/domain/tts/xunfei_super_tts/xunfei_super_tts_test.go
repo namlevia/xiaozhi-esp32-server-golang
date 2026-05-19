@@ -107,7 +107,7 @@ func TestBuildXunfeiSuperSynthesisRequests(t *testing.T) {
 		"voice":  "x4_demo",
 	})
 
-	requests, err := provider.buildSynthesisRequests(" 你好 ")
+	requests, err := provider.buildSynthesisRequests(" Xin chào ")
 	if err != nil {
 		t.Fatalf("buildSynthesisRequests error = %v", err)
 	}
@@ -128,7 +128,7 @@ func TestBuildXunfeiSuperSynthesisRequests(t *testing.T) {
 	if err != nil {
 		t.Fatalf("decode text payload error = %v", err)
 	}
-	if string(decoded) != "你好" {
+	if string(decoded) != "Xin chào" {
 		t.Fatalf("decoded text = %q", decoded)
 	}
 

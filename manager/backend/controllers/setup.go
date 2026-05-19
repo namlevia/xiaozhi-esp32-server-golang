@@ -20,7 +20,7 @@ type SetupRequest struct {
 	AdminEmail    string `json:"admin_email" binding:"required,email"`
 }
 
-// 检查数据库是否需要初始化
+// Kiểm tra cơ sở dữ liệu có cần khởi tạo hay không.
 func (sc *SetupController) CheckSetupStatus(c *gin.Context) {
 	if sc.DB == nil {
 		c.JSON(http.StatusOK, gin.H{
@@ -30,7 +30,7 @@ func (sc *SetupController) CheckSetupStatus(c *gin.Context) {
 		return
 	}
 
-	// 检查是否存在用户表
+	// Kiểm tra bảng người dùng có tồn tại hay không.
 	if !sc.DB.Migrator().HasTable(&models.User{}) {
 		c.JSON(http.StatusOK, gin.H{
 			"needs_setup": true,
@@ -39,7 +39,7 @@ func (sc *SetupController) CheckSetupStatus(c *gin.Context) {
 		return
 	}
 
-	// 检查是否存在管理员用户
+	// Kiểm tra người dùng quản trị có tồn tại hay không.
 	var count int64
 	sc.DB.Model(&models.User{}).Where("role = ?", "admin").Count(&count)
 
@@ -57,7 +57,7 @@ func (sc *SetupController) CheckSetupStatus(c *gin.Context) {
 	})
 }
 
-// 初始化数据库
+// Khởi tạo cơ sở dữ liệu.
 func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 	var req SetupRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -70,7 +70,7 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 		return
 	}
 
-	// 开始事务
+	// Bắt đầu transaction.
 	tx := sc.DB.Begin()
 	if tx.Error != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Khởi tạo transaction cơ sở dữ liệu thất bại"})
@@ -83,8 +83,8 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 		}
 	}()
 
-	// 1. 自动迁移表结构
-	log.Println("开始自动迁移数据库表结构...")
+	// 1. Tự động migrate cấu trúc bảng.
+	log.Println("Bắt đầu tự động migrate cấu trúc bảng cơ sở dữ liệu...")
 	err := tx.AutoMigrate(
 		&models.User{},
 		&models.Device{},
@@ -102,9 +102,9 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Migration cấu trúc bảng cơ sở dữ liệu thất bại: " + err.Error()})
 		return
 	}
-	log.Println("数据库表结构迁移成功")
+	log.Println("Migration cấu trúc bảng cơ sở dữ liệu thành công")
 
-	// 2. 检查是否已存在管理员用户
+	// 2. Kiểm tra người dùng quản trị đã tồn tại hay chưa.
 	var existingAdmin models.User
 	if err := tx.Where("role = ?", "admin").First(&existingAdmin).Error; err == nil {
 		tx.Rollback()
@@ -112,7 +112,7 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 		return
 	}
 
-	// 3. 检查用户名是否已存在
+	// 3. Kiểm tra tên đăng nhập đã tồn tại hay chưa.
 	var existingUser models.User
 	if err := tx.Where("username = ?", req.AdminUsername).First(&existingUser).Error; err == nil {
 		tx.Rollback()
@@ -120,14 +120,14 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 		return
 	}
 
-	// 4. 检查邮箱是否已存在
+	// 4. Kiểm tra email đã tồn tại hay chưa.
 	if err := tx.Where("email = ?", req.AdminEmail).First(&existingUser).Error; err == nil {
 		tx.Rollback()
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email đã tồn tại"})
 		return
 	}
 
-	// 5. 加密密码
+	// 5. Mã hóa mật khẩu.
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(req.AdminPassword), bcrypt.DefaultCost)
 	if err != nil {
 		tx.Rollback()
@@ -135,7 +135,7 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 		return
 	}
 
-	// 6. 创建管理员用户
+	// 6. Tạo người dùng quản trị.
 	admin := models.User{
 		Username: req.AdminUsername,
 		Password: string(hashedPassword),
@@ -150,42 +150,62 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 		return
 	}
 
-	// 7. 创建一些默认的全局角色
-	defaultRoles := []models.GlobalRole{
+	// 7. Tạo một số vai trò toàn cục mặc định
+	defaultRoles := []models.Role{
 		{
-			Name:        "助手",
-			Description: "一个友好的AI助手，能够帮助用户解决各种问题",
-			Prompt:      "你是一个友好、专业的AI助手。请用简洁明了的语言回答用户的问题，并提供有用的建议。",
+			Name:        "Trợ lý",
+			Description: "Một trợ lý AI thân thiện, có thể giúp người dùng giải quyết nhiều vấn đề khác nhau",
+			Prompt:      "Bạn là một trợ lý AI thân thiện và chuyên nghiệp. Hãy trả lời câu hỏi của người dùng bằng ngôn ngữ rõ ràng, súc tích và đưa ra gợi ý hữu ích.",
+			RoleType:    "global",
+			Status:      "active",
 			IsDefault:   true,
 		},
 		{
-			Name:        "老师",
-			Description: "一位耐心的老师，能够详细解释复杂的概念",
-			Prompt:      "你是一位经验丰富的老师。请用通俗易懂的方式解释复杂的概念，并给出具体的例子来帮助理解。",
+			Name:        "Giáo viên",
+			Description: "Một người thầy kiên nhẫn, có thể giải thích chi tiết các khái niệm phức tạp",
+			Prompt:      "Bạn là một giáo viên giàu kinh nghiệm. Hãy giải thích các khái niệm phức tạp theo cách dễ hiểu và đưa ra ví dụ cụ thể để hỗ trợ người dùng nắm bắt.",
+			RoleType:    "global",
+			Status:      "active",
 			IsDefault:   false,
 		},
 		{
-			Name:        "朋友",
-			Description: "一个贴心的朋友，能够倾听和陪伴",
-			Prompt:      "你是一个贴心的朋友。请用温暖、理解的态度与用户交流，给予情感支持和鼓励。",
+			Name:        "Bạn đồng hành",
+			Description: "Một người bạn tinh tế, biết lắng nghe và đồng hành cùng người dùng",
+			Prompt:      "Bạn là một người bạn tinh tế. Hãy trò chuyện với thái độ ấm áp, thấu hiểu và mang lại sự động viên cho người dùng.",
+			RoleType:    "global",
+			Status:      "active",
 			IsDefault:   false,
 		},
 	}
 
 	for _, role := range defaultRoles {
 		if err := tx.Create(&role).Error; err != nil {
-			log.Printf("创建默认角色失败: %v", err)
-			// 不中断初始化过程，继续执行
+			log.Printf("Tạo vai trò mặc định thất bại: %v", err)
+			// Không ngắt quá trình khởi tạo, tiếp tục xử lý
 		}
 	}
 
-	// 提交事务
+	// 8. Tạo cấu hình ASR tiếng Việt mặc định.
+	defaultASRConfig := models.Config{
+		Type:      "asr",
+		Name:      "Vietnamese ASR (Go)",
+		ConfigID:  "wyoming_vietnamese_asr_default",
+		Provider:  "wyoming_vietnamese_asr",
+		JsonData:  `{"base_url":"http://voice-server:9000","sample_rate":16000,"timeout_ms":30000}`,
+		Enabled:   true,
+		IsDefault: true,
+	}
+	if err := tx.Where("type = ? AND config_id = ?", defaultASRConfig.Type, defaultASRConfig.ConfigID).FirstOrCreate(&defaultASRConfig).Error; err != nil {
+		log.Printf("Tạo cấu hình ASR mặc định thất bại: %v", err)
+	}
+
+	// Commit transaction.
 	if err := tx.Commit().Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Commit transaction cơ sở dữ liệu thất bại"})
 		return
 	}
 
-	log.Printf("Khởi tạo cơ sở dữ liệu thành công，管理员用户: %s", req.AdminUsername)
+	log.Printf("Khởi tạo cơ sở dữ liệu thành công, người dùng quản trị: %s", req.AdminUsername)
 	c.JSON(http.StatusOK, gin.H{
 		"message": "Khởi tạo cơ sở dữ liệu thành công",
 		"admin": gin.H{

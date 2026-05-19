@@ -71,7 +71,7 @@
               <el-option value="partial_members" label="partial_members (một phần thành viên thấy được)" />
             </el-select>
             <div class="form-helper-text">
-              Kiểm soát phạm vi hiển thị của dataset trên nền tảng Knowledge Base bên ngoài, không ảnh hưởng đến quyền người dùng trong hệ thống này.
+              Kiểm soát phạm vi hiển thị của dataset trên nền tảng kho tri thức bên ngoài, không ảnh hưởng đến quyền người dùng trong hệ thống này.
             </div>
           </el-form-item>
           <el-form-item label="Nhà cung cấp Dataset"><el-input v-model="form.dataset_provider" placeholder="vendor" /></el-form-item>
@@ -95,7 +95,7 @@
               <el-option value="team" label="team (team thấy được)" />
             </el-select>
             <div class="form-helper-text">
-              Kiểm soát phạm vi hiển thị của dataset trên nền tảng Knowledge Base bên ngoài, không ảnh hưởng đến quyền người dùng trong hệ thống này.
+              Kiểm soát phạm vi hiển thị của dataset trên nền tảng kho tri thức bên ngoài, không ảnh hưởng đến quyền người dùng trong hệ thống này.
             </div>
           </el-form-item>
           <el-form-item label="Chiến lược chia chunk">
@@ -140,7 +140,7 @@
           <el-form-item label="Kích thước chunk"><el-input-number v-model="form.chunk_size" :min="1" :step="100" style="width:100%" /></el-form-item>
           <el-form-item label="Kích thước overlap"><el-input-number v-model="form.chunk_overlap" :min="0" :step="50" style="width:100%" /></el-form-item>
           <el-form-item label="Dấu phân tách">
-            <el-input v-model="form.separators_raw" placeholder="Phân tách bằng dấu phẩy, ví dụ \n\n,\n,。,！,？,;,；" />
+            <el-input v-model="form.separators_raw" placeholder="Nhập các dấu phân tách, cách nhau bằng dấu phẩy" />
             <div class="form-helper-text">
               Khi lưu sẽ tách theo dấu phẩy thành mảng separators.
             </div>

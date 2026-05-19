@@ -65,10 +65,10 @@ func TestRetireAsrResult_NonFinalResultsOnlyTriggerFirstTextOnce(t *testing.T) {
 			},
 		},
 	}
-	a.AsrResultChannel <- asr_types.StreamingResult{Text: "你在", IsFinal: false}
-	a.AsrResultChannel <- asr_types.StreamingResult{Text: "你在干啥呢", IsFinal: false}
-	a.AsrResultChannel <- asr_types.StreamingResult{Text: "你在干啥呢", IsFinal: false}
-	a.AsrResultChannel <- asr_types.StreamingResult{Text: "你在干啥呢？", IsFinal: true}
+	a.AsrResultChannel <- asr_types.StreamingResult{Text: "bạn đang", IsFinal: false}
+	a.AsrResultChannel <- asr_types.StreamingResult{Text: "bạn đang làm gì thế", IsFinal: false}
+	a.AsrResultChannel <- asr_types.StreamingResult{Text: "bạn đang làm gì thế", IsFinal: false}
+	a.AsrResultChannel <- asr_types.StreamingResult{Text: "bạn đang làm gì thế?", IsFinal: true}
 
 	result, shouldContinue, err := a.RetireAsrResult(context.Background())
 	if err != nil {
@@ -77,10 +77,10 @@ func TestRetireAsrResult_NonFinalResultsOnlyTriggerFirstTextOnce(t *testing.T) {
 	if !shouldContinue {
 		t.Fatalf("expected shouldContinue to be true")
 	}
-	if result.Text != "你在干啥呢？" {
-		t.Fatalf("expected final text %q, got %q", "你在干啥呢？", result.Text)
+	if result.Text != "bạn đang làm gì thế?" {
+		t.Fatalf("expected final text %q, got %q", "bạn đang làm gì thế?", result.Text)
 	}
-	if len(firstTexts) != 1 || firstTexts[0] != "你在" {
+	if len(firstTexts) != 1 || firstTexts[0] != "bạn đang" {
 		t.Fatalf("unexpected first text callbacks: %v", firstTexts)
 	}
 }
@@ -97,7 +97,7 @@ func TestRetireAsrResult_FinalOnlyStillTriggersFirstText(t *testing.T) {
 			},
 		},
 	}
-	a.AsrResultChannel <- asr_types.StreamingResult{Text: "最终文本", IsFinal: true}
+	a.AsrResultChannel <- asr_types.StreamingResult{Text: "text cuối cùng", IsFinal: true}
 
 	result, shouldContinue, err := a.RetireAsrResult(context.Background())
 	if err != nil {
@@ -106,10 +106,10 @@ func TestRetireAsrResult_FinalOnlyStillTriggersFirstText(t *testing.T) {
 	if !shouldContinue {
 		t.Fatalf("expected shouldContinue to be true")
 	}
-	if result.Text != "最终文本" {
-		t.Fatalf("expected final text %q, got %q", "最终文本", result.Text)
+	if result.Text != "text cuối cùng" {
+		t.Fatalf("expected final text %q, got %q", "text cuối cùng", result.Text)
 	}
-	if firstText != "最终文本" || !firstIsFinal {
+	if firstText != "text cuối cùng" || !firstIsFinal {
 		t.Fatalf("unexpected first text callback: text=%q, isFinal=%v", firstText, firstIsFinal)
 	}
 }
@@ -126,8 +126,8 @@ func TestRetireAsrResult_Funasr2PassOnlineMarkedFinalStillWaitsForOfflineFinal(t
 			},
 		},
 	}
-	a.AsrResultChannel <- asr_types.StreamingResult{Text: "你在", IsFinal: true, Mode: "2pass-online"}
-	a.AsrResultChannel <- asr_types.StreamingResult{Text: "你在干啥呢。", IsFinal: true, Mode: "2pass-offline"}
+	a.AsrResultChannel <- asr_types.StreamingResult{Text: "bạn đang", IsFinal: true, Mode: "2pass-online"}
+	a.AsrResultChannel <- asr_types.StreamingResult{Text: "bạn đang làm gì thế.", IsFinal: true, Mode: "2pass-offline"}
 
 	result, shouldContinue, err := a.RetireAsrResult(context.Background())
 	if err != nil {
@@ -136,10 +136,10 @@ func TestRetireAsrResult_Funasr2PassOnlineMarkedFinalStillWaitsForOfflineFinal(t
 	if !shouldContinue {
 		t.Fatalf("expected shouldContinue to be true")
 	}
-	if result.Text != "你在干啥呢。" {
-		t.Fatalf("expected final text %q, got %q", "你在干啥呢。", result.Text)
+	if result.Text != "bạn đang làm gì thế." {
+		t.Fatalf("expected final text %q, got %q", "bạn đang làm gì thế.", result.Text)
 	}
-	if len(firstTexts) != 1 || firstTexts[0] != "你在" {
+	if len(firstTexts) != 1 || firstTexts[0] != "bạn đang" {
 		t.Fatalf("unexpected first text callbacks: %v", firstTexts)
 	}
 }

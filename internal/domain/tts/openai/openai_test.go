@@ -14,15 +14,15 @@ import (
 )
 
 func TestOpenAITTS(t *testing.T) {
-	// 跳过实际的网络请求测试，除非设置了环境变量
+	// Bỏ qua networkrequesttest，trừ khi đã đặt biến môi trường
 	if os.Getenv("RUN_OPENAI_TEST") != "1" {
-		t.Skip("跳过OpenAI API测试，设置环境变量RUN_OPENAI_TEST=1以启用")
+		t.Skip("Bỏ quaOpenAI APItest，đặt biến môi trườngRUN_OPENAI_TEST=1để bật")
 	}
 
-	// 从环境变量获取API密钥
+	// noi_dunglấyAPIkey
 	apiKey := os.Getenv("OPENAI_API_KEY")
 	if apiKey == "" {
-		t.Skip("跳过OpenAI API测试，需要设置环境变量OPENAI_API_KEY")
+		t.Skip("Bỏ quaOpenAI APItest，noi_dungđặt biến môi trườngOPENAI_API_KEY")
 	}
 
 	config := map[string]interface{}{
@@ -37,34 +37,34 @@ func TestOpenAITTS(t *testing.T) {
 
 	provider := NewOpenAITTSProvider(config)
 
-	// 测试文本转语音
+	// testtext-to-speech
 	t.Run("TestTextToSpeech", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		frames, err := provider.TextToSpeech(ctx, "Hello, this is a test of OpenAI text to speech.", 16000, 1, 60)
 		if err != nil {
-			t.Fatalf("TextToSpeech失败: %v", err)
+			t.Fatalf("TextToSpeechthất bại: %v", err)
 		}
 
 		if len(frames) == 0 {
-			t.Error("未返回任何音频帧")
+			t.Error("chưatrả vềbất kỳaudioframe")
 		}
 
-		t.Logf("成功生成 %d 个音频帧", len(frames))
+		t.Logf("thành côngnoi_dung %d noi_dungaudioframe", len(frames))
 	})
 
-	// 测试流式文本转语音
+	// teststreamingtext-to-speech
 	t.Run("TestTextToSpeechStream", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
 		outputChan, err := provider.TextToSpeechStream(ctx, "Hello, this is a test of OpenAI streaming text to speech.", 16000, 1, 60)
 		if err != nil {
-			t.Fatalf("TextToSpeechStream失败: %v", err)
+			t.Fatalf("TextToSpeechStreamthất bại: %v", err)
 		}
 
-		// 接收所有帧
+		// Nhận tất cảframe
 		var receivedFrames [][]byte
 		timeout := time.After(20 * time.Second)
 
@@ -77,19 +77,19 @@ func TestOpenAITTS(t *testing.T) {
 				}
 				receivedFrames = append(receivedFrames, frame)
 			case <-timeout:
-				t.Error("接收音频帧超时")
+				t.Error("nhậnaudioframetimeout")
 				break receiveLoop
 			}
 		}
 
 		if len(receivedFrames) == 0 {
-			t.Error("未接收到任何音频帧")
+			t.Error("chưanoi_dungNhậnbất kỳaudioframe")
 		}
 
-		t.Logf("成功接收 %d 个音频帧", len(receivedFrames))
+		t.Logf("thành côngnhận %d noi_dungaudioframe", len(receivedFrames))
 	})
 
-	// 测试不同的语音
+	// testnoi_dungvoice
 	t.Run("TestDifferentVoices", func(t *testing.T) {
 		voices := []string{"alloy", "echo", "fable", "onyx", "nova", "shimmer"}
 
@@ -109,20 +109,20 @@ func TestOpenAITTS(t *testing.T) {
 
 				frames, err := provider.TextToSpeech(ctx, "Testing voice: "+voice, 16000, 1, 60)
 				if err != nil {
-					t.Errorf("使用语音 %s 失败: %v", voice, err)
+					t.Errorf("dùngvoice %s thất bại: %v", voice, err)
 					return
 				}
 
 				if len(frames) == 0 {
-					t.Errorf("语音 %s 未返回任何音频帧", voice)
+					t.Errorf("voice %s chưatrả vềbất kỳaudioframe", voice)
 				}
 
-				t.Logf("语音 %s 成功生成 %d 个音频帧", voice, len(frames))
+				t.Logf("voice %s thành côngnoi_dung %d noi_dungaudioframe", voice, len(frames))
 			})
 		}
 	})
 
-	// 测试不同的速度
+	// testnoi_dung
 	t.Run("TestDifferentSpeeds", func(t *testing.T) {
 		speeds := []float64{0.5, 1.0, 1.5, 2.0}
 
@@ -142,21 +142,21 @@ func TestOpenAITTS(t *testing.T) {
 
 				frames, err := provider.TextToSpeech(ctx, "Testing speed", 16000, 1, 60)
 				if err != nil {
-					t.Errorf("使用速度 %.1f 失败: %v", speed, err)
+					t.Errorf("dùngnoi_dung %.1f thất bại: %v", speed, err)
 					return
 				}
 
 				if len(frames) == 0 {
-					t.Errorf("速度 %.1f 未返回任何音频帧", speed)
+					t.Errorf("noi_dung %.1f chưatrả vềbất kỳaudioframe", speed)
 				}
 
-				t.Logf("速度 %.1f 成功生成 %d 个音频帧", speed, len(frames))
+				t.Logf("noi_dung %.1f thành côngnoi_dung %d noi_dungaudioframe", speed, len(frames))
 			})
 		}
 	})
 }
 
-// TestOpenAITTSProviderDefaults 测试默认值
+// TestOpenAITTSProviderDefaults testmặc địnhnoi_dung
 func TestOpenAITTSProviderDefaults(t *testing.T) {
 	config := map[string]interface{}{
 		"api_key": "test-key",
@@ -165,23 +165,23 @@ func TestOpenAITTSProviderDefaults(t *testing.T) {
 	provider := NewOpenAITTSProvider(config)
 
 	if provider.APIURL != "https://api.openai.com/v1/audio/speech" {
-		t.Errorf("期望默认API URL为 https://api.openai.com/v1/audio/speech，实际为 %s", provider.APIURL)
+		t.Errorf("noi_dungmặc địnhAPI URLlà https://api.openai.com/v1/audio/speech，thực tếlà %s", provider.APIURL)
 	}
 
 	if provider.Model != "tts-1" {
-		t.Errorf("期望默认模型为 tts-1，实际为 %s", provider.Model)
+		t.Errorf("noi_dungmặc địnhmodellà tts-1，thực tếlà %s", provider.Model)
 	}
 
 	if provider.Voice != "alloy" {
-		t.Errorf("期望默认语音为 alloy，实际为 %s", provider.Voice)
+		t.Errorf("noi_dungmặc địnhvoicelà alloy，thực tếlà %s", provider.Voice)
 	}
 
 	if provider.ResponseFormat != "mp3" {
-		t.Errorf("期望默认响应格式为 mp3，实际为 %s", provider.ResponseFormat)
+		t.Errorf("noi_dungmặc địnhresponseformatlà mp3，thực tếlà %s", provider.ResponseFormat)
 	}
 
 	if provider.Speed != 1.0 {
-		t.Errorf("期望默认速度为 1.0，实际为 %.1f", provider.Speed)
+		t.Errorf("noi_dungmặc địnhnoi_dunglà 1.0，thực tếlà %.1f", provider.Speed)
 	}
 }
 
@@ -198,7 +198,7 @@ func TestOpenAITTSProviderSupportsOpusResponse(t *testing.T) {
 
 	opusBytes, err := util.PCM16ToOggOpus(pcm, sampleRate, 1, 20)
 	if err != nil {
-		t.Fatalf("生成测试 Ogg Opus 失败: %v", err)
+		t.Fatalf("noi_dungtest Ogg Opus thất bại: %v", err)
 	}
 
 	requestErrCh := make(chan error, 1)
@@ -212,7 +212,7 @@ func TestOpenAITTSProviderSupportsOpusResponse(t *testing.T) {
 			return
 		}
 		if req.ResponseFormat != "opus" {
-			requestErrCh <- fmt.Errorf("期望 response_format=opus，实际为 %s", req.ResponseFormat)
+			requestErrCh <- fmt.Errorf("noi_dung response_format=opus，thực tếlà %s", req.ResponseFormat)
 			http.Error(w, "unexpected response_format", http.StatusBadRequest)
 			return
 		}
@@ -234,26 +234,26 @@ func TestOpenAITTSProviderSupportsOpusResponse(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	outputChan, err := provider.TextToSpeechStream(ctx, "测试 opus 输出", sampleRate, 1, 60)
+	outputChan, err := provider.TextToSpeechStream(ctx, "test opus output", sampleRate, 1, 60)
 	if err != nil {
-		t.Fatalf("TextToSpeechStream 返回错误: %v", err)
+		t.Fatalf("TextToSpeechStream trả vềlỗi: %v", err)
 	}
 
 	frameCount := 0
 	for frame := range outputChan {
 		if len(frame) == 0 {
-			t.Fatal("收到空 Opus 帧")
+			t.Fatal("Nhậnrỗng Opus frame")
 		}
 		frameCount++
 	}
 
 	if frameCount == 0 {
-		t.Fatal("未收到任何 Opus 帧")
+		t.Fatal("chưaNhậnbất kỳ Opus frame")
 	}
 
 	select {
 	case err := <-requestErrCh:
-		t.Fatalf("mock server 校验失败: %v", err)
+		t.Fatalf("mock server noi_dungthất bại: %v", err)
 	default:
 	}
 }

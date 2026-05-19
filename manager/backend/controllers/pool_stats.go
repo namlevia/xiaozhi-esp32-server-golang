@@ -8,19 +8,19 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// PoolStatsController 资源池统计控制器
+// PoolStatsController controller thống kê nhóm tài nguyên
 type PoolStatsController struct {
 	storage *storage.PoolStatsStorage
 }
 
-// NewPoolStatsController 创建资源池统计控制器
+// NewPoolStatsController tạo controller thống kê nhóm tài nguyên
 func NewPoolStatsController() *PoolStatsController {
 	return &PoolStatsController{
 		storage: storage.GetPoolStatsStorage(),
 	}
 }
 
-// ReportPoolStats 接收主服务上报的统计数据（内部接口，无需认证）
+// ReportPoolStats nhận dữ liệu thống kê do dịch vụ chính báo cáo (API nội bộ, không cần xác thực)
 func (c *PoolStatsController) ReportPoolStats(ctx *gin.Context) {
 	var request struct {
 		Stats map[string]interface{} `json:"stats" binding:"required"`
@@ -31,7 +31,7 @@ func (c *PoolStatsController) ReportPoolStats(ctx *gin.Context) {
 		return
 	}
 
-	// 保存统计数据
+	// Lưu dữ liệu thống kê
 	c.storage.AddStats(request.Stats)
 
 	ctx.JSON(http.StatusOK, gin.H{
@@ -40,14 +40,14 @@ func (c *PoolStatsController) ReportPoolStats(ctx *gin.Context) {
 	})
 }
 
-// GetPoolStats 获取资源池统计数据（管理员接口）
+// GetPoolStats lấy dữ liệu thống kê nhóm tài nguyên (API quản trị)
 func (c *PoolStatsController) GetPoolStats(ctx *gin.Context) {
-	// 获取查询参数
+	// Lấy tham số truy vấn
 	queryType := ctx.DefaultQuery("type", "latest") // latest, all, range
 
 	switch queryType {
 	case "latest":
-		// 获取最新数据
+		// Lấy dữ liệu mới nhất
 		latest := c.storage.GetLatestStats()
 		if latest == nil {
 			ctx.JSON(http.StatusOK, gin.H{
@@ -61,7 +61,7 @@ func (c *PoolStatsController) GetPoolStats(ctx *gin.Context) {
 		})
 
 	case "all":
-		// 获取所有数据（最近24小时）
+		// Lấy toàn bộ dữ liệu (24 giờ gần nhất)
 		allStats := c.storage.GetAllStats()
 		ctx.JSON(http.StatusOK, gin.H{
 			"data":  allStats,
@@ -69,7 +69,7 @@ func (c *PoolStatsController) GetPoolStats(ctx *gin.Context) {
 		})
 
 	case "range":
-		// 根据时间范围获取数据
+		// Lấy dữ liệu theo khoảng thời gian
 		startStr := ctx.Query("start")
 		endStr := ctx.Query("end")
 
@@ -101,13 +101,13 @@ func (c *PoolStatsController) GetPoolStats(ctx *gin.Context) {
 	}
 }
 
-// GetPoolStatsSummary 获取统计摘要信息
+// GetPoolStatsSummary lấy thông tin tóm tắt thống kê
 func (c *PoolStatsController) GetPoolStatsSummary(ctx *gin.Context) {
 	latest := c.storage.GetLatestStats()
 
 	summary := gin.H{
 		"total_records":    0,
-		"storage_duration": "仅保存最新数据",
+		"storage_duration": "Chỉ lưu dữ liệu mới nhất",
 		"oldest_timestamp": nil,
 		"newest_timestamp": nil,
 	}

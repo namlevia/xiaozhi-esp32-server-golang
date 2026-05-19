@@ -1,7 +1,7 @@
-# 使用官方 Ubuntu 镜像作为基础镜像
+# Dùng image Ubuntu chính thức làm base image
 FROM golang:1.24.4
 
-# 设置非交互式安装环境变量
+# Thiết lập biến môi trường cài đặt non-interactive
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y libopus-dev libopusfile-dev pkg-config
@@ -30,7 +30,7 @@ ENV CGO_LDFLAGS="-L${ONNXRUNTIME_DIR}/lib -lonnxruntime"
 ENV GOPROXY=https://goproxy.cn,direct
 ENV CGO_ENABLED=1
 
-# 添加环境变量到.bashrc和.profile确保所有shell都能访问
+# Thêm biến môi trường vào .bashrc và .profile để mọi shell đều truy cập được
 RUN echo 'export PATH=$PATH:/usr/local/go/bin' >> /root/.bashrc && \
     echo 'export GOPATH=/go' >> /root/.bashrc && \
     echo 'export GOROOT=/usr/local/go' >> /root/.bashrc && \
@@ -48,48 +48,48 @@ RUN echo 'export PATH=$PATH:/usr/local/go/bin' >> /root/.bashrc && \
     echo 'export CGO_CFLAGS="-I${ONNXRUNTIME_DIR}/include/onnxruntime"' >> /etc/profile && \
     echo 'export CGO_LDFLAGS="-L${ONNXRUNTIME_DIR}/lib -lonnxruntime"' >> /etc/profile
 
-# 创建Go目录结构
+# Tạo cấu trúc thư mục Go
 RUN mkdir -p "$GOPATH/src" "$GOPATH/bin" "$GOPATH/pkg" && chmod -R 777 "$GOPATH"
 
-# 验证Go安装
-RUN /usr/local/go/bin/go version || echo "Go未安装成功，请检查日志"
+# Kiểm tra cài đặt Go
+RUN /usr/local/go/bin/go version || echo "Cài đặt Go chưa thành công, vui lòng kiểm tra log"
 
-# 创建工作目录
+# Tạo thư mục làm việc
 RUN mkdir -p /workspace
 WORKDIR /workspace
 
-# 创建 SSH 服务运行目录
+# Tạo thư mục runtime cho SSH service
 RUN mkdir -p /var/run/sshd
 
-# 设置 root 用户密码
+# Thiết lập mật khẩu người dùng root
 ARG PASSWORD=rootpassword
 RUN echo "root:$PASSWORD" | chpasswd
 
-# 配置 SSH 允许 root 登录
+# Cấu hình SSH cho phép root login
 RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config || true
 RUN sed 's@session\s*required\s*pam_loginuid.so@session optional pam_loginuid.so@g' -i /etc/pam.d/sshd || true
 
-# 设置时区为上海
+# Thiết lập timezone Asia/Shanghai
 RUN ln -fs /usr/share/zoneinfo/Asia/Shanghai /etc/localtime || true
 
-# 复制启动脚本
+# Sao chép script khởi động
 #COPY start-service.sh /usr/local/bin/
 #RUN chmod +x /usr/local/bin/start-service.sh
 
 #COPY . .
-#RUN go build -o /workspace/xiaozhi_server /workspace/xiaozhi/cmd/server/  # 编译生成二进制文件
+#RUN go build -o /workspace/xiaozhi_server /workspace/xiaozhi/cmd/server/  # Biên dịch tạo file binary
 
-# 创建启动脚本
+# Tạo script khởi động
 RUN echo '#!/bin/bash' > /start.sh && \
     echo 'service ssh start' >> /start.sh && \
     echo 'cd /workspace' >> /start.sh && \
     echo 'exec bash' >> /start.sh && \
     chmod +x /start.sh
 
-# 开放 SSH 端口和应用端口
+# Expose cổng SSH và cổng ứng dụng
 EXPOSE 22 8080
 
-# 启动SSH和保持容器运行
+# Khởi động SSH và giữ container chạy
 CMD ["/start.sh"]
 
 # docker run -it --privileged --name ubt -d -p 9022:22 liuwang68/ubtool:1.0
@@ -108,8 +108,8 @@ CMD ["/start.sh"]
 #   -v /Users/liuwang/CosyVoice:/root/CosyVoice \
 #   liuwang68/ubtool:1.0
 
-# 挂载说明:
-# 使用以下命令运行容器并挂载宿主机目录到工作目录:
+# Mô tả mount:
+# Dùng lệnh sau để chạy container và mount thư mục host vào thư mục làm việc:
 # docker run -it --privileged --name audio-service -d \
 #   -p 9022:22 \
 #   -p 8080:8080 \

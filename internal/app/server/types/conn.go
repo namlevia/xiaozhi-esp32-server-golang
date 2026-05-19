@@ -2,8 +2,8 @@ package types
 
 import "context"
 
-// IConn 是协议无关的连接接口，由 websocket/mqtt_udp 等协议适配器实现
-// 你可以根据实际需要扩展方法
+// IConn là interface kết nối độc lập protocol, do các adapter websocket/mqtt_udp triển khai.
+// Có thể mở rộng method theo nhu cầu thực tế.
 
 const (
 	TransportTypeWebsocket = "websocket"
@@ -11,13 +11,13 @@ const (
 )
 
 type IConn interface {
-	// 发送命令/信令数据
+	// Gửi dữ liệu command/signaling
 	SendCmd(msg []byte) error
-	// 接收命令/信令数据
+	// Nhận dữ liệu command/signaling
 	RecvCmd(ctx context.Context, timeout int) ([]byte, error)
-	// 发送语音数据
+	// Gửi dữ liệu voice
 	SendAudio(audio []byte) error
-	// 接收语音数据
+	// Nhận dữ liệu voice
 	RecvAudio(ctx context.Context, timeout int) ([]byte, error)
 
 	GetDeviceID() string
@@ -29,7 +29,7 @@ type IConn interface {
 
 	GetTransportType() string
 
-	//获取私有数据
+	// Lấy dữ liệu private
 	GetData(key string) (interface{}, error)
 }
 

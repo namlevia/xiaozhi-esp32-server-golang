@@ -52,10 +52,10 @@ func ensureKnowledgeSyncWorkersStarted() {
 
 func enqueueKnowledgeSyncUpsert(db *gorm.DB, knowledgeBaseID uint) error {
 	if db == nil {
-		return fmt.Errorf("数据库连接为空")
+		return fmt.Errorf("Kết nối cơ sở dữ liệu trống")
 	}
 	if knowledgeBaseID == 0 {
-		return fmt.Errorf("无效的知识库ID")
+		return fmt.Errorf("ID kho tri thức không hợp lệ")
 	}
 	ensureKnowledgeSyncWorkersStarted()
 
@@ -70,13 +70,13 @@ func enqueueKnowledgeSyncUpsert(db *gorm.DB, knowledgeBaseID uint) error {
 		log.Printf("[KnowledgeSync][Async] enqueue type=%s kb_id=%d", job.jobType, job.knowledgeBaseID)
 		return nil
 	default:
-		return fmt.Errorf("知识库同步队列已满，请稍后重试")
+		return fmt.Errorf("Hàng đợi đồng bộ kho tri thức đã đầy, vui lòng thử lại sau")
 	}
 }
 
 func enqueueKnowledgeSyncDelete(db *gorm.DB, snapshot models.KnowledgeBase) error {
 	if db == nil {
-		return fmt.Errorf("数据库连接为空")
+		return fmt.Errorf("Kết nối cơ sở dữ liệu trống")
 	}
 	ensureKnowledgeSyncWorkersStarted()
 
@@ -93,16 +93,16 @@ func enqueueKnowledgeSyncDelete(db *gorm.DB, snapshot models.KnowledgeBase) erro
 		log.Printf("[KnowledgeSync][Async] enqueue type=%s kb_id=%d", job.jobType, job.knowledgeBaseID)
 		return nil
 	default:
-		return fmt.Errorf("知识库同步队列已满，请稍后重试")
+		return fmt.Errorf("Hàng đợi đồng bộ kho tri thức đã đầy, vui lòng thử lại sau")
 	}
 }
 
 func enqueueKnowledgeDocumentSyncUpsert(db *gorm.DB, knowledgeBaseID, documentID uint) error {
 	if db == nil {
-		return fmt.Errorf("数据库连接为空")
+		return fmt.Errorf("Kết nối cơ sở dữ liệu trống")
 	}
 	if knowledgeBaseID == 0 || documentID == 0 {
-		return fmt.Errorf("无效的知识库或文档ID")
+		return fmt.Errorf("ID kho tri thức hoặc tài liệu không hợp lệ")
 	}
 	ensureKnowledgeSyncWorkersStarted()
 
@@ -118,13 +118,13 @@ func enqueueKnowledgeDocumentSyncUpsert(db *gorm.DB, knowledgeBaseID, documentID
 		log.Printf("[KnowledgeSync][Async] enqueue type=%s kb_id=%d doc_id=%d", job.jobType, job.knowledgeBaseID, job.documentID)
 		return nil
 	default:
-		return fmt.Errorf("知识库同步队列已满，请稍后重试")
+		return fmt.Errorf("Hàng đợi đồng bộ kho tri thức đã đầy, vui lòng thử lại sau")
 	}
 }
 
 func enqueueKnowledgeDocumentSyncDelete(db *gorm.DB, kbSnapshot models.KnowledgeBase, docSnapshot models.KnowledgeBaseDocument) error {
 	if db == nil {
-		return fmt.Errorf("数据库连接为空")
+		return fmt.Errorf("Kết nối cơ sở dữ liệu trống")
 	}
 	ensureKnowledgeSyncWorkersStarted()
 
@@ -144,7 +144,7 @@ func enqueueKnowledgeDocumentSyncDelete(db *gorm.DB, kbSnapshot models.Knowledge
 		log.Printf("[KnowledgeSync][Async] enqueue type=%s kb_id=%d doc_id=%d", job.jobType, job.knowledgeBaseID, job.documentID)
 		return nil
 	default:
-		return fmt.Errorf("知识库同步队列已满，请稍后重试")
+		return fmt.Errorf("Hàng đợi đồng bộ kho tri thức đã đầy, vui lòng thử lại sau")
 	}
 }
 
@@ -189,41 +189,41 @@ func runKnowledgeSyncWorker(workerID int) {
 
 func processKnowledgeSyncUpsert(job knowledgeSyncJob) error {
 	if job.db == nil {
-		return fmt.Errorf("数据库连接为空")
+		return fmt.Errorf("Kết nối cơ sở dữ liệu trống")
 	}
 	var kb models.KnowledgeBase
 	if err := job.db.Where("id = ?", job.knowledgeBaseID).First(&kb).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
 			return nil
 		}
-		return fmt.Errorf("加载知识库失败: %w", err)
+		return fmt.Errorf("Tải kho tri thức thất bại: %w", err)
 	}
 	return syncKnowledgeBaseBestEffort(job.db, &kb)
 }
 
 func processKnowledgeSyncDelete(job knowledgeSyncJob) error {
 	if job.db == nil {
-		return fmt.Errorf("数据库连接为空")
+		return fmt.Errorf("Kết nối cơ sở dữ liệu trống")
 	}
 	if job.knowledgeSnapshot == nil {
-		return fmt.Errorf("删除同步缺少知识库快照")
+		return fmt.Errorf("Đồng bộ xóa thiếu snapshot kho tri thức")
 	}
 	return syncKnowledgeBaseDeleteBestEffort(job.db, job.knowledgeSnapshot)
 }
 
 func processKnowledgeDocumentSyncUpsert(job knowledgeSyncJob) error {
 	if job.db == nil {
-		return fmt.Errorf("数据库连接为空")
+		return fmt.Errorf("Kết nối cơ sở dữ liệu trống")
 	}
 	return syncKnowledgeDocumentBestEffort(job.db, job.knowledgeBaseID, job.documentID)
 }
 
 func processKnowledgeDocumentSyncDelete(job knowledgeSyncJob) error {
 	if job.db == nil {
-		return fmt.Errorf("数据库连接为空")
+		return fmt.Errorf("Kết nối cơ sở dữ liệu trống")
 	}
 	if job.knowledgeSnapshot == nil || job.documentSnapshot == nil {
-		return fmt.Errorf("文档删除同步缺少快照")
+		return fmt.Errorf("Đồng bộ xóa tài liệu thiếu snapshot")
 	}
 	return syncKnowledgeDocumentDeleteBestEffort(job.db, *job.knowledgeSnapshot, *job.documentSnapshot)
 }

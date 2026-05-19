@@ -25,16 +25,16 @@ import (
 	"gorm.io/gorm"
 )
 
-// SpeakerGroupController 声纹组控制器
+// SpeakerGroupController quản lý nhóm dấu giọng nói
 type SpeakerGroupController struct {
 	DB            *gorm.DB
 	ServiceURL    string
 	HTTPClient    *http.Client
 	AudioStorage  *storage.AudioStorage
-	HistoryConfig *config.HistoryConfig // 历史聊天记录配置
+	HistoryConfig *config.HistoryConfig // Cấu hình lịch sử trò chuyện
 }
 
-// NewSpeakerGroupController 创建声纹组控制器
+// NewSpeakerGroupController tạo controller nhóm dấu giọng nói
 func NewSpeakerGroupController(db *gorm.DB, cfg *config.Config) *SpeakerGroupController {
 	httpClient := &http.Client{
 		Timeout: 30 * time.Second,
@@ -54,7 +54,7 @@ func NewSpeakerGroupController(db *gorm.DB, cfg *config.Config) *SpeakerGroupCon
 	}
 }
 
-// CreateSpeakerGroup 创建声纹组
+// CreateSpeakerGroup tạo nhóm dấu giọng nói
 func (sgc *SpeakerGroupController) CreateSpeakerGroup(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -76,7 +76,7 @@ func (sgc *SpeakerGroupController) CreateSpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 验证智能体是否存在且属于当前用户
+	// Xác minh trợ lý tồn tại và thuộc về người dùng hiện tại
 	var agent models.Agent
 	if err := sgc.DB.Where("id = ? AND user_id = ?", req.AgentID, userID).First(&agent).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -87,7 +87,7 @@ func (sgc *SpeakerGroupController) CreateSpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 检查同一用户下是否已存在相同名称的声纹组
+	// Kiểm tra người dùng hiện tại đã có nhóm dấu giọng nói trùng tên hay chưa
 	var existingGroup models.SpeakerGroup
 	if err := sgc.DB.Where("user_id = ? AND name = ?", userID, req.Name).First(&existingGroup).Error; err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Tên nhóm người nói này đã tồn tại, vui lòng dùng tên khác"})
@@ -97,7 +97,7 @@ func (sgc *SpeakerGroupController) CreateSpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 创建声纹组
+	// Tạo nhóm dấu giọng nói
 	speakerGroup := models.SpeakerGroup{
 		UserID:      userID.(uint),
 		AgentID:     req.AgentID,
@@ -129,7 +129,7 @@ func (sgc *SpeakerGroupController) CreateSpeakerGroup(c *gin.Context) {
 	})
 }
 
-// GetSpeakerGroups 获取声纹组列表
+// GetSpeakerGroups lấy danh sách nhóm dấu giọng nói
 func (sgc *SpeakerGroupController) GetSpeakerGroups(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -137,7 +137,7 @@ func (sgc *SpeakerGroupController) GetSpeakerGroups(c *gin.Context) {
 		return
 	}
 
-	// 获取查询参数
+	// Lấy tham số truy vấn
 	agentIDStr := c.Query("agent_id")
 	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
 	pageSize, _ := strconv.Atoi(c.DefaultQuery("page_size", "10"))
@@ -151,10 +151,10 @@ func (sgc *SpeakerGroupController) GetSpeakerGroups(c *gin.Context) {
 
 	offset := (page - 1) * pageSize
 
-	// 构建查询
+	// Tạo truy vấn
 	query := sgc.DB.Model(&models.SpeakerGroup{}).Where("user_id = ?", userID)
 
-	// 按智能体过滤
+	// Lọc theo trợ lý
 	if agentIDStr != "" {
 		agentID, err := strconv.ParseUint(agentIDStr, 10, 32)
 		if err == nil {
@@ -162,18 +162,18 @@ func (sgc *SpeakerGroupController) GetSpeakerGroups(c *gin.Context) {
 		}
 	}
 
-	// 获取总数
+	// Lấy tổng số
 	var total int64
 	query.Count(&total)
 
-	// 获取数据
+	// Lấy dữ liệu
 	var speakerGroups []models.SpeakerGroup
 	if err := query.Offset(offset).Limit(pageSize).Order("created_at DESC").Find(&speakerGroups).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
-	// 获取智能体信息（用于显示智能体名称）
+	// Lấy thông tin trợ lý để hiển thị tên trợ lý
 	agentIDs := make([]uint, 0)
 	for _, sg := range speakerGroups {
 		agentIDs = append(agentIDs, sg.AgentID)
@@ -189,7 +189,7 @@ func (sgc *SpeakerGroupController) GetSpeakerGroups(c *gin.Context) {
 		agentMap[agent.ID] = agent.Name
 	}
 
-	// 构建响应
+	// Tạo phản hồi
 	result := make([]gin.H, 0)
 	for _, sg := range speakerGroups {
 		result = append(result, gin.H{
@@ -213,7 +213,7 @@ func (sgc *SpeakerGroupController) GetSpeakerGroups(c *gin.Context) {
 	})
 }
 
-// GetSpeakerGroup 获取声纹组详情（包含样本列表）
+// GetSpeakerGroup lấy chi tiết nhóm dấu giọng nói, gồm danh sách mẫu
 func (sgc *SpeakerGroupController) GetSpeakerGroup(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -228,7 +228,7 @@ func (sgc *SpeakerGroupController) GetSpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 查询声纹组
+	// Truy vấn nhóm dấu giọng nói
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", speakerGroupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -239,15 +239,15 @@ func (sgc *SpeakerGroupController) GetSpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 查询智能体信息
+	// Truy vấn thông tin trợ lý
 	var agent models.Agent
 	sgc.DB.Where("id = ?", speakerGroup.AgentID).First(&agent)
 
-	// 查询样本列表
+	// Truy vấn danh sách mẫu
 	var samples []models.SpeakerSample
 	sgc.DB.Where("speaker_group_id = ?", speakerGroupID).Order("created_at DESC").Find(&samples)
 
-	// 构建样本响应
+	// Tạo phản hồi mẫu
 	sampleList := make([]gin.H, 0)
 	for _, sample := range samples {
 		sampleList = append(sampleList, gin.H{
@@ -278,7 +278,7 @@ func (sgc *SpeakerGroupController) GetSpeakerGroup(c *gin.Context) {
 	})
 }
 
-// UpdateSpeakerGroup 更新声纹组
+// UpdateSpeakerGroup cập nhật nhóm dấu giọng nói
 func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -307,7 +307,7 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 查询声纹组
+	// Truy vấn nhóm dấu giọng nói
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", speakerGroupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -318,7 +318,7 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 如果更新了智能体ID，需要验证新智能体是否存在
+	// Nếu cập nhật ID trợ lý, cần xác minh trợ lý mới tồn tại
 	if req.AgentID != nil && *req.AgentID != speakerGroup.AgentID {
 		var agent models.Agent
 		if err := sgc.DB.Where("id = ? AND user_id = ?", *req.AgentID, userID).First(&agent).Error; err != nil {
@@ -332,9 +332,9 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 		speakerGroup.AgentID = *req.AgentID
 	}
 
-	// 更新字段
+	// Cập nhật trường
 	if req.Name != "" && req.Name != speakerGroup.Name {
-		// 检查同一用户下是否已存在相同名称的声纹组（排除当前声纹组）
+		// Kiểm tra tên nhóm dấu giọng nói đã tồn tại trong cùng người dùng, trừ nhóm hiện tại
 		var existingGroup models.SpeakerGroup
 		if err := sgc.DB.Where("user_id = ? AND name = ? AND id != ?", userID, req.Name, speakerGroupID).First(&existingGroup).Error; err == nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Tên nhóm người nói này đã tồn tại, vui lòng dùng tên khác"})
@@ -348,7 +348,7 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 	if req.Prompt != "" {
 		speakerGroup.Prompt = req.Prompt
 	}
-	speakerGroup.Description = req.Description // 允许清空描述
+	speakerGroup.Description = req.Description // Cho phép xóa mô tả
 	speakerGroup.TTSConfigID = req.TTSConfigID
 	speakerGroup.Voice = req.Voice
 
@@ -363,7 +363,7 @@ func (sgc *SpeakerGroupController) UpdateSpeakerGroup(c *gin.Context) {
 	})
 }
 
-// DeleteSpeakerGroup 删除声纹组
+// DeleteSpeakerGroup xóa nhóm dấu giọng nói
 func (sgc *SpeakerGroupController) DeleteSpeakerGroup(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -378,7 +378,7 @@ func (sgc *SpeakerGroupController) DeleteSpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 查询声纹组
+	// Truy vấn nhóm dấu giọng nói
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", speakerGroupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -389,27 +389,27 @@ func (sgc *SpeakerGroupController) DeleteSpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 查询所有样本（用于删除本地文件和数据库记录）
+	// Truy vấn toàn bộ mẫu để xóa file cục bộ và bản ghi cơ sở dữ liệu
 	var samples []models.SpeakerSample
 	sgc.DB.Where("speaker_group_id = ?", speakerGroupID).Find(&samples)
 
-	// 调用 asr_server 删除接口（通过 speaker_id，即声纹组的主键 ID，一次性删除所有样本）
+	// Gọi API xóa của asr_server qua speaker_id để xóa toàn bộ mẫu
 	err = sgc.callDeleteAPI(fmt.Sprintf("%d", speakerGroup.ID), speakerGroup.AgentID, userID)
 	if err != nil {
 		log.Printf("asr_server Xóa nhóm người nói thất bại (speaker_id: %d): %v", speakerGroup.ID, err)
-		// 继续执行本地删除，不中断流程
+		// Tiếp tục xóa cục bộ, không ngắt luồng xử lý
 	}
 
-	// 删除所有样本的本地文件和数据库记录
+	// Xóa file cục bộ và bản ghi cơ sở dữ liệu của toàn bộ mẫu
 	for _, sample := range samples {
-		// 删除本地文件
+		// Xóa file cục bộ
 		sgc.AudioStorage.DeleteAudioFile(sample.FilePath)
 
-		// 删除数据库记录
+		// Xóa bản ghi cơ sở dữ liệu
 		sgc.DB.Delete(&sample)
 	}
 
-	// 删除声纹组
+	// Xóa nhóm dấu giọng nói
 	if err := sgc.DB.Delete(&speakerGroup).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa nhóm người nói thất bại"})
 		return
@@ -421,7 +421,7 @@ func (sgc *SpeakerGroupController) DeleteSpeakerGroup(c *gin.Context) {
 	})
 }
 
-// AddSample 添加声纹样本
+// AddSample thêm mẫu dấu giọng nói
 func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -429,14 +429,14 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		return
 	}
 
-	groupIDStr := c.Param("id") // 改为使用 :id 参数
+	groupIDStr := c.Param("id") // Dùng tham số :id
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID nhóm người nói không hợp lệ"})
 		return
 	}
 
-	// 验证声纹组是否存在且属于当前用户
+	// Xác minh nhóm dấu giọng nói tồn tại và thuộc về người dùng hiện tại
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", groupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -451,10 +451,10 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 	var header *multipart.FileHeader
 	var fileName string
 
-	// 检查是否从历史聊天记录中获取音频
+	// Kiểm tra có lấy audio từ lịch sử trò chuyện hay không
 	messageID := c.PostForm("message_id")
 	if messageID != "" {
-		// 从历史聊天记录中获取音频
+		// Lấy audio từ lịch sử trò chuyện
 		var chatMessage models.ChatMessage
 		if err := sgc.DB.Where("message_id = ? AND user_id = ? AND role = ? AND is_deleted = ?",
 			messageID, userID, "user", false).First(&chatMessage).Error; err != nil {
@@ -471,7 +471,7 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 			return
 		}
 
-		// 读取音频文件
+		// Đọc file audio
 		audioBasePath := sgc.HistoryConfig.AudioBasePath
 		if audioBasePath == "" {
 			audioBasePath = "./storage/chat_history/audio"
@@ -488,13 +488,13 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 			return
 		}
 
-		// 创建临时文件用于 multipart
+		// Tạo file tạm cho multipart
 		tempFile, err := os.CreateTemp("", "audio_*.wav")
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Tạo file tạm thất bại: " + err.Error()})
 			return
 		}
-		defer os.Remove(tempFile.Name()) // 清理临时文件
+		defer os.Remove(tempFile.Name()) // Dọn file tạm
 		defer tempFile.Close()
 
 		if _, err := tempFile.Write(audioData); err != nil {
@@ -503,7 +503,7 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		}
 		tempFile.Seek(0, 0)
 
-		// 创建 multipart.File 和 FileHeader
+		// Tạo multipart.File và FileHeader
 		file = tempFile
 		fileInfo, _ := tempFile.Stat()
 		header = &multipart.FileHeader{
@@ -512,7 +512,7 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		}
 		fileName = header.Filename
 	} else {
-		// 从上传的文件中获取音频
+		// Lấy audio từ file upload
 		file, header, err = c.Request.FormFile("audio")
 		if err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": "Thiếu file audio: " + err.Error()})
@@ -522,10 +522,10 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		fileName = header.Filename
 	}
 
-	// 生成 UUID
+	// Tạo UUID
 	sampleUUID := uuid.New().String()
 
-	// 保存音频文件到本地
+	// Lưu file audio vào cục bộ
 	filePath, savedFileSize, err := sgc.AudioStorage.SaveAudioFile(
 		userID.(uint),
 		uint(groupID),
@@ -538,11 +538,11 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		return
 	}
 
-	// 调用 asr_server 注册接口
-	file.Seek(0, 0) // 重置文件指针
+	// Gọi API đăng ký của asr_server
+	file.Seek(0, 0) // Đặt lại con trỏ file
 	err = sgc.callRegisterAPI(
-		fmt.Sprintf("%d", speakerGroup.ID), // speaker_id 使用声纹组的主键 ID
-		speakerGroup.Name,                  // speaker_name 使用组名称
+		fmt.Sprintf("%d", speakerGroup.ID), // speaker_id dùng khóa chính của nhóm dấu giọng nói
+		speakerGroup.Name,                  // speaker_name dùng tên nhóm
 		sampleUUID,
 		speakerGroup.AgentID, // agent_id
 		file,
@@ -550,13 +550,13 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 		userID,
 	)
 	if err != nil {
-		// 如果注册失败，删除已保存的文件
+		// Nếu đăng ký thất bại, xóa file đã lưu
 		sgc.AudioStorage.DeleteAudioFile(filePath)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đăng ký dấu giọng nói thất bại: " + err.Error()})
 		return
 	}
 
-	// 创建样本记录
+	// Tạo bản ghi mẫu
 	sample := models.SpeakerSample{
 		SpeakerGroupID: uint(groupID),
 		UserID:         userID.(uint),
@@ -568,14 +568,14 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 	}
 
 	if err := sgc.DB.Create(&sample).Error; err != nil {
-		// 如果数据库保存失败，删除文件和 asr_server 中的记录
+		// Nếu lưu cơ sở dữ liệu thất bại, xóa file và bản ghi trong asr_server
 		sgc.AudioStorage.DeleteAudioFile(filePath)
 		sgc.callDeleteAPI(sampleUUID, speakerGroup.AgentID, userID, sampleUUID)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lưu bản ghi mẫu thất bại"})
 		return
 	}
 
-	// 更新声纹组的样本数量
+	// Cập nhật số lượng mẫu của nhóm dấu giọng nói
 	sgc.DB.Model(&speakerGroup).Update("sample_count", gorm.Expr("sample_count + 1"))
 
 	c.JSON(http.StatusCreated, gin.H{
@@ -591,7 +591,7 @@ func (sgc *SpeakerGroupController) AddSample(c *gin.Context) {
 	})
 }
 
-// GetSamples 获取声纹组下的所有样本
+// GetSamples lấy toàn bộ mẫu trong nhóm dấu giọng nói
 func (sgc *SpeakerGroupController) GetSamples(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -599,14 +599,14 @@ func (sgc *SpeakerGroupController) GetSamples(c *gin.Context) {
 		return
 	}
 
-	groupIDStr := c.Param("id") // 改为使用 :id 参数
+	groupIDStr := c.Param("id") // Dùng tham số :id
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "ID nhóm người nói không hợp lệ"})
 		return
 	}
 
-	// 验证声纹组是否存在且属于当前用户
+	// Xác minh nhóm dấu giọng nói tồn tại và thuộc về người dùng hiện tại
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", groupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -617,14 +617,14 @@ func (sgc *SpeakerGroupController) GetSamples(c *gin.Context) {
 		return
 	}
 
-	// 查询样本列表
+	// Truy vấn danh sách mẫu
 	var samples []models.SpeakerSample
 	if err := sgc.DB.Where("speaker_group_id = ?", groupID).Order("created_at DESC").Find(&samples).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn mẫu thất bại"})
 		return
 	}
 
-	// 构建响应
+	// Tạo phản hồi
 	result := make([]gin.H, 0)
 	for _, sample := range samples {
 		result = append(result, gin.H{
@@ -644,7 +644,7 @@ func (sgc *SpeakerGroupController) GetSamples(c *gin.Context) {
 	})
 }
 
-// DeleteSample 删除声纹样本
+// DeleteSample xóa mẫu dấu giọng nói
 func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -652,7 +652,7 @@ func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 		return
 	}
 
-	groupIDStr := c.Param("id") // 改为使用 :id 参数
+	groupIDStr := c.Param("id") // Dùng tham số :id
 	sampleIDStr := c.Param("sample_id")
 
 	groupID, err := strconv.ParseUint(groupIDStr, 10, 32)
@@ -667,7 +667,7 @@ func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 		return
 	}
 
-	// 验证样本是否存在且属于当前用户
+	// Xác minh mẫu tồn tại và thuộc về người dùng hiện tại
 	var sample models.SpeakerSample
 	if err := sgc.DB.Where("id = ? AND speaker_group_id = ? AND user_id = ?", sampleID, groupID, userID).First(&sample).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -678,26 +678,26 @@ func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 		return
 	}
 
-	// 查询声纹组以获取 AgentID
+	// Truy vấn nhóm dấu giọng nói để lấy AgentID
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ?", groupID).First(&speakerGroup).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Truy vấn nhóm người nói thất bại"})
 		return
 	}
 
-	// 调用 asr_server 删除接口（通过 UUID）
+	// Gọi API xóa của asr_server qua UUID
 	sgc.callDeleteAPI(sample.UUID, speakerGroup.AgentID, userID, sample.UUID)
 
-	// 删除本地文件
+	// Xóa file cục bộ
 	sgc.AudioStorage.DeleteAudioFile(sample.FilePath)
 
-	// 删除数据库记录
+	// Xóa bản ghi cơ sở dữ liệu
 	if err := sgc.DB.Delete(&sample).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xóa mẫu thất bại"})
 		return
 	}
 
-	// 更新声纹组的样本数量
+	// Cập nhật số lượng mẫu của nhóm dấu giọng nói
 	sgc.DB.Model(&models.SpeakerGroup{}).Where("id = ?", groupID).Update("sample_count", gorm.Expr("sample_count - 1"))
 
 	c.JSON(http.StatusOK, gin.H{
@@ -706,7 +706,7 @@ func (sgc *SpeakerGroupController) DeleteSample(c *gin.Context) {
 	})
 }
 
-// VerifySpeakerGroup 验证声纹组
+// VerifySpeakerGroup xác minh nhóm dấu giọng nói
 func (sgc *SpeakerGroupController) VerifySpeakerGroup(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -721,7 +721,7 @@ func (sgc *SpeakerGroupController) VerifySpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 验证声纹组是否存在且属于当前用户
+	// Xác minh nhóm dấu giọng nói tồn tại và thuộc về người dùng hiện tại
 	var speakerGroup models.SpeakerGroup
 	if err := sgc.DB.Where("id = ? AND user_id = ?", speakerGroupID, userID).First(&speakerGroup).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -732,7 +732,7 @@ func (sgc *SpeakerGroupController) VerifySpeakerGroup(c *gin.Context) {
 		return
 	}
 
-	// 获取上传的音频文件
+	// Lấy file audio đã upload
 	file, header, err := c.Request.FormFile("audio")
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Thiếu file audio: " + err.Error()})
@@ -740,7 +740,7 @@ func (sgc *SpeakerGroupController) VerifySpeakerGroup(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// 调用 asr_server 验证接口
+	// Gọi API xác minh của asr_server
 	result, err := sgc.callVerifyAPI(fmt.Sprintf("%d", speakerGroup.ID), speakerGroup.AgentID, file, header, userID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Xác minh thất bại: " + err.Error()})
@@ -760,15 +760,15 @@ func (sgc *SpeakerGroupController) VerifySpeakerGroup(c *gin.Context) {
 	})
 }
 
-// getVerifyMessage 生成验证结果提示信息
+// getVerifyMessage tạo thông báo kết quả xác minh
 func (sgc *SpeakerGroupController) getVerifyMessage(verified bool, confidence float32) string {
 	if verified {
-		return fmt.Sprintf("验证通过，相似度: %.1f%%", confidence*100)
+		return fmt.Sprintf("Xác minh đạt, độ tương đồng: %.1f%%", confidence*100)
 	}
-	return fmt.Sprintf("验证未通过，相似度: %.1f%%", confidence*100)
+	return fmt.Sprintf("Xác minh không đạt, độ tương đồng: %.1f%%", confidence*100)
 }
 
-// VerifyResult 验证结果
+// VerifyResult là kết quả xác minh
 type VerifyResult struct {
 	SpeakerID   string  `json:"speaker_id"`
 	SpeakerName string  `json:"speaker_name"`
@@ -777,69 +777,69 @@ type VerifyResult struct {
 	Threshold   float32 `json:"threshold"`
 }
 
-// callVerifyAPI 调用 asr_server 验证接口
+// callVerifyAPI gọi API xác minh của asr_server
 func (sgc *SpeakerGroupController) callVerifyAPI(speakerID string, agentID uint, file multipart.File, header *multipart.FileHeader, userID interface{}) (*VerifyResult, error) {
-	// 准备 multipart form data
+	// Chuẩn bị multipart form data
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
 
-	// 添加文件
+	// Thêm file
 	part, err := writer.CreateFormFile("audio", header.Filename)
 	if err != nil {
 		writer.Close()
-		return nil, fmt.Errorf("创建文件字段失败: %v", err)
+		return nil, fmt.Errorf("Tạo trường file thất bại: %v", err)
 	}
 
-	// 重置文件指针
+	// Đặt lại con trỏ file
 	file.Seek(0, 0)
 	if _, err := io.Copy(part, file); err != nil {
 		writer.Close()
-		return nil, fmt.Errorf("复制文件内容失败: %v", err)
+		return nil, fmt.Errorf("Sao chép nội dung file thất bại: %v", err)
 	}
 
 	writer.Close()
 
-	// 创建请求
+	// Tạo yêu cầu
 	apiURL := fmt.Sprintf("%s/api/v1/speaker/verify/%s", sgc.ServiceURL, url.PathEscape(speakerID))
 	req, err := http.NewRequest("POST", apiURL, &requestBody)
 	if err != nil {
-		return nil, fmt.Errorf("创建请求失败: %v", err)
+		return nil, fmt.Errorf("Tạo yêu cầu thất bại: %v", err)
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("X-User-ID", fmt.Sprintf("%v", userID))
-	req.Header.Set("X-Agent-ID", fmt.Sprintf("%d", agentID)) // 新增 agent_id 请求头
+	req.Header.Set("X-Agent-ID", fmt.Sprintf("%d", agentID)) // Thêm header agent_id
 
-	// 发送请求
+	// Gửi yêu cầu
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	resp, err := sgc.HTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return nil, fmt.Errorf("发送请求失败: %v", err)
+		return nil, fmt.Errorf("Gửi yêu cầu thất bại: %v", err)
 	}
 	defer resp.Body.Close()
 
-	// 读取响应
+	// Đọc phản hồi
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return nil, fmt.Errorf("读取响应失败: %v", err)
+		return nil, fmt.Errorf("Đọc phản hồi thất bại: %v", err)
 	}
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("asr_server 返回错误 (状态码: %d): %s", resp.StatusCode, string(body))
+		return nil, fmt.Errorf("asr_server trả về lỗi (mã trạng thái: %d): %s", resp.StatusCode, string(body))
 	}
 
-	// 解析响应
+	// Phân tích phản hồi
 	var result VerifyResult
 	if err := json.Unmarshal(body, &result); err != nil {
-		return nil, fmt.Errorf("解析响应失败: %v", err)
+		return nil, fmt.Errorf("Phân tích phản hồi thất bại: %v", err)
 	}
 
 	return &result, nil
 }
 
-// GetSampleFile 获取样本音频文件
+// GetSampleFile lấy file audio của mẫu
 func (sgc *SpeakerGroupController) GetSampleFile(c *gin.Context) {
 	userID, exists := c.Get("user_id")
 	if !exists {
@@ -862,7 +862,7 @@ func (sgc *SpeakerGroupController) GetSampleFile(c *gin.Context) {
 		return
 	}
 
-	// 验证样本是否存在且属于当前用户
+	// Xác minh mẫu tồn tại và thuộc về người dùng hiện tại
 	var sample models.SpeakerSample
 	if err := sgc.DB.Where("id = ? AND speaker_group_id = ? AND user_id = ?", sampleID, groupID, userID).First(&sample).Error; err != nil {
 		if err == gorm.ErrRecordNotFound {
@@ -873,13 +873,13 @@ func (sgc *SpeakerGroupController) GetSampleFile(c *gin.Context) {
 		return
 	}
 
-	// 检查文件是否存在
+	// Kiểm tra file có tồn tại hay không
 	if !sgc.AudioStorage.FileExists(sample.FilePath) {
 		c.JSON(http.StatusNotFound, gin.H{"error": "File audio không tồn tại"})
 		return
 	}
 
-	// 打开文件
+	// Mở file
 	file, err := sgc.AudioStorage.GetAudioFile(sample.FilePath)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Đọc file thất bại"})
@@ -887,89 +887,89 @@ func (sgc *SpeakerGroupController) GetSampleFile(c *gin.Context) {
 	}
 	defer file.Close()
 
-	// 获取文件信息
+	// Lấy thông tin file
 	fileInfo, err := file.Stat()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy thông tin file thất bại"})
 		return
 	}
 
-	// 设置响应头
+	// Thiết lập header phản hồi
 	c.Header("Content-Type", "audio/wav")
 	c.Header("Content-Disposition", fmt.Sprintf("inline; filename=\"%s\"", sample.FileName))
 	c.Header("Content-Length", fmt.Sprintf("%d", fileInfo.Size()))
 
-	// 返回文件内容
+	// Trả về nội dung file
 	c.File(sample.FilePath)
 }
 
-// callRegisterAPI 调用 asr_server 注册接口
+// callRegisterAPI gọi API đăng ký của asr_server
 func (sgc *SpeakerGroupController) callRegisterAPI(speakerID, speakerName, uuid string, agentID uint, file multipart.File, header *multipart.FileHeader, userID interface{}) error {
-	// 准备 multipart form data
+	// Chuẩn bị multipart form data
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
 
-	// 添加字段
+	// Thêm trường
 	writer.WriteField("speaker_id", speakerID)
 	writer.WriteField("speaker_name", speakerName)
 	writer.WriteField("uuid", uuid)
-	writer.WriteField("agent_id", fmt.Sprintf("%d", agentID)) // 新增 agent_id 字段
+	writer.WriteField("agent_id", fmt.Sprintf("%d", agentID)) // Thêm trường agent_id
 	writer.WriteField("uid", fmt.Sprintf("%v", userID))
 
-	// 添加文件
+	// Thêm file
 	part, err := writer.CreateFormFile("audio", header.Filename)
 	if err != nil {
 		writer.Close()
-		return fmt.Errorf("创建文件字段失败: %v", err)
+		return fmt.Errorf("Tạo trường file thất bại: %v", err)
 	}
 
-	// 重置文件指针
+	// Đặt lại con trỏ file
 	file.Seek(0, 0)
 	if _, err := io.Copy(part, file); err != nil {
 		writer.Close()
-		return fmt.Errorf("复制文件内容失败: %v", err)
+		return fmt.Errorf("Sao chép nội dung file thất bại: %v", err)
 	}
 
 	writer.Close()
 
-	// 创建请求
+	// Tạo yêu cầu
 	url := fmt.Sprintf("%s/api/v1/speaker/register", sgc.ServiceURL)
 	req, err := http.NewRequest("POST", url, &requestBody)
 	if err != nil {
-		return fmt.Errorf("创建请求失败: %v", err)
+		return fmt.Errorf("Tạo yêu cầu thất bại: %v", err)
 	}
 
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("X-User-ID", fmt.Sprintf("%v", userID))
-	req.Header.Set("X-Agent-ID", fmt.Sprintf("%d", agentID)) // 新增 agent_id 请求头
+	req.Header.Set("X-Agent-ID", fmt.Sprintf("%d", agentID)) // Thêm header agent_id
 
-	// 发送请求
+	// Gửi yêu cầu
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	resp, err := sgc.HTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return fmt.Errorf("发送请求失败: %v", err)
+		return fmt.Errorf("Gửi yêu cầu thất bại: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("asr_server 返回错误: %s", string(body))
+		return fmt.Errorf("asr_server trả về lỗi: %s", string(body))
 	}
 
 	return nil
 }
 
-// callDeleteAPI 调用 asr_server 删除接口
-// speakerID: 作为路径参数（speaker_id 或 uuid）
+// callDeleteAPI gọi API xóa của asr_server
+// speakerID: dùng làm tham số đường dẫn (speaker_id hoặc uuid)
 // agentID: Agent ID
-// uuid: 可选，如果提供则作为查询参数（用于删除单个样本）
+// uuid: tùy chọn, nếu có thì dùng làm tham số truy vấn để xóa một mẫu
 func (sgc *SpeakerGroupController) callDeleteAPI(speakerID string, agentID uint, userID interface{}, uuid ...string) error {
-	// 构建 URL：路径参数使用 speakerID
+	// Tạo URL với speakerID làm tham số đường dẫn
 	apiURL := fmt.Sprintf("%s/api/v1/speaker/%s", sgc.ServiceURL, url.PathEscape(speakerID))
 
-	// 构建查询参数
+	// Tạo tham số truy vấn
 	queryParams := make([]string, 0)
 	if len(uuid) > 0 && uuid[0] != "" {
 		queryParams = append(queryParams, fmt.Sprintf("uuid=%s", url.QueryEscape(uuid[0])))
@@ -982,32 +982,32 @@ func (sgc *SpeakerGroupController) callDeleteAPI(speakerID string, agentID uint,
 
 	req, err := http.NewRequest("DELETE", apiURL, nil)
 	if err != nil {
-		return fmt.Errorf("创建请求失败: %v", err)
+		return fmt.Errorf("Tạo yêu cầu thất bại: %v", err)
 	}
 
 	req.Header.Set("X-User-ID", fmt.Sprintf("%v", userID))
-	req.Header.Set("X-Agent-ID", fmt.Sprintf("%d", agentID)) // 新增 agent_id 请求头
+	req.Header.Set("X-Agent-ID", fmt.Sprintf("%d", agentID)) // Thêm header agent_id
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	resp, err := sgc.HTTPClient.Do(req.WithContext(ctx))
 	if err != nil {
-		return fmt.Errorf("发送请求失败: %v", err)
+		return fmt.Errorf("Gửi yêu cầu thất bại: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		if len(uuid) > 0 && uuid[0] != "" {
-			log.Printf("asr_server 删除失败 (speaker_id: %s, uuid: %s): %s", speakerID, uuid[0], string(body))
+			log.Printf("asr_server xóa thất bại (speaker_id: %s, uuid: %s): %s", speakerID, uuid[0], string(body))
 		} else {
-			log.Printf("asr_server 删除失败 (speaker_id: %s): %s", speakerID, string(body))
+			log.Printf("asr_server xóa thất bại (speaker_id: %s): %s", speakerID, string(body))
 		}
-		// 如果提供了 uuid，不返回错误（可能已经删除或不存在）
-		// 如果是通过 speaker_id 删除，返回错误
+		// Nếu có uuid thì không trả lỗi vì mẫu có thể đã bị xóa hoặc không tồn tại.
+		// Nếu xóa qua speaker_id thì trả lỗi.
 		if len(uuid) == 0 || uuid[0] == "" {
-			return fmt.Errorf("asr_server 返回错误: %s", string(body))
+			return fmt.Errorf("asr_server trả về lỗi: %s", string(body))
 		}
 	}
 

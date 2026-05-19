@@ -19,7 +19,7 @@ type ActivationRequest struct {
 }
 
 func (s *WebSocketServer) handleOta(w http.ResponseWriter, r *http.Request) {
-	//获取客户端ip
+	// Lấy IP client
 	ip := r.Header.Get("X-Real-IP")
 	if ip == "" {
 		ip = r.Header.Get("X-Forwarded-For")
@@ -28,7 +28,7 @@ func (s *WebSocketServer) handleOta(w http.ResponseWriter, r *http.Request) {
 		ip = r.RemoteAddr
 	}
 
-	//从header头部获取Device-Id和Client-Id
+	// Lấy Device-Id và Client-Id từ header
 	deviceId := r.Header.Get("Device-Id")
 	clientId := r.Header.Get("Client-Id")
 
@@ -40,7 +40,7 @@ func (s *WebSocketServer) handleOta(w http.ResponseWriter, r *http.Request) {
 
 	//deviceId = strings.ReplaceAll(deviceId, ":", "_")
 
-	//根据ip选择不同的配置
+	// Chọn cấu hình khác nhau theo IP
 	clientIp := r.Header.Get("X-Real-IP")
 	if clientIp == "" {
 		clientIp = r.Header.Get("X-Forwarded-For")
@@ -54,10 +54,10 @@ func (s *WebSocketServer) handleOta(w http.ResponseWriter, r *http.Request) {
 	log.Debugf("authEnable: %v", authEnable)
 	if authEnable {
 		configProvider, err := user_config.GetProvider(viper.GetString("config_provider.type"))
-		//检查此deviceId是否已认证
+		// Kiểm tra deviceId này đã được xác thực chưa
 		isActivited, err := configProvider.IsDeviceActivated(r.Context(), deviceId, clientId)
 		if err != nil {
-			log.Errorf("检查设备是否认证失败: %v", err)
+			log.Errorf("Kiểm tra thiết bị đã xác thực thất bại: %v", err)
 			http.Error(w, "Lỗi máy chủ nội bộ", http.StatusInternalServerError)
 			return
 		}
@@ -69,12 +69,12 @@ func (s *WebSocketServer) handleOta(w http.ResponseWriter, r *http.Request) {
 				Challenge: challenge,
 				TimeoutMs: timeoutMs,
 			}
-			log.Infof("激活信息: &{Code:%s Message:%s Challenge:%s TimeoutMs:%d}", code, msg, challenge, timeoutMs)
+			log.Infof("Thông tin kích hoạt: &{Code:%s Message:%s Challenge:%s TimeoutMs:%d}", code, msg, challenge, timeoutMs)
 		}
 	}
 
 	otaConfigPrefix := "ota.external."
-	//如果ip是192.168开头的，则选择test配置
+	// Nếu IP bắt đầu bằng 192.168 thì chọn cấu hình test
 	if strings.HasPrefix(clientIp, "192.168") || strings.HasPrefix(clientIp, "10.") || strings.HasPrefix(clientIp, "127.0.0.1") {
 		otaConfigPrefix = "ota.test."
 	} else {
@@ -82,7 +82,7 @@ func (s *WebSocketServer) handleOta(w http.ResponseWriter, r *http.Request) {
 	}
 
 	mqttInfo := getMqttInfo(deviceId, clientId, otaConfigPrefix, ip)
-	//密码
+	// Mật khẩu
 	respData := &OtaResponse{
 		Websocket: WebsocketInfo{
 			Url:   viper.GetString(otaConfigPrefix + "websocket.url"),
@@ -102,7 +102,7 @@ func (s *WebSocketServer) handleOta(w http.ResponseWriter, r *http.Request) {
 
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(respData); err != nil {
-		log.Errorf("OTA响应序列化失败: %v", err)
+		log.Errorf("Serialize OTA response thất bại: %v", err)
 		http.Error(w, "Lỗi máy chủ nội bộ", http.StatusInternalServerError)
 		return
 	}
@@ -114,11 +114,11 @@ func getMqttInfo(deviceId, clientId, otaConfigPrefix, ip string) *MqttInfo {
 		return nil
 	}
 
-	// 生成MQTT凭据
+	// Tạo MQTT credential
 	signatureKey := viper.GetString("ota.signature_key")
 	credentials, err := util.GenerateMqttCredentials(deviceId, clientId, ip, signatureKey)
 	if err != nil {
-		log.Errorf("生成MQTT凭据失败: %v", err)
+		log.Errorf("Tạo MQTT credential thất bại: %v", err)
 		return nil
 	}
 
@@ -132,7 +132,7 @@ func getMqttInfo(deviceId, clientId, otaConfigPrefix, ip string) *MqttInfo {
 	}
 }
 
-// handleOtaActivate 设备激活接口
+// handleOtaActivate là API kích hoạt thiết bị
 func (s *WebSocketServer) handleOtaActivate(w http.ResponseWriter, r *http.Request) {
 	deviceId := r.Header.Get("Device-Id")
 	clientId := r.Header.Get("Client-Id")
@@ -143,20 +143,20 @@ func (s *WebSocketServer) handleOtaActivate(w http.ResponseWriter, r *http.Reque
 	}
 	var req ActivationRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		log.Errorf("激活请求解析失败: %v", err)
+		log.Errorf("Parse request kích hoạt thất bại: %v", err)
 		http.Error(w, "Phân tích request body thất bại", http.StatusBadRequest)
 		return
 	}
-	// 校验算法
+	// Kiểm tra thuật toán
 	if req.Payload.Algorithm != "hmac-sha256" {
 		http.Error(w, "Thuật toán không được hỗ trợ", http.StatusBadRequest)
 		return
 	}
 
-	// 调用配置Provider进行绑定校验
+	// Gọi config provider để kiểm tra binding
 	configProvider, err := user_config.GetProvider(viper.GetString("config_provider.type"))
 	if err != nil {
-		log.Errorf("获取配置Provider失败: %v", err)
+		log.Errorf("Lấy config provider thất bại: %v", err)
 		http.Error(w, "Lỗi máy chủ nội bộ", http.StatusInternalServerError)
 		return
 	}
@@ -171,7 +171,7 @@ func (s *WebSocketServer) handleOtaActivate(w http.ResponseWriter, r *http.Reque
 		http.Error(w, "Kiểm tra kích hoạt thiết bị chưa đạt", http.StatusAccepted)
 		return
 	}
-	// 激活成功，返回200
+	// Kích hoạt thành công, trả về 200
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte("激活成功"))
+	w.Write([]byte("Kích hoạt thành công"))
 }

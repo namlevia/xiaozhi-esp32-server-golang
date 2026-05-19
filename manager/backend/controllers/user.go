@@ -33,7 +33,7 @@ type UserController struct {
 	}
 }
 
-// UserConfigResponse 普通用户可见的配置响应（不包含 json_data 等敏感字段）
+// UserConfigResponse phản hồi cấu hình mà người dùng thường có thể thấy (không gồm json_data và các trường nhạy cảm)
 type UserConfigResponse struct {
 	ID        uint      `json:"id"`
 	Type      string    `json:"type"`
@@ -83,7 +83,7 @@ func normalizeMemoryMode(mode string) string {
 	}
 }
 
-// 语音推送到设备
+// Đẩy giọng nói đến thiết bị
 func (uc *UserController) InjectMessage(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 
@@ -99,11 +99,11 @@ func (uc *UserController) InjectMessage(c *gin.Context) {
 		return
 	}
 
-	// 验证设备是否属于当前用户
+	// Xác thực thiết bị có thuộc người dùng hiện tại không
 	var device models.Device
 
 	if err := uc.DB.Where("device_name = ? AND user_id = ?", req.DeviceID, userID).First(&device).Error; err != nil {
-		log.Printf("[InjectMessage] 设备查询失败: %v", err)
+		log.Printf("[InjectMessage] Truy vấn thiết bị thất bại: %v", err)
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Thiết bị không tồn tại hoặc không thuộc người dùng hiện tại"})
 		return
 	}
@@ -113,7 +113,7 @@ func (uc *UserController) InjectMessage(c *gin.Context) {
 		autoListen = *req.AutoListen
 	}
 
-	// 通过WebSocket发送语音推送请求到主服务器
+	// Gửi yêu cầu đẩy giọng nói đến server chính qua WebSocket
 	ctx := context.Background()
 	err := uc.WebSocketController.InjectMessageToDevice(ctx, device.DeviceName, req.Message, req.SkipLlm, autoListen)
 	if err != nil {
@@ -133,7 +133,7 @@ func (uc *UserController) InjectMessage(c *gin.Context) {
 	})
 }
 
-// 用户直接创建设备（无需验证码）
+// Người dùng tạo thiết bị trực tiếp (không cần mã xác minh)
 func (uc *UserController) CreateDevice(c *gin.Context) {
 	var req DevicePayload
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -142,7 +142,7 @@ func (uc *UserController) CreateDevice(c *gin.Context) {
 	}
 	device, err := NewDeviceService(uc.DB).Create(scopeFromContext(c), req)
 	if err != nil {
-		writeServiceError(c, err, "创建设备失败")
+		writeServiceError(c, err, "Tạo thiết bị thất bại")
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{
@@ -155,9 +155,9 @@ func (uc *UserController) CreateDevice(c *gin.Context) {
 	})
 }
 
-// 生成6位随机数字代码
+// Tạo mã số ngẫu nhiên 6 chữ số
 func generateRandomCode() string {
-	// 生成6位随机数字
+	// Tạo số ngẫu nhiên 6 chữ số
 	code := fmt.Sprintf("%06d", rand.Intn(1000000))
 	return code
 }
@@ -181,13 +181,13 @@ func normalizeDeviceNameCandidate(value string) string {
 func normalizeDeviceNickName(value string) (string, error) {
 	nickName := strings.TrimSpace(value)
 	if len([]rune(nickName)) > 50 {
-		return "", fmt.Errorf("设备昵称最多 50 个字符")
+		return "", fmt.Errorf("Biệt danh thiết bị tối đa 50 ký tự")
 	}
 	return nickName, nil
 }
 
 func generateUniqueDeviceCode(db *gorm.DB) string {
-	for i := 0; i < 10; i++ { // 最多尝试10次
+	for i := 0; i < 10; i++ { // Thử tối đa 10 lần
 		code := generateRandomCode()
 
 		var count int64
@@ -199,7 +199,7 @@ func generateUniqueDeviceCode(db *gorm.DB) string {
 	return fmt.Sprintf("%06d", time.Now().Unix()%1000000)
 }
 
-// 获取用户所有设备概览（只读）
+// Lấy tổng quan toàn bộ thiết bị của người dùng (chỉ đọc)
 func (uc *UserController) GetMyDevices(c *gin.Context) {
 	result, err := NewDeviceService(uc.DB).List(scopeFromContext(c))
 	if err != nil {
@@ -209,7 +209,7 @@ func (uc *UserController) GetMyDevices(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// UpdateDevice 更新当前用户自己的设备昵称。device_name 是设备端标识，不在这里修改。
+// UpdateDevice cập nhật biệt danh thiết bị của người dùng hiện tại. device_name là định danh phía thiết bị, không sửa ở đây.
 func (uc *UserController) UpdateDevice(c *gin.Context) {
 	deviceID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -222,26 +222,26 @@ func (uc *UserController) UpdateDevice(c *gin.Context) {
 	}
 	device, err := NewDeviceService(uc.DB).Update(scopeFromContext(c), deviceID, req)
 	if err != nil {
-		writeServiceError(c, err, "更新设备失败")
+		writeServiceError(c, err, "Cập nhật thiết bị thất bại")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "data": device})
 }
 
-// DeleteDevice 从系统中删除当前用户自己的设备。删除后设备需要重新走激活流程才能再次进入系统。
+// DeleteDevice xóa thiết bị của người dùng hiện tại khỏi hệ thống. Sau khi xóa, thiết bị cần kích hoạt lại để vào hệ thống.
 func (uc *UserController) DeleteDevice(c *gin.Context) {
 	deviceID, ok := parseUintParam(c, "id")
 	if !ok {
 		return
 	}
 	if err := NewDeviceService(uc.DB).Delete(scopeFromContext(c), deviceID); err != nil {
-		writeServiceError(c, err, "删除设备失败")
+		writeServiceError(c, err, "Xóa thiết bị thất bại")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Thiết bị đã bị xóa khỏi hệ thống, cần kích hoạt lại trước khi sử dụng tiếp"})
 }
 
-// 智能体管理
+// Quản lý trợ lý
 func (uc *UserController) GetAgents(c *gin.Context) {
 	result, err := NewAgentService(uc.DB).List(scopeFromContext(c))
 	if err != nil {
@@ -259,7 +259,7 @@ func (uc *UserController) CreateAgent(c *gin.Context) {
 	}
 	agent, err := NewAgentService(uc.DB).Create(scopeFromContext(c), req)
 	if err != nil {
-		writeServiceError(c, err, "创建智能体失败")
+		writeServiceError(c, err, "Tạo trợ lý thất bại")
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": gin.H{"agent": agent, "knowledge_base_ids": agent.KnowledgeBaseIDs}})
@@ -272,7 +272,7 @@ func (uc *UserController) GetAgent(c *gin.Context) {
 	}
 	result, err := NewAgentService(uc.DB).Get(scopeFromContext(c), id)
 	if err != nil {
-		writeServiceError(c, err, "获取智能体失败")
+		writeServiceError(c, err, "Lấy trợ lý thất bại")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": result})
@@ -290,7 +290,7 @@ func (uc *UserController) UpdateAgent(c *gin.Context) {
 	}
 	agent, err := NewAgentService(uc.DB).Update(scopeFromContext(c), id, req)
 	if err != nil {
-		writeServiceError(c, err, "更新智能体失败")
+		writeServiceError(c, err, "Cập nhật trợ lý thất bại")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"agent": agent, "knowledge_base_ids": agent.KnowledgeBaseIDs}})
@@ -302,13 +302,13 @@ func (uc *UserController) DeleteAgent(c *gin.Context) {
 		return
 	}
 	if err := NewAgentService(uc.DB).Delete(scopeFromContext(c), id); err != nil {
-		writeServiceError(c, err, "删除智能体失败")
+		writeServiceError(c, err, "Xóa trợ lý thất bại")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"message": "Xóa thành công"})
 }
 
-// 获取智能体关联的设备
+// Lấy thiết bị liên kết với trợ lý
 func (uc *UserController) GetAgentDevices(c *gin.Context) {
 	agentID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -322,7 +322,7 @@ func (uc *UserController) GetAgentDevices(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": devices})
 }
 
-// 将设备添加到智能体
+// Thêm thiết bị vào trợ lý
 func (uc *UserController) AddDeviceToAgent(c *gin.Context) {
 	agentID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -335,13 +335,13 @@ func (uc *UserController) AddDeviceToAgent(c *gin.Context) {
 	}
 	device, err := NewDeviceService(uc.DB).BindToAgent(scopeFromContext(c), agentID, req)
 	if err != nil {
-		writeServiceError(c, err, "设备绑定失败")
+		writeServiceError(c, err, "Liên kết thiết bị thất bại")
 		return
 	}
 	c.JSON(http.StatusCreated, gin.H{"success": true, "data": device})
 }
 
-// 从智能体移除设备
+// Gỡ thiết bị khỏi trợ lý
 func (uc *UserController) RemoveDeviceFromAgent(c *gin.Context) {
 	agentID, ok := parseUintParam(c, "id")
 	if !ok {
@@ -352,13 +352,13 @@ func (uc *UserController) RemoveDeviceFromAgent(c *gin.Context) {
 		return
 	}
 	if err := NewDeviceService(uc.DB).UnbindFromAgent(scopeFromContext(c), agentID, deviceID); err != nil {
-		writeServiceError(c, err, "移除设备失败")
+		writeServiceError(c, err, "Gỡ thiết bị thất bại")
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"success": true, "message": "Gỡ thiết bị thành công"})
 }
 
-// 获取角色模板
+// Lấy mẫu vai trò
 func (uc *UserController) GetRoleTemplates(c *gin.Context) {
 	var roles []models.GlobalRole
 	if err := uc.DB.Find(&roles).Error; err != nil {
@@ -385,6 +385,96 @@ func normalizeIndexTTSVoiceOptionsBaseURL(raw string) string {
 	baseURL = trimSuffixFoldForURL(baseURL, "/audio/speech")
 	baseURL = trimSuffixFoldForURL(baseURL, "/audio/voices")
 	return strings.TrimRight(baseURL, "/")
+}
+
+func normalizePiperVoiceOptionsURL(raw string) string {
+	baseURL := strings.TrimRight(strings.TrimSpace(raw), "/")
+	baseURL = trimSuffixFoldForURL(baseURL, "/piper/tts")
+	baseURL = trimSuffixFoldForURL(baseURL, "/piper/voices")
+	if baseURL == "" {
+		baseURL = "http://main-server:9001"
+	}
+	return baseURL + "/piper/voices"
+}
+
+func (uc *UserController) fetchPiperVoices(c *gin.Context, configID, overrideURL string) ([]VoiceOption, error) {
+	apiURL := "http://main-server:9001/piper/tts"
+	if strings.TrimSpace(configID) != "" {
+		var cfg models.Config
+		if err := uc.DB.Where("type = ? AND config_id = ?", "tts", configID).First(&cfg).Error; err == nil {
+			var cfgMap map[string]any
+			if strings.TrimSpace(cfg.JsonData) != "" && json.Unmarshal([]byte(cfg.JsonData), &cfgMap) == nil {
+				if v, ok := cfgMap["api_url"].(string); ok && strings.TrimSpace(v) != "" {
+					apiURL = strings.TrimSpace(v)
+				}
+			}
+		}
+	}
+	if strings.TrimSpace(overrideURL) != "" {
+		apiURL = strings.TrimSpace(overrideURL)
+	}
+	req, err := http.NewRequestWithContext(c.Request.Context(), http.MethodGet, normalizePiperVoiceOptionsURL(apiURL), nil)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Accept", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode >= 400 {
+		return nil, fmt.Errorf("Piper lấy giọng thất bại: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
+	}
+	var payload struct {
+		Voices []struct {
+			ID              string  `json:"id"`
+			Name            string  `json:"name"`
+			ModelPath       string  `json:"model_path"`
+			ModelConfigPath string  `json:"model_config_path"`
+			SampleRate      int     `json:"sample_rate"`
+			Language        string  `json:"language"`
+			LengthScale     float32 `json:"length_scale"`
+			NoiseScale      float32 `json:"noise_scale"`
+			NoiseW          float32 `json:"noise_w"`
+		} `json:"voices"`
+	}
+	if err = json.Unmarshal(body, &payload); err != nil {
+		return nil, err
+	}
+	result := make([]VoiceOption, 0, len(payload.Voices))
+	for _, voice := range payload.Voices {
+		value := strings.TrimSpace(voice.ID)
+		if value == "" {
+			value = strings.TrimSpace(voice.Name)
+		}
+		if value == "" {
+			continue
+		}
+		label := strings.TrimSpace(voice.Name)
+		if label == "" {
+			label = value
+		}
+		if voice.Language != "" {
+			label = fmt.Sprintf("%s (%s)", label, voice.Language)
+		}
+		result = append(result, VoiceOption{
+			Value:           value,
+			Label:           label,
+			ModelPath:       voice.ModelPath,
+			ModelConfigPath: voice.ModelConfigPath,
+			SampleRate:      voice.SampleRate,
+			Language:        voice.Language,
+			LengthScale:     voice.LengthScale,
+			NoiseScale:      voice.NoiseScale,
+			NoiseW:          voice.NoiseW,
+		})
+	}
+	return result, nil
 }
 
 func (uc *UserController) fetchIndexTTSVoices(c *gin.Context, configID, overrideURL, overrideAPIKey string) ([]VoiceOption, error) {
@@ -432,7 +522,7 @@ func (uc *UserController) fetchIndexTTSVoices(c *gin.Context, configID, override
 		return nil, err
 	}
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("IndexTTS 获取音色失败: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
+		return nil, fmt.Errorf("IndexTTS lấy giọng thất bại: status=%d body=%s", resp.StatusCode, strings.TrimSpace(string(body)))
 	}
 	voiceMap := map[string]any{}
 	if err = json.Unmarshal(body, &voiceMap); err != nil {
@@ -448,7 +538,7 @@ func (uc *UserController) fetchIndexTTSVoices(c *gin.Context, configID, override
 		if v == "" {
 			continue
 		}
-		// 过滤掉当前 IndexTTS 配置实例生成的内部前缀音色，避免和复刻音色重复展示。
+		// Lọc giọng có tiền tố nội bộ do instance cấu hình IndexTTS hiện tại tạo ra để tránh trùng với giọng clone.
 		if normalizedConfigPrefix != "" && strings.HasPrefix(strings.ToLower(v), normalizedConfigPrefix) {
 			continue
 		}
@@ -457,7 +547,7 @@ func (uc *UserController) fetchIndexTTSVoices(c *gin.Context, configID, override
 	return result, nil
 }
 
-// 获取音色选项
+// Lấy tùy chọn giọng
 func (uc *UserController) GetVoiceOptions(c *gin.Context) {
 	scope := scopeFromContext(c)
 	voices, err := getVoiceOptionsForUser(
@@ -480,10 +570,10 @@ func (uc *UserController) GetVoiceOptions(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": voices})
 }
 
-// 获取LLM配置列表
+// Lấy danh sách cấu hình LLM
 func (uc *UserController) GetLLMConfigs(c *gin.Context) {
 	var configs []models.Config
-	// 从全局配置中获取所有启用的LLM配置，默认配置排在前面
+	// Lấy toàn bộ cấu hình LLM đã bật từ cấu hình toàn cục, cấu hình mặc định xếp trước
 	if err := uc.DB.Where("type = ? AND enabled = ?", "llm", true).Order("is_default DESC, name ASC").Find(&configs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy cấu hình LLM thất bại"})
 		return
@@ -492,10 +582,10 @@ func (uc *UserController) GetLLMConfigs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": toUserConfigResponseList(configs)})
 }
 
-// 获取TTS配置列表
+// Lấy danh sách cấu hình TTS
 func (uc *UserController) GetTTSConfigs(c *gin.Context) {
 	var configs []models.Config
-	// 从全局配置中获取所有启用的TTS配置，默认配置排在前面
+	// Lấy toàn bộ cấu hình TTS đã bật từ cấu hình toàn cục, cấu hình mặc định xếp trước
 	if err := uc.DB.Where("type = ? AND enabled = ?", "tts", true).Order("is_default DESC, name ASC").Find(&configs).Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Lấy cấu hình TTS thất bại"})
 		return
@@ -504,7 +594,7 @@ func (uc *UserController) GetTTSConfigs(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": toUserConfigResponseList(configs)})
 }
 
-// GetDeviceMcpTools 获取设备维度MCP工具列表（用户版本）
+// GetDeviceMcpTools lấy danh sách công cụ MCP theo thiết bị (bản người dùng)
 func (uc *UserController) GetDeviceMcpTools(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	deviceID := c.Param("id")
@@ -528,7 +618,7 @@ func (uc *UserController) GetDeviceMcpTools(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": gin.H{"tools": tools}})
 }
 
-// CallAgentMcpTool 调用智能体维度MCP工具（用户版本）
+// CallAgentMcpTool gọi công cụ MCP theo trợ lý (bản người dùng)
 func (uc *UserController) CallAgentMcpTool(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	agentID := c.Param("id")
@@ -598,7 +688,7 @@ func (uc *UserController) GetMCPServiceOptions(c *gin.Context) {
 	}})
 }
 
-// CallDeviceMcpTool 调用设备维度MCP工具（用户版本）
+// CallDeviceMcpTool gọi công cụ MCP theo thiết bị (bản người dùng)
 func (uc *UserController) CallDeviceMcpTool(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	deviceID := c.Param("id")
@@ -632,7 +722,7 @@ func (uc *UserController) CallDeviceMcpTool(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// GetAgentMCPEndpoint 获取智能体的MCP接入点URL（用户版本）
+// GetAgentMCPEndpoint lấy URL endpoint MCP của trợ lý (bản người dùng)
 func (uc *UserController) GetAgentMCPEndpoint(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	agentID := c.Param("id")
@@ -641,14 +731,14 @@ func (uc *UserController) GetAgentMCPEndpoint(c *gin.Context) {
 		return
 	}
 
-	// 验证智能体是否存在且属于当前用户
+	// Xác thực trợ lý có tồn tại và thuộc người dùng hiện tại không
 	var agent models.Agent
 	if err := uc.DB.Where("id = ? AND user_id = ?", agentID, userID).First(&agent).Error; err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Trợ lý không tồn tại hoặc không thuộc người dùng hiện tại"})
 		return
 	}
 
-	// 使用公共函数生成MCP接入点
+	// Dùng hàm chung để tạo endpoint MCP
 	endpoint, err := GenerateAgentMCPEndpoint(uc.DB, agentID, userID.(uint), uc.EndpointAuthToken)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -693,7 +783,7 @@ func (uc *UserController) GetAgentMCPEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
-// GetAgentOpenClawEndpoint 获取智能体的OpenClaw接入点URL（用户版本）
+// GetAgentOpenClawEndpoint lấy URL endpoint OpenClaw của trợ lý (bản người dùng)
 func (uc *UserController) GetAgentOpenClawEndpoint(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	agentID := c.Param("id")
@@ -755,7 +845,7 @@ func (uc *UserController) GetAgentOpenClawEndpoint(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": data})
 }
 
-// CallAgentOpenClawChatTest 调用智能体 OpenClaw 对话测试（用户版本）
+// CallAgentOpenClawChatTest gọi kiểm tra hội thoại OpenClaw của trợ lý (bản người dùng)
 func (uc *UserController) CallAgentOpenClawChatTest(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	agentID := c.Param("id")
@@ -856,13 +946,13 @@ func (uc *UserController) CallAgentOpenClawChatTest(c *gin.Context) {
 	if err != nil {
 		msg := err.Error()
 		switch {
-		case strings.Contains(strings.ToLower(msg), "not connected"), strings.Contains(msg, "未连接"):
+		case strings.Contains(strings.ToLower(msg), "not connected"), strings.Contains(msg, "chưa kết nối"):
 			c.JSON(http.StatusConflict, gin.H{"error": msg})
-		case strings.Contains(strings.ToLower(msg), "timeout"), strings.Contains(msg, "超时"):
+		case strings.Contains(strings.ToLower(msg), "timeout"), strings.Contains(msg, "quá thời gian"):
 			c.JSON(http.StatusGatewayTimeout, gin.H{"error": msg})
-		case strings.Contains(strings.ToLower(msg), "missing"), strings.Contains(msg, "参数"):
+		case strings.Contains(strings.ToLower(msg), "missing"), strings.Contains(msg, "tham số"):
 			c.JSON(http.StatusBadRequest, gin.H{"error": msg})
-		case strings.Contains(msg, "没有连接的客户端"):
+		case strings.Contains(msg, "không có client đã kết nối"):
 			c.JSON(http.StatusServiceUnavailable, gin.H{"error": msg})
 		default:
 			c.JSON(http.StatusInternalServerError, gin.H{"error": "Kiểm tra hội thoại OpenClaw thất bại: " + msg})
@@ -873,12 +963,12 @@ func (uc *UserController) CallAgentOpenClawChatTest(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"data": result})
 }
 
-// GetAgentMcpTools 获取智能体的MCP工具列表（用户版本）
+// GetAgentMcpTools lấy danh sách công cụ MCP của trợ lý (bản người dùng)
 func (uc *UserController) GetAgentMcpTools(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	agentID := c.Param("id")
 
-	// 用户验证函数：验证智能体是否存在且属于当前用户
+	// Hàm xác thực người dùng: kiểm tra trợ lý có tồn tại và thuộc người dùng hiện tại không
 	userAgentValidator := func(agentID string) error {
 		var agent models.Agent
 		if err := uc.DB.Where("id = ? AND user_id = ?", agentID, userID).First(&agent).Error; err != nil {
@@ -887,11 +977,11 @@ func (uc *UserController) GetAgentMcpTools(c *gin.Context) {
 		return nil
 	}
 
-	// 使用公共函数
+	// Dùng hàm chung
 	GetAgentMcpToolsCommon(c, agentID, uc.WebSocketController, userAgentValidator)
 }
 
-// 获取仪表板统计数据
+// Lấy dữ liệu thống kê bảng điều khiển
 func (uc *UserController) GetDashboardStats(c *gin.Context) {
 	userID, _ := c.Get("user_id")
 	userRole, _ := c.Get("role")
@@ -909,19 +999,19 @@ func (uc *UserController) GetDashboardStats(c *gin.Context) {
 	}
 
 	if userRole == "admin" {
-		// 管理员查看全部数据
+		// Quản trị viên xem toàn bộ dữ liệu
 		uc.DB.Model(&models.User{}).Count(&stats.TotalUsers)
 		uc.DB.Model(&models.Device{}).Count(&stats.TotalDevices)
 		uc.DB.Model(&models.Agent{}).Count(&stats.TotalAgents)
-		// 在线设备：最近5分钟内活跃的设备
+		// Thiết bị online: thiết bị hoạt động trong 5 phút gần nhất
 		fiveMinutesAgo := time.Now().Add(-5 * time.Minute)
 		uc.DB.Model(&models.Device{}).Where("last_active_at > ?", fiveMinutesAgo).Count(&stats.OnlineDevices)
 	} else {
-		// 普通用户只查看自己的数据
-		stats.TotalUsers = 0 // 普通用户不显示用户数
+		// Người dùng thường chỉ xem dữ liệu của mình
+		stats.TotalUsers = 0 // Người dùng thường không hiển thị số người dùng
 		uc.DB.Model(&models.Device{}).Where("user_id = ?", userID).Count(&stats.TotalDevices)
 		uc.DB.Model(&models.Agent{}).Where("user_id = ?", userID).Count(&stats.TotalAgents)
-		// 在线设备：用户自己的最近5分钟内活跃的设备
+		// Thiết bị online: thiết bị của người dùng hoạt động trong 5 phút gần nhất
 		fiveMinutesAgo := time.Now().Add(-5 * time.Minute)
 		uc.DB.Model(&models.Device{}).Where("user_id = ? AND last_active_at > ?", userID, fiveMinutesAgo).Count(&stats.OnlineDevices)
 	}

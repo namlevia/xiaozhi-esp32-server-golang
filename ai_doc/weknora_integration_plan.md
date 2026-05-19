@@ -1,155 +1,164 @@
-# WeKnora 知识库接入方案（待确认）
+# Phương án tích hợp kho tri thức WeKnora (chờ xác nhận)
 
-## 1. 目标与约束
-- 在现有 `dify/ragflow` 基础上新增第三个 provider：`weknora`。
-- 管理员可配置 WeKnora 连接参数；普通用户侧知识库/文档 CRUD 继续走异步同步。
-- 主程序本地 RAG 检索链路支持 `weknora`（不回调控制台检索接口）。
-- 保持现有数据结构：不新增数据库列，文档同步仅使用 `sync_status + sync_error`。
-- 继续沿用现有删除策略：删文档；若知识库为系统自动创建且远端为空则删知识库。
+## 1. Mục tiêu và ràng buộc
 
-## 2. 官方 API 依据
-- API 总览与鉴权（`X-API-Key`，Base URL `/api/v1`）：
+- Trên nền `dify/ragflow` hiện có, thêm provider thứ ba: `weknora`.
+- Quản trị viên có thể cấu hình tham số kết nối WeKnora; CRUD kho tri thức/tài liệu phía người dùng thường vẫn đi qua đồng bộ bất đồng bộ.
+- Chuỗi truy xuất RAG cục bộ của chương trình chính hỗ trợ `weknora`, không gọi ngược về API truy xuất của console.
+- Giữ nguyên cấu trúc dữ liệu hiện có: không thêm cột DB; đồng bộ tài liệu chỉ dùng `sync_status + sync_error`.
+- Tiếp tục dùng chiến lược xóa hiện tại: xóa tài liệu; nếu kho tri thức do hệ thống tự tạo và phía remote rỗng thì xóa kho tri thức.
+
+## 2. Căn cứ API chính thức
+
+- Tổng quan API và xác thực (`X-API-Key`, Base URL `/api/v1`):
   - <https://github.com/Tencent/WeKnora/blob/main/docs/api/README.md>
-- 知识库管理：
+- Quản lý kho tri thức:
   - <https://github.com/Tencent/WeKnora/blob/main/docs/api/knowledge-base.md>
-- 知识管理（文件/URL/手工知识、解析状态）：
+- Quản lý tri thức (file/URL/tri thức thủ công, trạng thái phân tích):
   - <https://github.com/Tencent/WeKnora/blob/main/docs/api/knowledge.md>
-- 知识搜索：
+- Tìm kiếm tri thức:
   - <https://github.com/Tencent/WeKnora/blob/main/docs/api/knowledge-search.md>
-- 模型管理（用于拿默认 Embedding 模型）：
+- Quản lý model (dùng để lấy Embedding model mặc định):
   - <https://github.com/Tencent/WeKnora/blob/main/docs/api/model.md>
 
-## 3. 接口映射（系统动作 -> WeKnora API）
-1. 创建远端知识库（external_kb_id）  
+## 3. Ánh xạ API (hành động hệ thống -> WeKnora API)
+
+1. Tạo kho tri thức remote (`external_kb_id`)  
 `POST /api/v1/knowledge-bases`
 
-2. 更新远端知识库元信息（名称/描述/分块配置）  
+2. Cập nhật metadata kho tri thức remote (tên/mô tả/cấu hình chunk)  
 `PUT /api/v1/knowledge-bases/:id`
 
-3. 删除远端知识库  
+3. Xóa kho tri thức remote  
 `DELETE /api/v1/knowledge-bases/:id`
 
-4. 创建文档（上传文件）  
-`POST /api/v1/knowledge-bases/:id/knowledge/file`（multipart）
+4. Tạo tài liệu (tải file lên)  
+`POST /api/v1/knowledge-bases/:id/knowledge/file` (multipart)
 
-5. 查询文档解析状态  
-`GET /api/v1/knowledge/:id`（使用 `parse_status`，`pending/processing/failed/completed`）
+5. Truy vấn trạng thái phân tích tài liệu  
+`GET /api/v1/knowledge/:id` (dùng `parse_status`: `pending/processing/failed/completed`)
 
-6. 删除文档  
+6. Xóa tài liệu  
 `DELETE /api/v1/knowledge/:id`
 
-7. 判断知识库是否空（用于自动删库）  
+7. Kiểm tra kho tri thức có rỗng hay không (dùng cho tự động xóa kho)  
 `GET /api/v1/knowledge-bases/:id/knowledge?page=1&page_size=1`
 
-8. 检索（召回测试 + 主程序 RAG）  
+8. Truy xuất (test recall + RAG chương trình chính)  
 `POST /api/v1/knowledge-search`
 
-## 4. 数据与状态映射
-1. 字段映射
-- 本地 `knowledge_bases.external_kb_id` <-> WeKnora `knowledge_base.id`
-- 本地 `knowledge_base_documents.external_doc_id` <-> WeKnora `knowledge.id`
+## 4. Ánh xạ dữ liệu và trạng thái
+
+1. Ánh xạ trường
+- Local `knowledge_bases.external_kb_id` <-> WeKnora `knowledge_base.id`
+- Local `knowledge_base_documents.external_doc_id` <-> WeKnora `knowledge.id`
 - `sync_provider = "weknora"`
 
-2. 文档同步状态（单字段）
-- 入队后：`pending`
-- 发起上传：`uploading`
-- 上传成功：`uploaded`
-- 解析中：`parsing`
-- 解析成功：`synced`
-- 上传失败：`upload_failed`
-- 解析失败：`parse_failed`
-- 入队等内部失败：`failed`
+2. Trạng thái đồng bộ tài liệu (một trường)
+- Sau khi vào hàng đợi: `pending`
+- Bắt đầu tải lên: `uploading`
+- Tải lên thành công: `uploaded`
+- Đang phân tích: `parsing`
+- Phân tích thành công: `synced`
+- Tải lên thất bại: `upload_failed`
+- Phân tích thất bại: `parse_failed`
+- Lỗi nội bộ như vào hàng đợi thất bại: `failed`
 
-3. 解析轮询策略（建议）
-- `parse_poll_interval_ms`: 默认 `1000`
-- `parse_timeout_ms`: 默认 `120000`
-- 超时按 `parse_failed` 处理并写入 `sync_error`
+3. Chiến lược polling phân tích (đề xuất)
+- `parse_poll_interval_ms`: mặc định `1000`
+- `parse_timeout_ms`: mặc định `120000`
+- Timeout xử lý như `parse_failed` và ghi vào `sync_error`
 
-## 5. 后端改造方案（manager/backend）
+## 5. Phương án sửa backend (manager/backend)
+
 1. `manager/backend/controllers/knowledge_sync.go`
-- 新增 `weknoraKnowledgeSyncConfig` 及 `parseWeknoraKnowledgeSyncConfig`。
-- `syncKnowledgeBaseWithProvider/syncKnowledgeBaseDeleteBestEffort/syncKnowledgeDocumentBestEffort/syncKnowledgeDocumentDeleteBestEffort` 增加 `weknora` 分支。
-- 新增 WeKnora HTTP 封装（鉴权头 `X-API-Key`，请求/响应日志格式与现有一致）。
-- 文档上传统一走 `/knowledge/file`：
-  - 文件型文档：直接转发上传。
-  - 文本型文档：转为 UTF-8 `.md` 临时字节流后上传。
-- 更新文档采用“新建后删旧”策略，避免依赖不稳定的更新请求体。
-- 删除文档后查询远端知识库是否空，满足条件删远端知识库。
+- Thêm `weknoraKnowledgeSyncConfig` và `parseWeknoraKnowledgeSyncConfig`.
+- Thêm nhánh `weknora` cho `syncKnowledgeBaseWithProvider/syncKnowledgeBaseDeleteBestEffort/syncKnowledgeDocumentBestEffort/syncKnowledgeDocumentDeleteBestEffort`.
+- Thêm wrapper HTTP WeKnora (header xác thực `X-API-Key`, format log request/response thống nhất với hiện có).
+- Tải tài liệu lên thống nhất qua `/knowledge/file`:
+  - Tài liệu dạng file: chuyển tiếp upload trực tiếp.
+  - Tài liệu dạng text: chuyển thành byte stream UTF-8 `.md` tạm rồi upload.
+- Cập nhật tài liệu dùng chiến lược “tạo mới rồi xóa cũ”, tránh phụ thuộc request body update chưa ổn định.
+- Sau khi xóa tài liệu, truy vấn kho tri thức remote có rỗng hay không; nếu thỏa điều kiện thì xóa kho tri thức remote.
 
 2. `manager/backend/controllers/knowledge.go`
-- `CreateKnowledgeBaseDocumentByUpload` 的 provider 校验增加 `weknora`。
-- 召回测试 `TestKnowledgeBaseSearch` 增加 `queryKnowledgeTestByWeknora` 分支。
-- 阈值处理沿用当前规则：请求阈值 > 知识库阈值 > 全局阈值。
-- WeKnora 搜索接口若无原生阈值参数，则在本地按 `score` 二次过滤。
+- Thêm `weknora` vào validate provider của `CreateKnowledgeBaseDocumentByUpload`.
+- Thêm nhánh `queryKnowledgeTestByWeknora` cho test recall `TestKnowledgeBaseSearch`.
+- Xử lý ngưỡng giữ nguyên quy tắc hiện tại: ngưỡng request > ngưỡng kho tri thức > ngưỡng toàn cục.
+- Nếu API search WeKnora không có tham số ngưỡng native, lọc lần hai theo `score` ở local.
 
 3. `manager/backend/controllers/admin.go`
-- 现有 `knowledge_search` 汇总结构已支持多 provider，无需改 schema。
-- 保持 `knowledge.default_provider + knowledge.providers` 输出结构不变。
+- Cấu trúc tổng hợp `knowledge_search` hiện có đã hỗ trợ nhiều provider, không cần sửa schema.
+- Giữ nguyên cấu trúc output `knowledge.default_provider + knowledge.providers`.
 
-## 6. 主程序改造方案（internal/domain/rag）
-1. 新增 `internal/domain/rag/weknora_searcher.go`
-- 实现 `Searcher` 接口。
-- 调用 `POST /api/v1/knowledge-search`，按 `knowledge_base_ids` 精确检索。
-- 复用现有并发、超时、容错聚合机制。
-- 命中结果映射到 `KnowledgeSearchHit`：
+## 6. Phương án sửa chương trình chính (internal/domain/rag)
+
+1. Thêm `internal/domain/rag/weknora_searcher.go`
+- Implement interface `Searcher`.
+- Gọi `POST /api/v1/knowledge-search`, truy xuất chính xác theo `knowledge_base_ids`.
+- Tái sử dụng cơ chế song song, timeout, gom kết quả chịu lỗi hiện có.
+- Ánh xạ kết quả hit sang `KnowledgeSearchHit`:
   - `Content <- content`
-  - `Title <- knowledge_title`（为空时退化到本地知识库名）
+  - `Title <- knowledge_title` (nếu rỗng thì fallback về tên kho tri thức local)
   - `Score <- score`
 
-2. 修改 `internal/domain/rag/manager.go`
-- `getSearcher()` 增加 `weknora` 分支。
-- provider config 读取逻辑保持不变（从 `knowledge.providers.weknora` 读取）。
+2. Sửa `internal/domain/rag/manager.go`
+- Thêm nhánh `weknora` cho `getSearcher()`.
+- Giữ nguyên logic đọc provider config (đọc từ `knowledge.providers.weknora`).
 
-## 7. 管理台前端改造（manager/frontend）
+## 7. Sửa frontend quản trị (manager/frontend)
+
 1. `manager/frontend/src/views/admin/KnowledgeSearchConfig.vue`
-- provider 下拉增加 `weknora`。
-- 新增配置项（建议）：
-  - `base_url`（默认 `http://127.0.0.1:8080`）
+- Thêm `weknora` vào dropdown provider.
+- Thêm các mục cấu hình đề xuất:
+  - `base_url` (mặc định `http://127.0.0.1:8080`)
   - `api_key`
-  - `score_threshold`（默认 `0.2`）
-  - `chunk_size`（默认 `1000`）
-  - `chunk_overlap`（默认 `200`）
-  - `separators`（默认 `["\\n\\n","\\n","。","！","？",";","；"]`）
-  - `enable_multimodal`（默认 `true`）
-  - `embedding_model_id`（建议必填）
-  - `summary_model_id`（可选）
-  - `rerank_model_id`（可选）
-  - `vlm_model_id`（可选）
-  - `parse_poll_interval_ms`、`parse_timeout_ms`（可选）
+  - `score_threshold` (mặc định `0.2`)
+  - `chunk_size` (mặc định `1000`)
+  - `chunk_overlap` (mặc định `200`)
+  - `separators` (mặc định `["\n\n","\n","。","！","？",";","；"]`)
+  - `enable_multimodal` (mặc định `true`)
+  - `embedding_model_id` (đề xuất bắt buộc)
+  - `summary_model_id` (tùy chọn)
+  - `rerank_model_id` (tùy chọn)
+  - `vlm_model_id` (tùy chọn)
+  - `parse_poll_interval_ms`, `parse_timeout_ms` (tùy chọn)
 
 2. `manager/frontend/src/views/user/KnowledgeBases.vue`
-- provider 展示无需新增列（已有 provider 字段）。
-- 上传文件 `accept` 增加 `weknora` 分支。
-- 说明文案增加 WeKnora 上传路径与异步解析说明。
+- Hiển thị provider không cần thêm cột mới vì đã có trường provider.
+- Thêm nhánh `weknora` cho `accept` của thao tác tải file lên.
+- Thêm mô tả về đường upload WeKnora và phân tích bất đồng bộ.
 
-## 8. 关键实现决策（建议确认）
-1. 文本文档是否强制走手工接口
-- 建议首版统一走 `/knowledge/file`（文本封装 `.md`），降低接口差异与兼容风险。
+## 8. Quyết định triển khai quan trọng (đề xuất xác nhận)
 
-2. Embedding 模型来源
-- 建议 `embedding_model_id` 先作为管理员必填。
-- 可选增强：若为空，启动时调用 `/api/v1/models` 自动选默认 `Embedding` 模型。
+1. Tài liệu text có bắt buộc đi qua API thủ công hay không
+- Đề xuất bản đầu thống nhất đi qua `/knowledge/file` (đóng gói text thành `.md`) để giảm khác biệt API và rủi ro tương thích.
 
-3. 文件格式限制
-- WeKnora 文档未给出严格白名单；建议首版采用“较宽松前端限制 + 后端/远端兜底报错”。
-- 若你需要严格白名单，可在二期根据实测稳定格式收敛。
+2. Nguồn Embedding model
+- Đề xuất trước mắt để `embedding_model_id` là trường bắt buộc cho quản trị viên.
+- Có thể tăng cường sau: nếu rỗng, lúc khởi động gọi `/api/v1/models` để tự chọn model `Embedding` mặc định.
 
-## 9. 验证清单
-1. 管理员新增 `weknora` 配置并设为默认。
-2. 普通用户创建知识库后，自动创建远端 knowledge-base，回写 `external_kb_id`。
-3. 新增文本文档/上传文件文档后，状态按 `uploading -> uploaded -> parsing -> synced` 变化。
-4. 解析失败时 `sync_status=parse_failed`，并写入 `sync_error`。
-5. 删除文档后远端文档被删除；远端空库时按策略自动删库。
-6. 召回测试可返回 WeKnora 命中结果，阈值在本地生效。
-7. 主程序聊天链路在关联 `weknora` 知识库时可无感触发检索。
+3. Giới hạn định dạng file
+- Tài liệu WeKnora chưa nêu whitelist nghiêm ngặt; đề xuất bản đầu dùng “giới hạn frontend tương đối rộng + backend/remote fallback lỗi”.
+- Nếu cần whitelist nghiêm ngặt, có thể thu hẹp ở giai đoạn hai dựa trên các định dạng ổn định đã kiểm thử.
 
-## 10. 风险与回滚
-1. 风险
-- WeKnora 版本差异导致请求体字段变化（尤其知识库创建配置字段）。
-- 文档解析耗时长，需轮询与超时策略配合。
-- 搜索接口若缺少原生阈值参数，需要本地二次过滤。
+## 9. Checklist xác minh
 
-2. 回滚
-- 仅禁用/删除 `weknora` 配置即可停用，不影响现有 `dify/ragflow`。
-- 代码层面 provider 分支可独立回退，不涉及数据库结构变更。
+1. Quản trị viên thêm cấu hình `weknora` và đặt làm mặc định.
+2. Sau khi người dùng thường tạo kho tri thức, hệ thống tự tạo remote knowledge-base và ghi ngược `external_kb_id`.
+3. Sau khi thêm tài liệu text/tải file lên, trạng thái chuyển theo `uploading -> uploaded -> parsing -> synced`.
+4. Khi phân tích thất bại, `sync_status=parse_failed` và ghi `sync_error`.
+5. Sau khi xóa tài liệu, tài liệu remote bị xóa; nếu kho remote rỗng thì tự xóa kho theo chiến lược.
+6. Kiểm thử truy xuất có thể trả kết quả hit từ WeKnora, ngưỡng có hiệu lực ở local.
+7. Chuỗi chat chương trình chính có thể tự động kích hoạt truy xuất khi liên kết kho tri thức `weknora`.
 
+## 10. Rủi ro và rollback
+
+1. Rủi ro
+- Khác biệt phiên bản WeKnora khiến trường request body thay đổi, đặc biệt là trường cấu hình khi tạo kho tri thức.
+- Phân tích tài liệu có thể tốn thời gian dài, cần phối hợp polling và timeout.
+- Nếu API search thiếu tham số ngưỡng native, cần lọc lần hai ở local.
+
+2. Rollback
+- Chỉ cần tắt/xóa cấu hình `weknora` để ngừng sử dụng, không ảnh hưởng `dify/ragflow` hiện có.
+- Ở tầng code, nhánh provider có thể rollback độc lập, không liên quan thay đổi cấu trúc DB.

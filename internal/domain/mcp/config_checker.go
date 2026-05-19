@@ -10,37 +10,37 @@ import (
 	"github.com/spf13/viper"
 )
 
-// CheckMCPConfig 检查MCP配置并报告潜在问题
+// CheckMCPConfig kiểm tra config MCP và báo cáo vấn đề tiềm ẩn.
 func CheckMCPConfig() {
-	log.Info("=== MCP配置检查 ===")
+	log.Info("=== Kiểm tra config MCP ===")
 
-	// 检查全局启用状态
+	// Kiểm tra trạng thái bật global
 	globalEnabled := viper.GetBool("mcp.global.enabled")
-	log.Infof("全局MCP启用状态: %v", globalEnabled)
+	log.Infof("Trạng thái bật MCP global: %v", globalEnabled)
 
 	if !globalEnabled {
-		log.Info("全局MCP已禁用，配置检查完成")
+		log.Info("MCP global đã tắt, kiểm tra config hoàn tất")
 		return
 	}
 
-	// 检查重连配置
+	// Kiểm tra config reconnect
 	reconnectInterval := viper.GetInt("mcp.global.reconnect_interval")
 	maxAttempts := viper.GetInt("mcp.global.max_reconnect_attempts")
-	log.Infof("重连配置: 间隔=%d秒, 最大尝试次数=%d", reconnectInterval, maxAttempts)
+	log.Infof("Config reconnect: interval=%d giây, số lần thử tối đa=%d", reconnectInterval, maxAttempts)
 
-	// 检查服务器配置
+	// Kiểm tra config server
 	var serverConfigs []MCPServerConfig
 	if err := viper.UnmarshalKey("mcp.global.servers", &serverConfigs); err != nil {
-		log.Errorf("❌ 解析MCP服务器配置失败: %v", err)
+		log.Errorf("❌ Parse config server MCP thất bại: %v", err)
 		return
 	}
 
 	if len(serverConfigs) == 0 {
-		log.Warn("⚠️  未配置任何MCP服务器")
+		log.Warn("⚠️  Chưa cấu hình server MCP nào")
 		return
 	}
 
-	log.Infof("共配置了 %d 个MCP服务器:", len(serverConfigs))
+	log.Infof("Đã cấu hình tổng cộng %d server MCP:", len(serverConfigs))
 
 	enabledCount := 0
 	problemCount := 0
@@ -49,10 +49,10 @@ func CheckMCPConfig() {
 		status := "✅"
 		issues := []string{}
 
-		// 检查名称
+		// Kiểm tra tên
 		if config.Name == "" {
 			status = "❌"
-			issues = append(issues, "名称为空")
+			issues = append(issues, "Tên rỗng")
 			problemCount++
 		}
 
@@ -64,38 +64,38 @@ func CheckMCPConfig() {
 		} else {
 			if _, parseErr := url.ParseRequestURI(endpoint); parseErr != nil {
 				status = "❌"
-				issues = append(issues, "URL格式不正确")
+				issues = append(issues, "Format URL không đúng")
 				problemCount++
 			}
 			if transportType == "sse" && !strings.HasPrefix(endpoint, "http://") && !strings.HasPrefix(endpoint, "https://") {
 				status = "⚠️"
-				issues = append(issues, "SSE URL格式可能不正确")
+				issues = append(issues, "Format SSE URL có thể không đúng")
 			}
 		}
 
-		// 检查启用状态
+		// Kiểm tra trạng thái bật
 		if config.Enabled {
 			enabledCount++
 		}
 
-		// 输出检查结果
+		// Xuất kết quả kiểm tra
 		issueStr := ""
 		if len(issues) > 0 {
-			issueStr = fmt.Sprintf(" - 问题: %s", strings.Join(issues, ", "))
+			issueStr = fmt.Sprintf(" - Vấn đề: %s", strings.Join(issues, ", "))
 		}
 
-		log.Infof("  [%d] %s %s (URL: %s, 启用: %v)%s",
+		log.Infof("  [%d] %s %s (URL: %s, bật: %v)%s",
 			i+1, status, config.Name, endpointForLog(config), config.Enabled, issueStr)
 	}
 
-	// 总结
-	log.Infof("配置检查完成: %d个服务器已启用, %d个存在问题", enabledCount, problemCount)
+	// Tổng kết
+	log.Infof("Kiểm tra cấu hình hoàn tất: %d server đã bật, %d server có vấn đề", enabledCount, problemCount)
 
 	if problemCount > 0 {
-		log.Warn("⚠️  发现配置问题，请检查上述错误并修复")
+		log.Warn("⚠️  Phát hiện vấn đề cấu hình, vui lòng kiểm tra lỗi phía trên và sửa")
 	}
 
-	log.Info("=== MCP配置检查完成 ===")
+	log.Info("=== Kiểm tra config MCP hoàn tất ===")
 }
 
 func endpointForLog(config MCPServerConfig) string {

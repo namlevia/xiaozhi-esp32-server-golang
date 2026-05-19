@@ -114,7 +114,7 @@ const (
 	indexTTSTTSEndpoint    = "/audio/speech"
 	indexTTSVoicesEndpoint = "/audio/voices"
 	minimaxTTSWSEndpoint   = "wss://api.minimaxi.com/ws/v1/t2a_v2"
-	voiceClonePreviewText  = "我是一个有趣的人，一个脱离低级趣味的人"
+	voiceClonePreviewText  = "Tôi là một người thú vị, một người vượt lên khỏi những điều tầm thường"
 
 	voiceCloneStatusQueued     = "queued"
 	voiceCloneStatusProcessing = "processing"
@@ -557,7 +557,7 @@ func (vcc *VoiceCloneController) RetryVoiceClone(c *gin.Context) {
 			return err
 		}
 		if strings.TrimSpace(strings.ToLower(task.Status)) != voiceCloneTaskStatusFailed {
-			return fmt.Errorf("当前任务状态为 %s，仅失败任务允许重新复刻", task.Status)
+			return fmt.Errorf("Trạng thái tác vụ hiện tại là %s, chỉ tác vụ thất bại mới được phép tạo lại clone", task.Status)
 		}
 
 		cloneMetaJSON := mergeJSONMeta(clone.MetaJSON, map[string]any{
@@ -588,7 +588,7 @@ func (vcc *VoiceCloneController) RetryVoiceClone(c *gin.Context) {
 			return updateTask.Error
 		}
 		if updateTask.RowsAffected == 0 {
-			return errors.New("任务状态已变更，请刷新后重试")
+			return errors.New("Trạng thái tác vụ đã thay đổi, vui lòng làm mới rồi thử lại")
 		}
 		return nil
 	})
@@ -885,7 +885,7 @@ func (vcc *VoiceCloneController) pickAudioFile(c *gin.Context) (multipart.File, 
 			return file, header, nil
 		}
 	}
-	return nil, nil, fmt.Errorf("请上传音频文件（audio_file 或 audio_blob）")
+	return nil, nil, fmt.Errorf("Vui lòng tải file âm thanh lên (audio_file hoặc audio_blob)")
 }
 
 func GetCloneProviderCapability(provider string) CloneProviderCapability {
@@ -907,7 +907,7 @@ func normalizeCloneProvider(provider string) string {
 }
 
 func BuildVoiceOptionForClone(clone models.VoiceClone) VoiceOption {
-	label := fmt.Sprintf("[我的复刻] %s (%s)", clone.Name, clone.ProviderVoiceID)
+	label := fmt.Sprintf("[Clone của tôi] %s (%s)", clone.Name, clone.ProviderVoiceID)
 	return VoiceOption{Value: clone.ProviderVoiceID, Label: label}
 }
 
@@ -951,7 +951,7 @@ func (vcc *VoiceCloneController) consumeVoiceCloneQuota(tx *gorm.DB, userID uint
 	err := tx.Where("user_id = ? AND tts_config_id = ?", userID, ttsConfigID).First(&quota).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			// 未配置额度记录时默认禁止复刻，需管理员先分配额度
+			// Khi chưa có bản ghi hạn mức, mặc định cấm clone; quản trị viên cần phân bổ hạn mức trước
 			return errVoiceCloneQuotaExceeded
 		}
 		return err
@@ -1031,11 +1031,11 @@ func (vcc *VoiceCloneController) previewIndexTTSClonedVoice(ctx context.Context,
 	}
 	bodyBytes, err := json.Marshal(bodyMap)
 	if err != nil {
-		return nil, "", fmt.Errorf("构建IndexTTS试听请求失败: %w", err)
+		return nil, "", fmt.Errorf("Tạo nội dung yêu cầu nghe thử IndexTTS thất bại: %w", err)
 	}
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+indexTTSTTSEndpoint, bytes.NewReader(bodyBytes))
 	if err != nil {
-		return nil, "", fmt.Errorf("创建IndexTTS试听请求失败: %w", err)
+		return nil, "", fmt.Errorf("Tạo yêu cầu nghe thử IndexTTS thất bại: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "audio/wav,application/octet-stream,*/*")
@@ -1045,18 +1045,18 @@ func (vcc *VoiceCloneController) previewIndexTTSClonedVoice(ctx context.Context,
 
 	resp, err := vcc.HTTPClient.Do(req)
 	if err != nil {
-		return nil, "", fmt.Errorf("调用IndexTTS试听失败: %w", err)
+		return nil, "", fmt.Errorf("Gọi nghe thử IndexTTS thất bại: %w", err)
 	}
 	defer resp.Body.Close()
 	audioBytes, err := io.ReadAll(io.LimitReader(resp.Body, 30*1024*1024))
 	if err != nil {
-		return nil, "", fmt.Errorf("读取IndexTTS试听响应失败: %w", err)
+		return nil, "", fmt.Errorf("Đọc phản hồi nghe thử IndexTTS thất bại: %w", err)
 	}
 	if resp.StatusCode >= 400 {
-		return nil, "", fmt.Errorf("IndexTTS试听HTTP %d: %s", resp.StatusCode, truncateForLog(strings.TrimSpace(string(audioBytes)), 512))
+		return nil, "", fmt.Errorf("Nghe thử IndexTTS HTTP %d: %s", resp.StatusCode, truncateForLog(strings.TrimSpace(string(audioBytes)), 512))
 	}
 	if len(audioBytes) == 0 {
-		return nil, "", errors.New("IndexTTS试听返回音频为空")
+		return nil, "", errors.New("Nghe thử IndexTTS trả về âm thanh trống")
 	}
 	contentType := strings.TrimSpace(resp.Header.Get("Content-Type"))
 	if contentType == "" {
@@ -1077,7 +1077,7 @@ func (vcc *VoiceCloneController) cloneWithIndexTTSVLLMByVoice(ctx context.Contex
 
 	f, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("读取音频文件失败: %w", err)
+		return nil, fmt.Errorf("Đọc file âm thanh thất bại: %w", err)
 	}
 	defer f.Close()
 
@@ -1086,18 +1086,18 @@ func (vcc *VoiceCloneController) cloneWithIndexTTSVLLMByVoice(ctx context.Contex
 	_ = writer.WriteField("voice", voiceName)
 	part, err := writer.CreateFormFile("audio", fileName)
 	if err != nil {
-		return nil, fmt.Errorf("创建IndexTTS上传表单失败: %w", err)
+		return nil, fmt.Errorf("Tạo form tải lên IndexTTS thất bại: %w", err)
 	}
 	if _, err = io.Copy(part, f); err != nil {
-		return nil, fmt.Errorf("写入IndexTTS上传文件失败: %w", err)
+		return nil, fmt.Errorf("Ghi file tải lên IndexTTS thất bại: %w", err)
 	}
 	if err = writer.Close(); err != nil {
-		return nil, fmt.Errorf("构建IndexTTS上传请求失败: %w", err)
+		return nil, fmt.Errorf("Tạo nội dung yêu cầu tải lên IndexTTS thất bại: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, baseURL+indexTTSCloneEndpoint, &body)
 	if err != nil {
-		return nil, fmt.Errorf("创建IndexTTS克隆请求失败: %w", err)
+		return nil, fmt.Errorf("Tạo yêu cầu clone IndexTTS thất bại: %w", err)
 	}
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 	req.Header.Set("Accept", "application/json")
@@ -1107,26 +1107,26 @@ func (vcc *VoiceCloneController) cloneWithIndexTTSVLLMByVoice(ctx context.Contex
 
 	resp, err := vcc.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("调用IndexTTS克隆接口失败: %w", err)
+		return nil, fmt.Errorf("Gọi API clone IndexTTS thất bại: %w", err)
 	}
 	defer resp.Body.Close()
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 	if err != nil {
-		return nil, fmt.Errorf("读取IndexTTS克隆响应失败: %w", err)
+		return nil, fmt.Errorf("Đọc phản hồi clone IndexTTS thất bại: %w", err)
 	}
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("IndexTTS克隆HTTP %d: %s", resp.StatusCode, truncateForLog(strings.TrimSpace(string(respBody)), 512))
+		return nil, fmt.Errorf("Clone IndexTTS HTTP %d: %s", resp.StatusCode, truncateForLog(strings.TrimSpace(string(respBody)), 512))
 	}
 	parsed, err := unmarshalJSONMap(respBody)
 	if err != nil {
-		return nil, fmt.Errorf("解析IndexTTS克隆响应失败: %w", err)
+		return nil, fmt.Errorf("Phân tích phản hồi clone IndexTTS thất bại: %w", err)
 	}
 	voiceID := strings.TrimSpace(getStringAny(parsed, "voice"))
 	if voiceID == "" {
 		voiceID = voiceName
 	}
 	if voiceID == "" {
-		return nil, fmt.Errorf("IndexTTS克隆响应缺少 voice: %s", strings.TrimSpace(string(respBody)))
+		return nil, fmt.Errorf("Phản hồi clone IndexTTS thiếu voice: %s", strings.TrimSpace(string(respBody)))
 	}
 	return &minimaxVoiceCloneResult{
 		VoiceID:      voiceID,
@@ -1143,7 +1143,7 @@ func (vcc *VoiceCloneController) cloneWithIndexTTSVLLM(ctx context.Context, ttsC
 func (vcc *VoiceCloneController) previewMinimaxClonedVoice(ctx context.Context, cfgMap map[string]any, voiceID, text string) ([]byte, string, error) {
 	apiKey := normalizeMinimaxAPIKey(getStringAny(cfgMap, "api_key"))
 	if apiKey == "" {
-		return nil, "", errors.New("minimax api_key 未配置")
+		return nil, "", errors.New("Chưa cấu hình minimax api_key")
 	}
 	model := strings.TrimSpace(getStringAny(cfgMap, "model"))
 	if model == "" {
@@ -1174,7 +1174,7 @@ func (vcc *VoiceCloneController) previewMinimaxClonedVoice(ctx context.Context, 
 	}
 	conn, _, err := dialer.DialContext(ctx, minimaxTTSWSEndpoint, header)
 	if err != nil {
-		return nil, "", fmt.Errorf("连接Minimax语音接口失败: %w", err)
+		return nil, "", fmt.Errorf("Kết nối API giọng nói Minimax thất bại: %w", err)
 	}
 	defer conn.Close()
 
@@ -1197,13 +1197,13 @@ func (vcc *VoiceCloneController) previewMinimaxClonedVoice(ctx context.Context, 
 		ContinuousSound: false,
 	}
 	if err = conn.WriteJSON(startMessage); err != nil {
-		return nil, "", fmt.Errorf("发送Minimax task_start失败: %w", err)
+		return nil, "", fmt.Errorf("Gửi Minimax task_start thất bại: %w", err)
 	}
 	if err = conn.WriteJSON(minimaxTTSWSMessage{Event: "task_continue", Text: text}); err != nil {
-		return nil, "", fmt.Errorf("发送Minimax task_continue失败: %w", err)
+		return nil, "", fmt.Errorf("Gửi Minimax task_continue thất bại: %w", err)
 	}
 	if err = conn.WriteJSON(minimaxTTSWSMessage{Event: "task_finish"}); err != nil {
-		return nil, "", fmt.Errorf("发送Minimax task_finish失败: %w", err)
+		return nil, "", fmt.Errorf("Gửi Minimax task_finish thất bại: %w", err)
 	}
 
 	var mergedAudio []byte
@@ -1213,20 +1213,20 @@ func (vcc *VoiceCloneController) previewMinimaxClonedVoice(ctx context.Context, 
 			if len(mergedAudio) > 0 {
 				break
 			}
-			return nil, "", fmt.Errorf("读取Minimax响应失败: %w", readErr)
+			return nil, "", fmt.Errorf("Đọc phản hồi Minimax thất bại: %w", readErr)
 		}
 		var resp minimaxTTSWSResponse
 		if err = json.Unmarshal(messageBytes, &resp); err != nil {
 			continue
 		}
 		if resp.BaseResp != nil && resp.BaseResp.StatusCode != 0 {
-			return nil, "", fmt.Errorf("Minimax返回错误(code=%d, msg=%s)", resp.BaseResp.StatusCode, resp.BaseResp.StatusMsg)
+			return nil, "", fmt.Errorf("Minimax trả về lỗi(code=%d, msg=%s)", resp.BaseResp.StatusCode, resp.BaseResp.StatusMsg)
 		}
 		audioHex := strings.TrimSpace(resp.Data.Audio)
 		if audioHex != "" {
 			chunk, decodeErr := hex.DecodeString(audioHex)
 			if decodeErr != nil {
-				return nil, "", fmt.Errorf("解析Minimax音频数据失败: %w", decodeErr)
+				return nil, "", fmt.Errorf("Phân tích dữ liệu âm thanh Minimax thất bại: %w", decodeErr)
 			}
 			mergedAudio = append(mergedAudio, chunk...)
 		}
@@ -1235,7 +1235,7 @@ func (vcc *VoiceCloneController) previewMinimaxClonedVoice(ctx context.Context, 
 		}
 	}
 	if len(mergedAudio) == 0 {
-		return nil, "", errors.New("Minimax返回音频为空")
+		return nil, "", errors.New("Minimax trả về âm thanh trống")
 	}
 	return mergedAudio, "audio/mpeg", nil
 }
@@ -1259,25 +1259,25 @@ func (vcc *VoiceCloneController) previewCosyVoiceClonedVoice(ctx context.Context
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, requestURL, nil)
 	if err != nil {
-		return nil, "", fmt.Errorf("创建CosyVoice试听请求失败: %w", err)
+		return nil, "", fmt.Errorf("Tạo yêu cầu nghe thử CosyVoice thất bại: %w", err)
 	}
 	req.Header.Set("Accept", "audio/mpeg,application/octet-stream,*/*")
 
 	resp, err := vcc.HTTPClient.Do(req)
 	if err != nil {
-		return nil, "", fmt.Errorf("调用CosyVoice试听失败: %w", err)
+		return nil, "", fmt.Errorf("Gọi nghe thử CosyVoice thất bại: %w", err)
 	}
 	defer resp.Body.Close()
 
 	audioBytes, err := io.ReadAll(io.LimitReader(resp.Body, 20*1024*1024))
 	if err != nil {
-		return nil, "", fmt.Errorf("读取CosyVoice试听响应失败: %w", err)
+		return nil, "", fmt.Errorf("Đọc phản hồi nghe thử CosyVoice thất bại: %w", err)
 	}
 	if resp.StatusCode >= 400 {
-		return nil, "", fmt.Errorf("CosyVoice试听HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(audioBytes)))
+		return nil, "", fmt.Errorf("Nghe thử CosyVoice HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(audioBytes)))
 	}
 	if len(audioBytes) == 0 {
-		return nil, "", errors.New("CosyVoice返回音频为空")
+		return nil, "", errors.New("CosyVoice trả về âm thanh trống")
 	}
 	contentType := strings.TrimSpace(resp.Header.Get("Content-Type"))
 	if contentType == "" || strings.Contains(strings.ToLower(contentType), "application/json") {
@@ -1289,7 +1289,7 @@ func (vcc *VoiceCloneController) previewCosyVoiceClonedVoice(ctx context.Context
 func (vcc *VoiceCloneController) previewAliyunQwenClonedVoice(ctx context.Context, cfgMap map[string]any, voiceID, text string) ([]byte, string, error) {
 	apiKey := strings.TrimSpace(getStringAny(cfgMap, "api_key"))
 	if apiKey == "" {
-		return nil, "", errors.New("aliyun_qwen api_key 未配置")
+		return nil, "", errors.New("Chưa cấu hình aliyun_qwen api_key")
 	}
 	endpoint := resolveAliyunQwenTTSEndpoint(cfgMap)
 	languageType := strings.TrimSpace(getStringAny(cfgMap, "language_type"))
@@ -1306,12 +1306,12 @@ func (vcc *VoiceCloneController) previewAliyunQwenClonedVoice(ctx context.Contex
 	}
 	bodyBytes, err := json.Marshal(reqBody)
 	if err != nil {
-		return nil, "", fmt.Errorf("构建千问试听请求失败: %w", err)
+		return nil, "", fmt.Errorf("Tạo nội dung yêu cầu nghe thử Qwen thất bại: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
 	if err != nil {
-		return nil, "", fmt.Errorf("创建千问试听请求失败: %w", err)
+		return nil, "", fmt.Errorf("Tạo yêu cầu nghe thử Qwen thất bại: %w", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 	req.Header.Set("Content-Type", "application/json")
@@ -1319,60 +1319,60 @@ func (vcc *VoiceCloneController) previewAliyunQwenClonedVoice(ctx context.Contex
 
 	resp, err := vcc.HTTPClient.Do(req)
 	if err != nil {
-		return nil, "", fmt.Errorf("调用千问试听失败: %w", err)
+		return nil, "", fmt.Errorf("Gọi nghe thử Qwen thất bại: %w", err)
 	}
 	defer resp.Body.Close()
 
 	ttsRespBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 	if err != nil {
-		return nil, "", fmt.Errorf("读取千问试听响应失败: %w", err)
+		return nil, "", fmt.Errorf("Đọc phản hồi nghe thử Qwen thất bại: %w", err)
 	}
 	if resp.StatusCode >= 400 {
-		return nil, "", fmt.Errorf("千问试听HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(ttsRespBody)))
+		return nil, "", fmt.Errorf("Nghe thử Qwen HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(ttsRespBody)))
 	}
 
 	parsed, err := unmarshalJSONMap(ttsRespBody)
 	if err != nil {
-		return nil, "", fmt.Errorf("解析千问试听响应失败: %w", err)
+		return nil, "", fmt.Errorf("Phân tích phản hồi nghe thử Qwen thất bại: %w", err)
 	}
 	if code := strings.TrimSpace(getStringAny(parsed, "code")); code != "" {
 		return nil, "", fmt.Errorf("Qwen nghe thử thất bại (code=%s, msg=%s)", code, strings.TrimSpace(getStringAny(parsed, "message")))
 	}
 	if statusCode, ok := getIntAny(parsed, "status_code"); ok && statusCode != 200 {
-		return nil, "", fmt.Errorf("千问试听失败(status_code=%d)", statusCode)
+		return nil, "", fmt.Errorf("Nghe thử Qwen thất bại(status_code=%d)", statusCode)
 	}
 
 	output, ok := parsed["output"].(map[string]any)
 	if !ok {
-		return nil, "", errors.New("千问试听响应缺少 output")
+		return nil, "", errors.New("Phản hồi nghe thử Qwen thiếu output")
 	}
 	audioOutput, ok := output["audio"].(map[string]any)
 	if !ok {
-		return nil, "", errors.New("千问试听响应缺少 output.audio")
+		return nil, "", errors.New("Phản hồi nghe thử Qwen thiếu output.audio")
 	}
 	audioURL := strings.TrimSpace(getStringAny(audioOutput, "url"))
 	if audioURL == "" {
-		return nil, "", errors.New("千问试听响应缺少 output.audio.url")
+		return nil, "", errors.New("Phản hồi nghe thử Qwen thiếu output.audio.url")
 	}
 
 	audioReq, err := http.NewRequestWithContext(ctx, http.MethodGet, audioURL, nil)
 	if err != nil {
-		return nil, "", fmt.Errorf("创建千问音频下载请求失败: %w", err)
+		return nil, "", fmt.Errorf("Tạo yêu cầu tải âm thanh Qwen thất bại: %w", err)
 	}
 	audioResp, err := vcc.HTTPClient.Do(audioReq)
 	if err != nil {
-		return nil, "", fmt.Errorf("下载千问试听音频失败: %w", err)
+		return nil, "", fmt.Errorf("Tải âm thanh nghe thử Qwen thất bại: %w", err)
 	}
 	defer audioResp.Body.Close()
 	audioBytes, err := io.ReadAll(io.LimitReader(audioResp.Body, 20*1024*1024))
 	if err != nil {
-		return nil, "", fmt.Errorf("读取千问试听音频失败: %w", err)
+		return nil, "", fmt.Errorf("Đọc âm thanh nghe thử Qwen thất bại: %w", err)
 	}
 	if audioResp.StatusCode >= 400 {
-		return nil, "", fmt.Errorf("下载千问试听音频HTTP %d: %s", audioResp.StatusCode, strings.TrimSpace(string(audioBytes)))
+		return nil, "", fmt.Errorf("Tải âm thanh nghe thử Qwen HTTP %d: %s", audioResp.StatusCode, strings.TrimSpace(string(audioBytes)))
 	}
 	if len(audioBytes) == 0 {
-		return nil, "", errors.New("千问试听返回音频为空")
+		return nil, "", errors.New("Nghe thử Qwen trả về âm thanh trống")
 	}
 	contentType := strings.TrimSpace(audioResp.Header.Get("Content-Type"))
 	if contentType == "" {
@@ -1390,7 +1390,7 @@ func (vcc *VoiceCloneController) cloneWithMinimax(ctx context.Context, ttsCfg mo
 	}
 	apiKey := normalizeMinimaxAPIKey(getStringAny(cfgMap, "api_key"))
 	if apiKey == "" {
-		return nil, errors.New("minimax api_key 未配置")
+		return nil, errors.New("Chưa cấu hình minimax api_key")
 	}
 	endpoint := strings.TrimSpace(getStringAny(cfgMap, "voice_clone_endpoint", "clone_endpoint"))
 	if endpoint == "" {
@@ -1441,7 +1441,7 @@ func (vcc *VoiceCloneController) cloneWithMinimaxEndpoints(ctx context.Context, 
 
 	bodyBytes, err := json.Marshal(bodyMap)
 	if err != nil {
-		return nil, fmt.Errorf("构建Minimax复刻请求失败: %w", err)
+		return nil, fmt.Errorf("Tạo nội dung yêu cầu clone Minimax thất bại: %w", err)
 	}
 	log.Printf("[voice_clone][minimax] clone request: endpoint=%s file_id_type=%T body=%s group_id=%q api_key=%s",
 		cloneEndpoint,
@@ -1453,7 +1453,7 @@ func (vcc *VoiceCloneController) cloneWithMinimaxEndpoints(ctx context.Context, 
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cloneEndpoint, bytes.NewReader(bodyBytes))
 	if err != nil {
-		return nil, fmt.Errorf("创建请求失败: %w", err)
+		return nil, fmt.Errorf("Tạo yêu cầu thất bại: %w", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 	req.Header.Set("Content-Type", "application/json")
@@ -1465,13 +1465,13 @@ func (vcc *VoiceCloneController) cloneWithMinimaxEndpoints(ctx context.Context, 
 
 	resp, err := vcc.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("请求失败: %w", err)
+		return nil, fmt.Errorf("Yêu cầu thất bại: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 	if err != nil {
-		return nil, fmt.Errorf("读取响应失败: %w", err)
+		return nil, fmt.Errorf("Đọc phản hồi thất bại: %w", err)
 	}
 	log.Printf("[voice_clone][minimax] clone response: status=%d body=%s",
 		resp.StatusCode,
@@ -1483,15 +1483,15 @@ func (vcc *VoiceCloneController) cloneWithMinimaxEndpoints(ctx context.Context, 
 
 	parsed, err := unmarshalJSONMap(respBody)
 	if err != nil {
-		return nil, fmt.Errorf("解析响应失败: %w", err)
+		return nil, fmt.Errorf("Phân tích phản hồi thất bại: %w", err)
 	}
 	if statusCode, statusMsg, ok := parseMinimaxStatus(parsed); ok && statusCode != 0 {
-		return nil, fmt.Errorf("Minimax返回错误(code=%d, msg=%s): %s", statusCode, statusMsg, strings.TrimSpace(string(respBody)))
+		return nil, fmt.Errorf("Minimax trả về lỗi(code=%d, msg=%s): %s", statusCode, statusMsg, strings.TrimSpace(string(respBody)))
 	}
 
 	resolvedVoiceID := strings.TrimSpace(voiceID)
 	if resolvedVoiceID == "" {
-		return nil, errors.New("请求 voice_id 为空")
+		return nil, errors.New("voice_id yêu cầu trống")
 	}
 	if payloadVoiceID := pickVoiceID(parsed); payloadVoiceID != "" && payloadVoiceID != resolvedVoiceID {
 		log.Printf("[voice_clone][minimax] clone response voice_id=%q ignored, using requested voice_id=%q", payloadVoiceID, resolvedVoiceID)
@@ -1510,7 +1510,7 @@ func (vcc *VoiceCloneController) cloneWithMinimaxEndpoints(ctx context.Context, 
 func (vcc *VoiceCloneController) cloneWithCosyVoice(ctx context.Context, filePath, fileName, transcript string) (*minimaxVoiceCloneResult, error) {
 	cloneURL, err := url.Parse(cosyvoiceCloneEndpoint)
 	if err != nil {
-		return nil, fmt.Errorf("解析CosyVoice克隆地址失败: %w", err)
+		return nil, fmt.Errorf("Phân tích địa chỉ clone CosyVoice thất bại: %w", err)
 	}
 	query := cloneURL.Query()
 	query.Set("key", cosyvoiceFixedKey)
@@ -1518,7 +1518,7 @@ func (vcc *VoiceCloneController) cloneWithCosyVoice(ctx context.Context, filePat
 
 	f, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("读取音频文件失败: %w", err)
+		return nil, fmt.Errorf("Đọc file âm thanh thất bại: %w", err)
 	}
 	defer f.Close()
 
@@ -1528,7 +1528,7 @@ func (vcc *VoiceCloneController) cloneWithCosyVoice(ctx context.Context, filePat
 	}
 	transcript = strings.TrimSpace(transcript)
 	if transcript == "" {
-		return nil, errors.New("CosyVoice 复刻要求必须填写音频对应文字(train_text)")
+		return nil, errors.New("CosyVoice clone yêu cầu nhập văn bản tương ứng với âm thanh (train_text)")
 	}
 	log.Printf("[voice_clone][cosyvoice] prepare request: endpoint=%s file_name=%q file_ext=%q file_size=%d transcript_len=%d fixed_key=%q",
 		cloneURL.String(),
@@ -1542,55 +1542,55 @@ func (vcc *VoiceCloneController) cloneWithCosyVoice(ctx context.Context, filePat
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	if err = writer.WriteField("train_text", transcript); err != nil {
-		return nil, fmt.Errorf("构建CosyVoice请求参数失败: %w", err)
+		return nil, fmt.Errorf("Tạo tham số yêu cầu CosyVoice thất bại: %w", err)
 	}
 	formFile, err := writer.CreateFormFile("train_wav_file", fileName)
 	if err != nil {
-		return nil, fmt.Errorf("创建CosyVoice音频上传表单失败: %w", err)
+		return nil, fmt.Errorf("Tạo form tải âm thanh CosyVoice thất bại: %w", err)
 	}
 	if _, err = io.Copy(formFile, f); err != nil {
-		return nil, fmt.Errorf("写入CosyVoice上传文件失败: %w", err)
+		return nil, fmt.Errorf("Ghi file tải lên CosyVoice thất bại: %w", err)
 	}
 	if err = writer.Close(); err != nil {
-		return nil, fmt.Errorf("构建CosyVoice上传请求失败: %w", err)
+		return nil, fmt.Errorf("Tạo yêu cầu tải lên CosyVoice thất bại: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, cloneURL.String(), &body)
 	if err != nil {
-		return nil, fmt.Errorf("创建CosyVoice请求失败: %w", err)
+		return nil, fmt.Errorf("Tạo yêu cầu CosyVoice thất bại: %w", err)
 	}
 	req.Header.Set("Accept", "application/json")
 	req.Header.Set("Content-Type", writer.FormDataContentType())
 
 	resp, err := vcc.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("调用CosyVoice克隆接口失败: %w", err)
+		return nil, fmt.Errorf("Gọi API clone CosyVoice thất bại: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 	if err != nil {
-		return nil, fmt.Errorf("读取CosyVoice响应失败: %w", err)
+		return nil, fmt.Errorf("Đọc phản hồi CosyVoice thất bại: %w", err)
 	}
 	log.Printf("[voice_clone][cosyvoice] clone response: status=%d body=%s",
 		resp.StatusCode,
 		truncateForLog(strings.TrimSpace(string(respBody)), 4096),
 	)
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("CosyVoice克隆HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+		return nil, fmt.Errorf("Clone CosyVoice HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
 	}
 
 	parsed, err := unmarshalJSONMap(respBody)
 	if err != nil {
-		return nil, fmt.Errorf("解析CosyVoice响应失败: %w", err)
+		return nil, fmt.Errorf("Phân tích phản hồi CosyVoice thất bại: %w", err)
 	}
 	status := strings.TrimSpace(getStringAny(parsed, "status"))
-	if status != "成功" {
-		return nil, fmt.Errorf("CosyVoice克隆失败(status=%s): %s", status, strings.TrimSpace(string(respBody)))
+	if status != "thành công" {
+		return nil, fmt.Errorf("Clone CosyVoice thất bại(status=%s): %s", status, strings.TrimSpace(string(respBody)))
 	}
 	sid := strings.TrimSpace(getStringAny(parsed, "sid"))
 	if sid == "" {
-		return nil, fmt.Errorf("CosyVoice响应缺少 sid: %s", strings.TrimSpace(string(respBody)))
+		return nil, fmt.Errorf("Phản hồi CosyVoice thiếu sid: %s", strings.TrimSpace(string(respBody)))
 	}
 	return &minimaxVoiceCloneResult{
 		VoiceID:      sid,
@@ -1610,7 +1610,7 @@ func (vcc *VoiceCloneController) cloneWithAliyunQwen(ctx context.Context, ttsCfg
 
 	apiKey := strings.TrimSpace(getStringAny(cfgMap, "api_key"))
 	if apiKey == "" {
-		return nil, errors.New("aliyun_qwen api_key 未配置")
+		return nil, errors.New("Chưa cấu hình aliyun_qwen api_key")
 	}
 	endpoint := resolveAliyunQwenCloneEndpoint(cfgMap)
 	targetModel := resolveAliyunQwenTargetModel()
@@ -1656,12 +1656,12 @@ func (vcc *VoiceCloneController) cloneWithAliyunQwen(ctx context.Context, ttsCfg
 	}
 	bodyBytes, err := json.Marshal(bodyMap)
 	if err != nil {
-		return nil, fmt.Errorf("构建千问复刻请求失败: %w", err)
+		return nil, fmt.Errorf("Tạo nội dung yêu cầu clone Qwen thất bại: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(bodyBytes))
 	if err != nil {
-		return nil, fmt.Errorf("创建千问复刻请求失败: %w", err)
+		return nil, fmt.Errorf("Tạo yêu cầu clone Qwen thất bại: %w", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 	req.Header.Set("Content-Type", "application/json")
@@ -1669,38 +1669,38 @@ func (vcc *VoiceCloneController) cloneWithAliyunQwen(ctx context.Context, ttsCfg
 
 	resp, err := vcc.HTTPClient.Do(req)
 	if err != nil {
-		return nil, fmt.Errorf("调用千问复刻接口失败: %w", err)
+		return nil, fmt.Errorf("Gọi API clone Qwen thất bại: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 	if err != nil {
-		return nil, fmt.Errorf("读取千问复刻响应失败: %w", err)
+		return nil, fmt.Errorf("Đọc phản hồi clone Qwen thất bại: %w", err)
 	}
 	log.Printf("[voice_clone][aliyun_qwen] clone response: status=%d body=%s",
 		resp.StatusCode,
 		truncateForLog(strings.TrimSpace(string(respBody)), 4096),
 	)
 	if resp.StatusCode >= 400 {
-		return nil, fmt.Errorf("千问复刻HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+		return nil, fmt.Errorf("Clone Qwen HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
 	}
 
 	parsed, err := unmarshalJSONMap(respBody)
 	if err != nil {
-		return nil, fmt.Errorf("解析千问复刻响应失败: %w", err)
+		return nil, fmt.Errorf("Phân tích phản hồi clone Qwen thất bại: %w", err)
 	}
 	if code := strings.TrimSpace(getStringAny(parsed, "code")); code != "" {
 		msg := strings.TrimSpace(getStringAny(parsed, "message"))
-		return nil, fmt.Errorf("千问复刻失败(code=%s, msg=%s): %s", code, msg, strings.TrimSpace(string(respBody)))
+		return nil, fmt.Errorf("Clone Qwen thất bại(code=%s, msg=%s): %s", code, msg, strings.TrimSpace(string(respBody)))
 	}
 
 	output, ok := parsed["output"].(map[string]any)
 	if !ok {
-		return nil, fmt.Errorf("千问复刻响应缺少 output: %s", strings.TrimSpace(string(respBody)))
+		return nil, fmt.Errorf("Phản hồi clone Qwen thiếu output: %s", strings.TrimSpace(string(respBody)))
 	}
 	voiceID := strings.TrimSpace(getStringAny(output, "voice"))
 	if voiceID == "" {
-		return nil, fmt.Errorf("千问复刻响应缺少 output.voice: %s", strings.TrimSpace(string(respBody)))
+		return nil, fmt.Errorf("Phản hồi clone Qwen thiếu output.voice: %s", strings.TrimSpace(string(respBody)))
 	}
 
 	return &minimaxVoiceCloneResult{
@@ -1715,7 +1715,7 @@ func (vcc *VoiceCloneController) cloneWithAliyunQwen(ctx context.Context, ttsCfg
 func (vcc *VoiceCloneController) uploadMinimaxVoiceCloneFile(ctx context.Context, apiKey, uploadEndpoint, groupID, filePath, fileName string) (string, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
-		return "", fmt.Errorf("读取音频文件失败: %w", err)
+		return "", fmt.Errorf("Đọc file âm thanh thất bại: %w", err)
 	}
 	defer f.Close()
 	fileSize := int64(-1)
@@ -1747,22 +1747,22 @@ func (vcc *VoiceCloneController) uploadMinimaxVoiceCloneFile(ctx context.Context
 	var body bytes.Buffer
 	writer := multipart.NewWriter(&body)
 	if err = writer.WriteField("purpose", "voice_clone"); err != nil {
-		return "", fmt.Errorf("构建上传参数失败: %w", err)
+		return "", fmt.Errorf("Tạo tham số tải lên thất bại: %w", err)
 	}
 	formFile, err := writer.CreateFormFile("file", fileName)
 	if err != nil {
-		return "", fmt.Errorf("创建上传文件表单失败: %w", err)
+		return "", fmt.Errorf("Tạo form file tải lên thất bại: %w", err)
 	}
 	if _, err = io.Copy(formFile, f); err != nil {
-		return "", fmt.Errorf("写入上传文件失败: %w", err)
+		return "", fmt.Errorf("Ghi file tải lên thất bại: %w", err)
 	}
 	if err = writer.Close(); err != nil {
-		return "", fmt.Errorf("构建上传请求失败: %w", err)
+		return "", fmt.Errorf("Tạo yêu cầu tải lên thất bại: %w", err)
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, uploadEndpoint, &body)
 	if err != nil {
-		return "", fmt.Errorf("创建上传请求失败: %w", err)
+		return "", fmt.Errorf("Tạo yêu cầu tải lên thất bại: %w", err)
 	}
 	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", apiKey))
 	req.Header.Set("Content-Type", writer.FormDataContentType())
@@ -1774,37 +1774,37 @@ func (vcc *VoiceCloneController) uploadMinimaxVoiceCloneFile(ctx context.Context
 
 	resp, err := vcc.HTTPClient.Do(req)
 	if err != nil {
-		return "", fmt.Errorf("上传复刻音频失败: %w", err)
+		return "", fmt.Errorf("Tải âm thanh clone lên thất bại: %w", err)
 	}
 	defer resp.Body.Close()
 
 	respBody, err := io.ReadAll(io.LimitReader(resp.Body, 2*1024*1024))
 	if err != nil {
-		return "", fmt.Errorf("读取上传响应失败: %w", err)
+		return "", fmt.Errorf("Đọc phản hồi tải lên thất bại: %w", err)
 	}
 	log.Printf("[voice_clone][minimax] upload response: status=%d body=%s",
 		resp.StatusCode,
 		truncateForLog(strings.TrimSpace(string(respBody)), 4096),
 	)
 	if resp.StatusCode >= 400 {
-		return "", fmt.Errorf("上传复刻音频HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
+		return "", fmt.Errorf("Tải âm thanh clone HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(respBody)))
 	}
 
 	parsed, err := unmarshalJSONMap(respBody)
 	if err != nil {
-		return "", fmt.Errorf("解析上传响应失败: %w", err)
+		return "", fmt.Errorf("Phân tích phản hồi tải lên thất bại: %w", err)
 	}
 	if statusCode, statusMsg, ok := parseMinimaxStatus(parsed); ok && statusCode != 0 {
-		return "", fmt.Errorf("上传复刻音频被Minimax拒绝(code=%d, msg=%s): %s", statusCode, statusMsg, strings.TrimSpace(string(respBody)))
+		return "", fmt.Errorf("Âm thanh clone tải lên bị Minimax từ chối(code=%d, msg=%s): %s", statusCode, statusMsg, strings.TrimSpace(string(respBody)))
 	}
 
 	fileMap, ok := parsed["file"].(map[string]any)
 	if !ok {
-		return "", fmt.Errorf("上传响应中未返回 file 对象: %s", strings.TrimSpace(string(respBody)))
+		return "", fmt.Errorf("Phản hồi tải lên không trả về object file: %s", strings.TrimSpace(string(respBody)))
 	}
 	fileID := getStringOrNumberAny(fileMap, "file_id", "fileId", "id")
 	if fileID == "" {
-		return "", fmt.Errorf("上传响应中未返回 file_id: %s", strings.TrimSpace(string(respBody)))
+		return "", fmt.Errorf("Phản hồi tải lên không trả về file_id: %s", strings.TrimSpace(string(respBody)))
 	}
 	return fileID, nil
 }
@@ -1864,7 +1864,7 @@ func maskSecret(secret string) string {
 func getMinimaxCloneAudioDurationSeconds(filePath string) (float64, error) {
 	ext := strings.ToLower(strings.TrimSpace(filepath.Ext(filePath)))
 	if ext != ".wav" {
-		return 0, fmt.Errorf("当前仅支持 WAV 音频，检测到扩展名: %s", ext)
+		return 0, fmt.Errorf("Hiện chỉ hỗ trợ âm thanh WAV, phát hiện phần mở rộng: %s", ext)
 	}
 	return getWAVDurationSeconds(filePath)
 }
@@ -1876,50 +1876,50 @@ func validateCloneAudioForProvider(provider, filePath string) error {
 	switch provider {
 	case "minimax":
 		if ext != ".wav" {
-			return fmt.Errorf("Minimax 仅支持 WAV 音频，检测到扩展名: %s", ext)
+			return fmt.Errorf("Minimax chỉ hỗ trợ âm thanh WAV, phát hiện phần mở rộng: %s", ext)
 		}
 		audioSeconds, err := getMinimaxCloneAudioDurationSeconds(filePath)
 		if err != nil {
-			return fmt.Errorf("音频格式校验失败: %w", err)
+			return fmt.Errorf("Kiểm tra định dạng âm thanh thất bại: %w", err)
 		}
 		log.Printf("[voice_clone][minimax] local duration check: file=%q duration=%.3fs min=%.1fs", filePath, audioSeconds, minMinimaxCloneAudioSeconds)
 		if audioSeconds < minMinimaxCloneAudioSeconds {
-			return fmt.Errorf("Minimax 声音复刻要求音频时长至少 %.0f 秒，当前 %.2f 秒", minMinimaxCloneAudioSeconds, audioSeconds)
+			return fmt.Errorf("Clone giọng Minimax yêu cầu âm thanh dài ít nhất %.0f giây, hiện tại %.2f giây", minMinimaxCloneAudioSeconds, audioSeconds)
 		}
 		return nil
 	case "cosyvoice":
 		if ext != ".wav" {
-			return fmt.Errorf("CosyVoice 仅支持 WAV 音频，检测到扩展名: %s", ext)
+			return fmt.Errorf("CosyVoice chỉ hỗ trợ âm thanh WAV, phát hiện phần mở rộng: %s", ext)
 		}
 		audioSeconds, err := getWAVDurationSeconds(filePath)
 		if err != nil {
-			return fmt.Errorf("音频格式校验失败: %w", err)
+			return fmt.Errorf("Kiểm tra định dạng âm thanh thất bại: %w", err)
 		}
 		log.Printf("[voice_clone][cosyvoice] local wav check: file=%q duration=%.3fs", filePath, audioSeconds)
 		return nil
 	case "aliyun_qwen":
 		mimeType, supported := aliyunQwenCloneAudioMimeTypeByExt(ext)
 		if !supported {
-			return fmt.Errorf("千问声音复刻仅支持 WAV/MP3/M4A，检测到扩展名: %s", ext)
+			return fmt.Errorf("Clone giọng Qwen chỉ hỗ trợ WAV/MP3/M4A, phát hiện phần mở rộng: %s", ext)
 		}
 		stat, err := os.Stat(filePath)
 		if err != nil {
-			return fmt.Errorf("读取音频文件信息失败: %w", err)
+			return fmt.Errorf("Đọc thông tin file âm thanh thất bại: %w", err)
 		}
 		if stat.Size() <= 0 {
-			return errors.New("音频文件不能为空")
+			return errors.New("File âm thanh không được để trống")
 		}
 		if stat.Size() > maxAliyunQwenCloneAudioBytes {
-			return fmt.Errorf("千问声音复刻音频大小不能超过%dMB，当前%.2fMB", maxAliyunQwenCloneAudioBytes/1024/1024, float64(stat.Size())/1024.0/1024.0)
+			return fmt.Errorf("Âm thanh clone giọng Qwen không được vượt quá %dMB, hiện tại %.2fMB", maxAliyunQwenCloneAudioBytes/1024/1024, float64(stat.Size())/1024.0/1024.0)
 		}
 		if ext == ".wav" {
 			audioSeconds, err := getWAVDurationSeconds(filePath)
 			if err != nil {
-				return fmt.Errorf("音频格式校验失败: %w", err)
+				return fmt.Errorf("Kiểm tra định dạng âm thanh thất bại: %w", err)
 			}
 			log.Printf("[voice_clone][aliyun_qwen] local wav check: file=%q duration=%.3fs max=%.1fs", filePath, audioSeconds, maxAliyunQwenCloneAudioSeconds)
 			if audioSeconds > maxAliyunQwenCloneAudioSeconds {
-				return fmt.Errorf("千问声音复刻音频时长不能超过 %.0f 秒，当前 %.2f 秒", maxAliyunQwenCloneAudioSeconds, audioSeconds)
+				return fmt.Errorf("Âm thanh clone giọng Qwen không được dài quá %.0f giây, hiện tại %.2f giây", maxAliyunQwenCloneAudioSeconds, audioSeconds)
 			}
 		} else {
 			log.Printf("[voice_clone][aliyun_qwen] local audio check: file=%q ext=%q size=%d mime=%q", filePath, ext, stat.Size(), mimeType)
@@ -1927,18 +1927,18 @@ func validateCloneAudioForProvider(provider, filePath string) error {
 		return nil
 	case "indextts_vllm":
 		if ext != ".wav" && ext != ".mp3" && ext != ".flac" && ext != ".m4a" && ext != ".ogg" {
-			return fmt.Errorf("IndexTTS 声音复刻仅支持 WAV/MP3/FLAC/M4A/OGG，检测到扩展名: %s", ext)
+			return fmt.Errorf("Clone giọng IndexTTS chỉ hỗ trợ WAV/MP3/FLAC/M4A/OGG, phát hiện phần mở rộng: %s", ext)
 		}
 		stat, err := os.Stat(filePath)
 		if err != nil {
-			return fmt.Errorf("读取音频文件信息失败: %w", err)
+			return fmt.Errorf("Đọc thông tin file âm thanh thất bại: %w", err)
 		}
 		if stat.Size() <= 0 {
-			return errors.New("音频文件不能为空")
+			return errors.New("File âm thanh không được để trống")
 		}
 		return nil
 	default:
-		return fmt.Errorf("暂不支持提供商 %s 的音频校验", provider)
+		return fmt.Errorf("Chưa hỗ trợ kiểm tra âm thanh cho nhà cung cấp %s", provider)
 	}
 }
 
@@ -1977,7 +1977,7 @@ func resolveAliyunQwenTTSEndpoint(cfgMap map[string]any) string {
 }
 
 func resolveAliyunQwenTargetModel() string {
-	// 按接入规范固定使用 VC-Realtime 目标模型，避免受到普通 TTS 配置 model 干扰。
+	// Cố định model mục tiêu VC-Realtime theo chuẩn tích hợp, tránh bị cấu hình model TTS thông thường ảnh hưởng.
 	return defaultAliyunQwenCloneTargetModel
 }
 
@@ -2037,17 +2037,17 @@ func buildAliyunQwenAudioDataURI(filePath string) (string, string, int64, error)
 	ext := strings.ToLower(strings.TrimSpace(filepath.Ext(filePath)))
 	mimeType, supported := aliyunQwenCloneAudioMimeTypeByExt(ext)
 	if !supported {
-		return "", "", 0, fmt.Errorf("千问声音复刻仅支持 WAV/MP3/M4A，检测到扩展名: %s", ext)
+		return "", "", 0, fmt.Errorf("Clone giọng Qwen chỉ hỗ trợ WAV/MP3/M4A, phát hiện phần mở rộng: %s", ext)
 	}
 	data, err := os.ReadFile(filePath)
 	if err != nil {
-		return "", "", 0, fmt.Errorf("读取音频文件失败: %w", err)
+		return "", "", 0, fmt.Errorf("Đọc file âm thanh thất bại: %w", err)
 	}
 	if len(data) == 0 {
-		return "", "", 0, errors.New("音频文件不能为空")
+		return "", "", 0, errors.New("File âm thanh không được để trống")
 	}
 	if len(data) > maxAliyunQwenCloneAudioBytes {
-		return "", "", 0, fmt.Errorf("千问声音复刻音频大小不能超过%dMB，当前%.2fMB", maxAliyunQwenCloneAudioBytes/1024/1024, float64(len(data))/1024.0/1024.0)
+		return "", "", 0, fmt.Errorf("Âm thanh clone giọng Qwen không được vượt quá %dMB, hiện tại %.2fMB", maxAliyunQwenCloneAudioBytes/1024/1024, float64(len(data))/1024.0/1024.0)
 	}
 	encoded := base64.StdEncoding.EncodeToString(data)
 	return fmt.Sprintf("data:%s;base64,%s", mimeType, encoded), mimeType, int64(len(data)), nil
@@ -2056,16 +2056,16 @@ func buildAliyunQwenAudioDataURI(filePath string) (string, string, int64, error)
 func getWAVDurationSeconds(filePath string) (float64, error) {
 	f, err := os.Open(filePath)
 	if err != nil {
-		return 0, fmt.Errorf("打开音频文件失败: %w", err)
+		return 0, fmt.Errorf("Mở file âm thanh thất bại: %w", err)
 	}
 	defer f.Close()
 
 	header := make([]byte, 12)
 	if _, err = io.ReadFull(f, header); err != nil {
-		return 0, fmt.Errorf("读取WAV头失败: %w", err)
+		return 0, fmt.Errorf("Đọc header WAV thất bại: %w", err)
 	}
 	if string(header[0:4]) != "RIFF" || string(header[8:12]) != "WAVE" {
-		return 0, errors.New("不是有效的 WAV 文件")
+		return 0, errors.New("Không phải file WAV hợp lệ")
 	}
 
 	var sampleRate uint32
@@ -2083,7 +2083,7 @@ func getWAVDurationSeconds(filePath string) (float64, error) {
 			if errors.Is(err, io.ErrUnexpectedEOF) {
 				break
 			}
-			return 0, fmt.Errorf("读取WAV分块头失败: %w", err)
+			return 0, fmt.Errorf("Đọc header chunk WAV thất bại: %w", err)
 		}
 		chunkID := string(chunkHeader[0:4])
 		chunkSize := binary.LittleEndian.Uint32(chunkHeader[4:8])
@@ -2092,15 +2092,15 @@ func getWAVDurationSeconds(filePath string) (float64, error) {
 		switch chunkID {
 		case "fmt ":
 			if chunkSize < 16 {
-				return 0, fmt.Errorf("WAV fmt 分块长度无效: %d", chunkSize)
+				return 0, fmt.Errorf("Độ dài chunk fmt WAV không hợp lệ: %d", chunkSize)
 			}
 			fmtData := make([]byte, chunkSize)
 			if _, err = io.ReadFull(f, fmtData); err != nil {
-				return 0, fmt.Errorf("读取WAV fmt分块失败: %w", err)
+				return 0, fmt.Errorf("Đọc chunk fmt WAV thất bại: %w", err)
 			}
 			audioFormat := binary.LittleEndian.Uint16(fmtData[0:2])
 			if audioFormat != 1 && audioFormat != 3 {
-				return 0, fmt.Errorf("不支持的 WAV 编码格式: %d", audioFormat)
+				return 0, fmt.Errorf("Định dạng mã hóa WAV không được hỗ trợ: %d", audioFormat)
 			}
 			channels = binary.LittleEndian.Uint16(fmtData[2:4])
 			sampleRate = binary.LittleEndian.Uint32(fmtData[4:8])
@@ -2108,28 +2108,28 @@ func getWAVDurationSeconds(filePath string) (float64, error) {
 		case "data":
 			dataBytes = uint64(chunkSize)
 			if _, err = f.Seek(chunkSizeInt, io.SeekCurrent); err != nil {
-				return 0, fmt.Errorf("跳过WAV data分块失败: %w", err)
+				return 0, fmt.Errorf("Bỏ qua chunk data WAV thất bại: %w", err)
 			}
 		default:
 			if _, err = f.Seek(chunkSizeInt, io.SeekCurrent); err != nil {
-				return 0, fmt.Errorf("跳过WAV分块失败: %w", err)
+				return 0, fmt.Errorf("Bỏ qua chunk WAV thất bại: %w", err)
 			}
 		}
 
-		// WAV chunk 数据按 2 字节对齐，奇数长度需补 1 字节。
+		// Dữ liệu chunk WAV căn theo 2 byte, độ dài lẻ cần bù thêm 1 byte.
 		if chunkSize%2 == 1 {
 			if _, err = f.Seek(1, io.SeekCurrent); err != nil {
-				return 0, fmt.Errorf("跳过WAV对齐字节失败: %w", err)
+				return 0, fmt.Errorf("Bỏ qua byte căn chỉnh WAV thất bại: %w", err)
 			}
 		}
 	}
 
 	if sampleRate == 0 || channels == 0 || bitsPerSample == 0 || dataBytes == 0 {
-		return 0, fmt.Errorf("WAV信息不完整(sample_rate=%d channels=%d bits=%d data_bytes=%d)", sampleRate, channels, bitsPerSample, dataBytes)
+		return 0, fmt.Errorf("Thông tin WAV không đầy đủ(sample_rate=%d channels=%d bits=%d data_bytes=%d)", sampleRate, channels, bitsPerSample, dataBytes)
 	}
 	bytesPerSecond := (float64(sampleRate) * float64(channels) * float64(bitsPerSample)) / 8.0
 	if bytesPerSecond <= 0 {
-		return 0, errors.New("WAV每秒字节数无效")
+		return 0, errors.New("Số byte mỗi giây của WAV không hợp lệ")
 	}
 	return float64(dataBytes) / bytesPerSecond, nil
 }

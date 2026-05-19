@@ -1,42 +1,42 @@
-// 前端诊断脚本
-console.log('=== 前端诊断开始 ===')
+// Script chẩn đoán frontend
+console.log('=== Bắt đầu chẩn đoán frontend ===')
 
-// 检查基本环境
-console.log('1. 检查基本环境:')
-console.log('   - Vue版本:', typeof window.Vue !== 'undefined' ? 'Vue已加载' : 'Vue未加载')
-console.log('   - 当前URL:', window.location.href)
+// Kiểm tra môi trường cơ bản
+console.log('1. Kiểm tra môi trường cơ bản:')
+console.log('   - Phiên bản Vue:', typeof window.Vue !== 'undefined' ? 'Vue đã tải' : 'Vue chưa tải')
+console.log('   - URL hiện tại:', window.location.href)
 console.log('   - User Agent:', navigator.userAgent)
 
-// 检查localStorage
-console.log('2. 检查本地存储:')
+// Kiểm tra localStorage
+console.log('2. Kiểm tra bộ nhớ cục bộ:')
 console.log('   - Token:', localStorage.getItem('token'))
 console.log('   - User:', localStorage.getItem('user'))
 
-// 检查网络连接
-console.log('3. 检查后端连接:')
+// Kiểm tra kết nối mạng
+console.log('3. Kiểm tra kết nối backend:')
 fetch('http://localhost:8080/api/profile')
   .then(response => {
-    console.log('   - 后端响应状态:', response.status)
+    console.log('   - Mã phản hồi backend:', response.status)
     if (response.status === 401) {
-      console.log('   - 后端正常运行（返回401未认证错误）')
+      console.log('   - Backend đang chạy bình thường (trả về lỗi 401 chưa xác thực)')
     }
   })
   .catch(error => {
-    console.log('   - 后端连接失败:', error.message)
+    console.log('   - Kết nối backend thất bại:', error.message)
   })
 
-// 检查路由
-console.log('4. 可用的测试路由:')
-console.log('   - /test - 基础测试页面')
-console.log('   - /simple-login - 简化登录页面')
-console.log('   - /login - 完整登录页面')
+// Kiểm tra route
+console.log('4. Các route kiểm tra khả dụng:')
+console.log('   - /test - Trang kiểm tra cơ bản')
+console.log('   - /simple-login - Trang đăng nhập đơn giản')
+console.log('   - /login - Trang đăng nhập đầy đủ')
 
-console.log('=== 前端诊断结束 ===')
-console.log('请在浏览器控制台中查看上述信息')
+console.log('=== Kết thúc chẩn đoán frontend ===')
+console.log('Vui lòng xem các thông tin trên trong console của trình duyệt')
 
-// 导出到全局，方便在控制台中调用
+// Xuất ra global để tiện gọi từ console
 window.diagnose = () => {
   console.clear()
-  // 重新执行诊断
+  // Chạy lại chẩn đoán
   location.reload()
 }

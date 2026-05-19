@@ -5,17 +5,17 @@ import "strings"
 var providerPresets = []MarketProviderPreset{
 	{
 		ID:          ProviderGeneric,
-		Name:        "自定义",
+		Name:        "Tùy chỉnh",
 		AuthType:    AuthTypeNone,
-		Description: "手动填写目录/详情 API 地址，适配任意 MCP 市场。",
+		Description: "Nhập thủ công địa chỉ API danh mục/chi tiết, phù hợp mọi MCP market.",
 	},
 	{
 		ID:                ProviderModelScope,
-		Name:              "魔搭 ModelScope",
+		Name:              "ModelScope",
 		CatalogURL:        "https://www.modelscope.cn/openapi/v1/mcp/servers",
 		DetailURLTemplate: "https://www.modelscope.cn/openapi/v1/mcp/servers/{raw_id}",
 		AuthType:          AuthTypeBearer,
-		Description:       "固定使用 Bearer Token 鉴权，仅拉取已激活服务（/operational）。",
+		Description:       "Luôn dùng Bearer Token để xác thực, chỉ kéo dịch vụ đã kích hoạt (/operational).",
 	},
 }
 

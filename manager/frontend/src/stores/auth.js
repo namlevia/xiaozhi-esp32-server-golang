@@ -6,7 +6,7 @@ import { t } from '../locales'
 export const useAuthStore = defineStore('auth', () => {
   const token = ref(localStorage.getItem('token'))
   const user = ref(JSON.parse(localStorage.getItem('user') || 'null'))
-  const isValidating = ref(false) // 添加验证状态标记
+  const isValidating = ref(false) // Đánh dấu trạng thái đang xác thực
 
   const isAuthenticated = computed(() => !!token.value)
   const isAdmin = computed(() => user.value?.role === 'admin')
@@ -51,7 +51,7 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   const getProfile = async () => {
-    // 如果正在验证中，避免重复调用
+    // Nếu đang trong quá trình xác thực thì tránh gọi lặp lại
     if (isValidating.value) {
       return
     }
@@ -63,7 +63,7 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('user', JSON.stringify(response.data.user))
     } catch (error) {
       logout()
-      throw error // 重新抛出错误，让路由守卫能够处理
+      throw error // Ném lại lỗi để route guard xử lý
     } finally {
       isValidating.value = false
     }

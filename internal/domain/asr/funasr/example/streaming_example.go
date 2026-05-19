@@ -13,32 +13,32 @@ import (
 	"xiaozhi-esp32-server-golang/internal/domain/asr/funasr"
 )
 
-// readWavFile 读取WAV文件并转换为PCM []float32数据
+// readWavFile đọc file WAV và chuyển thành dữ liệu PCM []float32.
 func readWavFile(filePath string) ([]float32, error) {
-	// 打开WAV文件
+	// Mở file WAV
 	file, err := os.Open(filePath)
 	if err != nil {
-		return nil, fmt.Errorf("打开WAV文件失败: %v", err)
+		return nil, fmt.Errorf("Mở file WAV thất bại: %v", err)
 	}
 	defer file.Close()
 
-	// 创建WAV解码器
+	// Tạo decoder WAV
 	wavDecoder := wav.NewDecoder(file)
 	if !wavDecoder.IsValidFile() {
-		return nil, fmt.Errorf("无效的WAV文件")
+		return nil, fmt.Errorf("File WAV không hợp lệ")
 	}
 
-	// 读取WAV文件信息
+	// Đọc thông tin file WAV
 	wavDecoder.ReadInfo()
 	format := wavDecoder.Format()
 
-	fmt.Printf("WAV格式: 采样率=%dHz, 通道数=%d\n",
+	fmt.Printf("Định dạng WAV: sample rate=%dHz, số kênh=%d\n",
 		int(format.SampleRate), format.NumChannels)
 
-	// 读取所有PCM数据
+	// Đọc toàn bộ dữ liệu PCM
 	var allPcmData []float32
 
-	// 使用20ms帧大小作为缓冲区
+	// Dùng frame 20ms làm buffer
 	perFrameDuration := 20
 	frameSize := int(format.SampleRate) * perFrameDuration / 1000
 	audioBuf := &audio.IntBuffer{
@@ -47,51 +47,51 @@ func readWavFile(filePath string) ([]float32, error) {
 		Data:           make([]int, frameSize*format.NumChannels),
 	}
 
-	fmt.Printf("使用帧大小: %d 采样点 (%.1fms)\n", frameSize, float64(perFrameDuration))
-	fmt.Println("开始读取WAV数据...")
+	fmt.Printf("Dùng kích thước frame: %d sample (%.1fms)\n", frameSize, float64(perFrameDuration))
+	fmt.Println("Bắt đầu đọc dữ liệu WAV...")
 
 	for {
-		// 读取WAV数据
+		// Đọc dữ liệu WAV
 		n, err := wavDecoder.PCMBuffer(audioBuf)
 		if err == io.EOF || n == 0 {
 			break
 		}
 		if err != nil {
-			return nil, fmt.Errorf("读取WAV数据失败: %v", err)
+			return nil, fmt.Errorf("Đọc dữ liệu WAV thất bại: %v", err)
 		}
 
-		// 将int数据转换为float32 (范围-1.0到1.0)
+		// Chuyển dữ liệu int thành float32 trong khoảng -1.0 đến 1.0
 		for i := 0; i < n; i++ {
-			// 将int转换为float32，范围从[-32768, 32767]到[-1.0, 1.0]
+			// Chuyển int thành float32 từ khoảng [-32768, 32767] sang [-1.0, 1.0]
 			floatSample := float32(audioBuf.Data[i]) / 32767.0
 			allPcmData = append(allPcmData, floatSample)
 		}
 	}
 
-	fmt.Printf("成功读取WAV文件，总采样点数: %d, 时长: %.2f秒\n",
+	fmt.Printf("Đọc file WAV thành công, tổng sample: %d, thời lượng: %.2f giây\n",
 		len(allPcmData), float64(len(allPcmData))/float64(format.SampleRate))
 
 	return allPcmData, nil
 }
 
 func main() {
-	// 定义命令行参数
+	// Định nghĩa tham số command line
 	var (
-		host = flag.String("host", "192.168.208.214", "FunASR服务器IP地址")
-		port = flag.String("port", "10096", "FunASR服务器端口")
-		mode = flag.String("mode", "offline", "识别模式 (online/offline)")
-		file = flag.String("file", "test.wav", "要识别的WAV文件路径")
+		host = flag.String("host", "192.168.208.214", "Địa chỉ IP server FunASR")
+		port = flag.String("port", "10096", "Port server FunASR")
+		mode = flag.String("mode", "offline", "Mode nhận diện (online/offline)")
+		file = flag.String("file", "test.wav", "Đường dẫn file WAV cần nhận diện")
 	)
 
-	// 解析命令行参数
+	// Parse tham số command line
 	flag.Parse()
 
-	// 显示使用说明
+	// Hiển thị hướng dẫn sử dụng
 	if len(os.Args) < 2 {
-		fmt.Println("用法: ./streaming_example [选项]")
-		fmt.Println("选项:")
+		fmt.Println("Cách dùng: ./streaming_example [tùy chọn]")
+		fmt.Println("Tùy chọn:")
 		flag.PrintDefaults()
-		fmt.Println("\n示例:")
+		fmt.Println("\nVí dụ:")
 		fmt.Println("  ./streaming_example -host=192.168.1.100 -port=10095 -file=audio.wav")
 		fmt.Println("  ./streaming_example -mode=online -file=test.wav")
 		return
@@ -108,41 +108,41 @@ func main() {
 		AutoEnd:       false,
 	}
 
-	// 使用配置创建ASR实例
+	// Tạo instance ASR bằng config
 	asr, err := funasr.NewFunasr(config)
 	if err != nil {
-		fmt.Printf("创建ASR实例失败: %v\n", err)
+		fmt.Printf("Tạo instance ASR thất bại: %v\n", err)
 		return
 	}
 
-	fmt.Printf("目标服务器: %s:%s, 模式: %s\n", config.Host, config.Port, config.Mode)
+	fmt.Printf("Server đích: %s:%s, mode: %s\n", config.Host, config.Port, config.Mode)
 
-	// 使用命令行参数指定的音频文件路径
+	// Dùng đường dẫn file audio từ tham số command line
 	audioFilePath := *file
 
-	// 检查音频文件是否存在
+	// Kiểm tra file audio có tồn tại hay không
 	if _, err := os.Stat(audioFilePath); os.IsNotExist(err) {
-		fmt.Printf("音频文件 %s 不存在\n", audioFilePath)
-		fmt.Println("请提供有效的音频文件路径")
+		fmt.Printf("File audio %s không tồn tại\n", audioFilePath)
+		fmt.Println("Vui lòng cung cấp đường dẫn file audio hợp lệ")
 		return
 	}
 
-	// 读取WAV文件并转换为PCM数据
+	// Đọc file WAV và chuyển thành dữ liệu PCM
 	pcmData, err := readWavFile(audioFilePath)
 	if err != nil {
-		fmt.Printf("读取WAV文件失败: %v\n", err)
+		fmt.Printf("Đọc file WAV thất bại: %v\n", err)
 		return
 	}
 
-	// 执行识别
+	// Thực hiện nhận diện
 	result, err := asr.Process(pcmData)
 	if err != nil {
-		fmt.Printf("识别失败: %v\n", err)
+		fmt.Printf("Nhận diện thất bại: %v\n", err)
 		return
 	}
 
-	// 格式化并打印结果
-	fmt.Println("识别结果:")
+	// Format và in kết quả
+	fmt.Println("Kết quả nhận diện:")
 	fmt.Println(strings.Repeat("-", 40))
 	fmt.Println(result)
 	fmt.Println(strings.Repeat("-", 40))

@@ -4,25 +4,25 @@ import (
 	"context"
 )
 
-// SpeakerProvider 声纹识别提供者接口
+// SpeakerProvider interface speaker recognition provider
 type SpeakerProvider interface {
-	// StartStreaming 启动流式识别
+	// StartStreaming Khởi động nhận diện streaming
 	StartStreaming(ctx context.Context, sampleRate int, agentId string) error
 
-	// SendAudioChunk 发送音频数据块
+	// SendAudioChunk Gửi audio data chunk
 	SendAudioChunk(ctx context.Context, audioData []float32) error
 
-	// FinishAndIdentify 完成输入并获取识别结果
+	// FinishAndIdentify Hoàn tất input và lấy kết quả nhận diện
 	FinishAndIdentify(ctx context.Context) (*IdentifyResult, error)
 
-	// IsActive 检查是否处于激活状态
+	// IsActive Kiểm tra có đang active không
 	IsActive() bool
 
-	// Close 关闭连接
+	// Close Đóng kết nối
 	Close() error
 }
 
-// GetSpeakerProvider 获取声纹识别提供者
+// GetSpeakerProvider Lấy speaker recognition provider
 func GetSpeakerProvider(config map[string]interface{}) (SpeakerProvider, error) {
 	return NewAsrServerProvider(config)
 }

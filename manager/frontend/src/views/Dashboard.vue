@@ -52,7 +52,7 @@
           <template #header>
             <div class="card-header">
               <div>
-                <p class="card-eyebrow">SERVICE ADDRESS</p>
+                <p class="card-eyebrow">ĐỊA CHỈ DỊCH VỤ</p>
                 <h3>{{ t('dashboard.serviceAddress') }}</h3>
               </div>
               <el-button type="warning" size="small" :loading="otaTestLoading" @click="runOtaTest">
@@ -96,11 +96,44 @@
           </div>
         </el-card>
 
+        <el-card v-if="authStore.isAdmin" class="dashboard-card health-card">
+          <template #header>
+            <div class="card-header">
+              <div>
+                <p class="card-eyebrow">HEALTH CHECK</p>
+                <h3>Trạng thái stack local</h3>
+              </div>
+              <el-button size="small" :loading="healthLoading" @click="loadHealthCheck">Làm mới</el-button>
+            </div>
+          </template>
+
+          <div v-loading="healthLoading" class="health-content">
+            <div v-if="healthCheckedAt" class="health-summary">
+              <el-tag :type="healthStatusType(healthStatus)" effect="light">{{ healthStatusLabel(healthStatus) }}</el-tag>
+              <span>Kiểm tra lúc {{ formatDateTime(healthCheckedAt) }}</span>
+            </div>
+            <div v-if="healthItems.length" class="health-list">
+              <div v-for="item in healthItems" :key="item.name" class="health-row">
+                <div class="health-row-main">
+                  <strong>{{ item.name }}</strong>
+                  <small>{{ item.message || '—' }}</small>
+                  <small v-if="item.url" class="health-url">{{ item.url }}</small>
+                </div>
+                <div class="health-row-side">
+                  <el-tag size="small" :type="healthStatusType(item.status)" effect="plain">{{ healthStatusLabel(item.status) }}</el-tag>
+                  <span v-if="item.latency_ms != null">{{ item.latency_ms }}ms</span>
+                </div>
+              </div>
+            </div>
+            <div v-else class="empty-inline">Chưa có dữ liệu health check.</div>
+          </div>
+        </el-card>
+
         <el-card v-if="authStore.isAdmin" class="dashboard-card">
           <template #header>
             <div class="card-header">
               <div>
-                <p class="card-eyebrow">CONFIGURATION</p>
+                <p class="card-eyebrow">CẤU HÌNH</p>
                 <h3>{{ t('dashboard.configuration') }}</h3>
               </div>
             </div>
@@ -147,7 +180,7 @@
           <template #header>
             <div class="card-header">
               <div>
-                <p class="card-eyebrow">SYSTEM</p>
+                <p class="card-eyebrow">HỆ THỐNG</p>
                 <h3>{{ t('dashboard.system') }}</h3>
               </div>
             </div>
@@ -179,7 +212,7 @@
           <template #header>
             <div class="card-header">
               <div>
-                <p class="card-eyebrow">SHORTCUTS</p>
+                <p class="card-eyebrow">LỐI TẮT</p>
                 <h3>{{ t('dashboard.shortcuts') }}</h3>
               </div>
             </div>
@@ -326,6 +359,51 @@ function copyAddress(text) {
 
 const otaTestLoading = ref(false)
 const otaTestResult = ref(null)
+const healthLoading = ref(false)
+const healthStatus = ref('unknown')
+const healthCheckedAt = ref('')
+const healthItems = ref([])
+
+function healthStatusLabel(status) {
+  switch (status) {
+    case 'healthy': return 'Ổn định'
+    case 'degraded': return 'Cần chú ý'
+    case 'unreachable': return 'Không kết nối'
+    case 'disabled': return 'Đã tắt'
+    default: return 'Không rõ'
+  }
+}
+
+function healthStatusType(status) {
+  switch (status) {
+    case 'healthy': return 'success'
+    case 'degraded': return 'warning'
+    case 'unreachable': return 'danger'
+    case 'disabled': return 'info'
+    default: return 'info'
+  }
+}
+
+function formatDateTime(value) {
+  return value ? new Date(value).toLocaleString('vi-VN') : '—'
+}
+
+async function loadHealthCheck() {
+  healthLoading.value = true
+  try {
+    const res = await api.get('/admin/health-check', { timeout: 10000 })
+    const data = res.data?.data || res.data || {}
+    healthStatus.value = data.status || 'unknown'
+    healthCheckedAt.value = data.checked_at || ''
+    healthItems.value = data.items || []
+  } catch (error) {
+    healthStatus.value = 'unreachable'
+    healthCheckedAt.value = new Date().toISOString()
+    healthItems.value = [{ name: 'Health check', status: 'unreachable', message: error.response?.data?.error || error.message || 'Yêu cầu health check thất bại' }]
+  } finally {
+    healthLoading.value = false
+  }
+}
 
 function formatOtaResponseDisplay(str) {
   if (str == null || str === '') return ''
@@ -400,6 +478,7 @@ onMounted(async () => {
   await loadStats()
   if (authStore.isAdmin) {
     loadServiceAddress()
+    loadHealthCheck()
   }
 })
 
@@ -771,6 +850,58 @@ const handleFileChange = async (event) => {
   color: var(--apple-text-secondary);
   font-size: 13px;
   line-height: 1.7;
+}
+
+.health-content,
+.health-list,
+.health-row-main {
+  display: grid;
+  gap: 12px;
+}
+
+.health-summary,
+.health-row,
+.health-row-side {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.health-summary {
+  color: var(--apple-text-secondary);
+  font-size: 13px;
+}
+
+.health-row {
+  justify-content: space-between;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(229, 229, 234, 0.72);
+}
+
+.health-row:last-child {
+  border-bottom: 0;
+}
+
+.health-row-main {
+  gap: 4px;
+  min-width: 0;
+}
+
+.health-row-main small,
+.health-row-side span {
+  color: var(--apple-text-secondary);
+  font-size: 12px;
+}
+
+.health-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.health-row-side {
+  flex: none;
+  justify-content: flex-end;
 }
 
 @media (max-width: 1280px) {

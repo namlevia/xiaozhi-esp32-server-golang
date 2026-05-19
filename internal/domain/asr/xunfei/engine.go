@@ -18,8 +18,8 @@ import (
 	log "xiaozhi-esp32-server-golang/logger"
 )
 
-// ASR 讯飞流式听写实现
-// 每次识别创建独立连接，避免并发争用。
+// ASR là implementation streaming dictation Xunfei.
+// Mỗi lần nhận diện tạo kết nối riêng để tránh tranh chấp concurrent.
 type ASR struct {
 	config Config
 }

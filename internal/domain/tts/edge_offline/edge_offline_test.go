@@ -9,7 +9,7 @@ import (
 func TestNewEdgeOfflineTTSProviderDefaultsAndLifecycle(t *testing.T) {
 	provider := NewEdgeOfflineTTSProvider(map[string]interface{}{})
 
-	if provider.ServerURL != "ws://localhost:8080/tts" {
+	if provider.ServerURL != "ws://localhost:9001/tts" {
 		t.Fatalf("ServerURL = %q", provider.ServerURL)
 	}
 	if provider.Timeout != 30*time.Second {
@@ -38,7 +38,7 @@ func TestEdgeOfflineTextToSpeechInvalidServerReturnsError(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	if _, err := provider.TextToSpeech(ctx, "测试文本", 16000, 1, 20); err == nil {
+	if _, err := provider.TextToSpeech(ctx, "testtext", 16000, 1, 20); err == nil {
 		t.Fatal("expected invalid websocket server to fail")
 	}
 }
@@ -52,7 +52,7 @@ func TestEdgeOfflineTextToSpeechStreamConnectionErrorClosesChannel(t *testing.T)
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
-	outputChan, err := provider.TextToSpeechStream(ctx, "测试文本", 16000, 1, 20)
+	outputChan, err := provider.TextToSpeechStream(ctx, "testtext", 16000, 1, 20)
 	if err != nil {
 		t.Fatalf("TextToSpeechStream should return async channel, got error: %v", err)
 	}

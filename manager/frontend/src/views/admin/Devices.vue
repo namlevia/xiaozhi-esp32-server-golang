@@ -24,7 +24,7 @@
           <span class="device-id-text">{{ row.device_name || '-' }}</span>
         </template>
       </el-table-column>
-      <el-table-column prop="user_id" label="User ID" width="100" />
+      <el-table-column prop="user_id" label="ID người dùng" width="100" />
       <el-table-column :label="t('device.linkedAgent')" width="150">
         <template #default="{ row }">
           <span v-if="row.agent_id > 0">

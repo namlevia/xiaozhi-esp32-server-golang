@@ -244,7 +244,7 @@ func mergeManualAndMarketServers(manualMCP map[string]interface{}, marketService
 
 	manualServers, err := decodeMCPServers(global["servers"])
 	if err != nil {
-		return nil, nil, fmt.Errorf("解析人工MCP服务失败: %w", err)
+		return nil, nil, fmt.Errorf("Phân tích dịch vụ MCP thủ công thất bại: %w", err)
 	}
 
 	existingURLSet := make(map[string]struct{})
@@ -268,7 +268,7 @@ func mergeManualAndMarketServers(manualMCP map[string]interface{}, marketService
 		}
 
 		if _, exists := existingURLSet[normURL]; exists {
-			warnings = append(warnings, fmt.Sprintf("市场服务 %s 因 URL 与人工配置冲突被跳过", service.Name))
+			warnings = append(warnings, fmt.Sprintf("Dịch vụ marketplace %s bị bỏ qua vì URL xung đột với cấu hình thủ công", service.Name))
 			continue
 		}
 
@@ -549,7 +549,7 @@ func buildImportedServiceModelFromRequest(req upsertMCPMarketImportedServiceRequ
 	}
 	transport = normalizeImportedTransport(transport)
 	if transport != mcpmarket.TransportSSE && transport != mcpmarket.TransportStreamableHTTP {
-		return models.MCPMarketService{}, fmt.Errorf("transport 仅支持 sse/streamablehttp")
+		return models.MCPMarketService{}, fmt.Errorf("transport chỉ hỗ trợ sse/streamablehttp")
 	}
 
 	rawURL := strings.TrimSpace(req.URL)
@@ -557,14 +557,14 @@ func buildImportedServiceModelFromRequest(req upsertMCPMarketImportedServiceRequ
 		rawURL = existing.URL
 	}
 	if rawURL == "" {
-		return models.MCPMarketService{}, fmt.Errorf("url 不能为空")
+		return models.MCPMarketService{}, fmt.Errorf("url không được để trống")
 	}
 	if normalizeImportedServiceURL(rawURL) == "" {
-		return models.MCPMarketService{}, fmt.Errorf("url 格式不正确")
+		return models.MCPMarketService{}, fmt.Errorf("định dạng url không đúng")
 	}
 	urlHash := normalizedURLHash(rawURL)
 	if urlHash == "" {
-		return models.MCPMarketService{}, fmt.Errorf("url 不能为空")
+		return models.MCPMarketService{}, fmt.Errorf("url không được để trống")
 	}
 
 	row.Transport = transport
@@ -606,7 +606,7 @@ func toMCPMarketImportedServiceView(row models.MCPMarketService) mcpMarketImport
 func listImportedServiceTools(ctx context.Context, service models.MCPMarketService) ([]mcpMarketImportedToolView, error) {
 	transportType := normalizeImportedTransport(service.Transport)
 	if transportType != mcpmarket.TransportSSE && transportType != mcpmarket.TransportStreamableHTTP {
-		return nil, fmt.Errorf("transport 仅支持 sse/streamablehttp")
+		return nil, fmt.Errorf("transport chỉ hỗ trợ sse/streamablehttp")
 	}
 
 	headers := decodeHeadersJSON(service.HeadersJSON)
@@ -619,7 +619,7 @@ func listImportedServiceTools(ctx context.Context, service models.MCPMarketServi
 	defer mcpClient.Close()
 
 	if err := mcpClient.Start(ctx); err != nil {
-		return nil, fmt.Errorf("启动MCP客户端失败: %v", err)
+		return nil, fmt.Errorf("Khởi động MCP client thất bại: %v", err)
 	}
 
 	initRequest := mcp.InitializeRequest{
@@ -635,12 +635,12 @@ func listImportedServiceTools(ctx context.Context, service models.MCPMarketServi
 		},
 	}
 	if _, err := mcpClient.Initialize(ctx, initRequest); err != nil {
-		return nil, fmt.Errorf("初始化MCP服务失败: %v", err)
+		return nil, fmt.Errorf("Khởi tạo dịch vụ MCP thất bại: %v", err)
 	}
 
 	toolsResult, err := mcpClient.ListTools(ctx, mcp.ListToolsRequest{})
 	if err != nil {
-		return nil, fmt.Errorf("获取工具列表失败: %v", err)
+		return nil, fmt.Errorf("Lấy danh sách công cụ thất bại: %v", err)
 	}
 
 	tools := make([]mcpMarketImportedToolView, 0, len(toolsResult.Tools))
@@ -662,7 +662,7 @@ func listImportedServiceTools(ctx context.Context, service models.MCPMarketServi
 
 func buildImportedServiceTransport(transportType, endpoint string, headers map[string]string) (transport.Interface, error) {
 	if strings.TrimSpace(endpoint) == "" {
-		return nil, fmt.Errorf("url 不能为空")
+		return nil, fmt.Errorf("url không được để trống")
 	}
 
 	switch transportType {
@@ -673,7 +673,7 @@ func buildImportedServiceTransport(transportType, endpoint string, headers map[s
 		}
 		sseTransport, err := transport.NewSSE(endpoint, opts...)
 		if err != nil {
-			return nil, fmt.Errorf("创建SSE传输失败: %v", err)
+			return nil, fmt.Errorf("Tạo transport SSE thất bại: %v", err)
 		}
 		return sseTransport, nil
 	case mcpmarket.TransportStreamableHTTP:
@@ -683,10 +683,10 @@ func buildImportedServiceTransport(transportType, endpoint string, headers map[s
 		}
 		httpTransport, err := transport.NewStreamableHTTP(endpoint, opts...)
 		if err != nil {
-			return nil, fmt.Errorf("创建StreamableHTTP传输失败: %v", err)
+			return nil, fmt.Errorf("Tạo transport StreamableHTTP thất bại: %v", err)
 		}
 		return httpTransport, nil
 	default:
-		return nil, fmt.Errorf("不支持的 transport: %s", transportType)
+		return nil, fmt.Errorf("transport không được hỗ trợ: %s", transportType)
 	}
 }

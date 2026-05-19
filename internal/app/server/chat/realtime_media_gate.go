@@ -19,75 +19,75 @@ var realtimeMcpAudioControlRules = []realtimeMusicControlRule{
 	{
 		action: "play_playlist",
 		keywords: []string{
-			"播放歌单",
-			"播放歌单里的歌曲",
-			"播放播放列表",
-			"播放列表",
+			"phát danh sách",
+			"phát bài trong danh sách",
+			"phát playlist",
+			"playlist",
 		},
 	},
 	{
 		action: "enqueue_current",
 		keywords: []string{
-			"加入歌单",
-			"加入播放列表",
-			"添加到歌单",
-			"添加到播放列表",
+			"thêm vào danh sách",
+			"thêm vào playlist",
+			"đưa vào danh sách",
+			"đưa vào playlist",
 		},
 	},
 	{
 		action: "resume",
 		keywords: []string{
-			"继续播放",
-			"恢复播放",
-			"继续听",
-			"接着放",
-			"接着播",
+			"tiếp tục phát",
+			"phát tiếp",
+			"nghe tiếp",
+			"phát tiếp đi",
+			"tiếp tục bật",
 		},
 	},
 	{
 		action: "pause",
 		keywords: []string{
-			"暂停",
-			"先暂停",
-			"先停一下",
+			"tạm dừng",
+			"tạm dừng trước",
+			"dừng một chút",
 		},
 	},
 	{
 		action: "stop",
 		keywords: []string{
-			"停止播放",
-			"停止",
-			"停播",
-			"别播了",
+			"dừng phát",
+			"dừng",
+			"ngừng phát",
+			"đừng phát nữa",
 		},
 	},
 	{
 		action: "next",
 		keywords: []string{
-			"下一首",
-			"下首",
-			"切到下一首",
-			"切歌",
+			"bài tiếp theo",
+			"bài sau",
+			"chuyển bài tiếp theo",
+			"chuyển bài",
 		},
 	},
 	{
 		action: "prev",
 		keywords: []string{
-			"上一首",
-			"上首",
-			"切到上一首",
+			"bài trước",
+			"bài trước đó",
+			"chuyển bài trước",
 		},
 	},
 }
 
 var realtimeMcpAudioExitKeywords = []string{
-	"再见",
-	"拜拜",
-	"拜了",
-	"回见",
-	"退出",
-	"退出对话",
-	"退下吧",
+	"tạm biệt",
+	"bye bye",
+	"chào nhé",
+	"gặp lại sau",
+	"thoát",
+	"thoát hội thoại",
+	"dừng ở đây",
 }
 
 func normalizeRealtimeMcpAudioText(text string) string {
@@ -170,12 +170,12 @@ func (s *ChatSession) tryHandleRealtimeMcpAudioASR(ctx context.Context, text str
 	if isRealtimeMcpAudioExitCommand(text) {
 		eventbus.Get().Publish(eventbus.TopicExitChat, &eventbus.ExitChatEvent{
 			ClientState: s.clientState,
-			Reason:      "realtime媒体播放中用户退出",
+			Reason:      "người dùng thoát trong realtime media playback",
 			TriggerType: "realtime_media_exit_words",
 			UserText:    text,
 			Timestamp:   time.Now(),
 		})
-		log.Infof("设备 %s realtime媒体播放门控命中退出指令: %s", s.clientState.DeviceID, text)
+		log.Infof("Thiết bị %s realtime media gate khớp lệnh thoát: %s", s.clientState.DeviceID, text)
 		return true, nil
 	}
 
@@ -183,10 +183,10 @@ func (s *ChatSession) tryHandleRealtimeMcpAudioASR(ctx context.Context, text str
 	if action != "" {
 		_, err := controlMusicPlayback(ctx, s, &MusicPlaybackControlParams{Action: action})
 		if err != nil {
-			log.Warnf("设备 %s realtime媒体播放门控执行控制动作失败: action=%s, text=%s, err=%v", s.clientState.DeviceID, action, text, err)
+			log.Warnf("Thiết bị %s realtime media gate thực thi action điều khiển thất bại: action=%s, text=%s, err=%v", s.clientState.DeviceID, action, text, err)
 			return true, nil
 		}
-		log.Infof("设备 %s realtime媒体播放门控执行控制动作: action=%s, text=%s", s.clientState.DeviceID, action, text)
+		log.Infof("Thiết bị %s realtime media gate thực thi action điều khiển: action=%s, text=%s", s.clientState.DeviceID, action, text)
 		return true, nil
 	}
 
@@ -194,6 +194,6 @@ func (s *ChatSession) tryHandleRealtimeMcpAudioASR(ctx context.Context, text str
 		return false, nil
 	}
 
-	log.Debugf("设备 %s realtime媒体播放门控忽略ASR文本: %s", s.clientState.DeviceID, text)
+	log.Debugf("Thiết bị %s realtime media gate bỏ qua text ASR: %s", s.clientState.DeviceID, text)
 	return true, nil
 }

@@ -63,21 +63,21 @@ func assertSingleGoodbyeCommand(t *testing.T, fakeConn *sessionCloseTestConn, se
 	t.Helper()
 
 	if len(fakeConn.sentCmds) != 1 {
-		t.Fatalf("expected one mqtt goodbye command, got %d", len(fakeConn.sentCmds))
+		t.Fatalf("mong đợi một mqtt goodbye command, nhận được %d", len(fakeConn.sentCmds))
 	}
 
 	var msg map[string]any
 	if err := json.Unmarshal(fakeConn.sentCmds[0], &msg); err != nil {
-		t.Fatalf("failed to unmarshal goodbye command: %v", err)
+		t.Fatalf("unmarshal goodbye command thất bại: %v", err)
 	}
 	if got := msg["type"]; got != "goodbye" {
-		t.Fatalf("expected goodbye type, got %v", got)
+		t.Fatalf("mong đợi type goodbye, nhận được %v", got)
 	}
 	if got := msg["state"]; got != "stop" {
-		t.Fatalf("expected goodbye state stop, got %v", got)
+		t.Fatalf("mong đợi state stop của goodbye, nhận được %v", got)
 	}
 	if got := msg["session_id"]; got != sessionID {
-		t.Fatalf("expected session_id %s, got %v", sessionID, got)
+		t.Fatalf("mong đợi session_id %s, nhận được %v", sessionID, got)
 	}
 }
 
@@ -98,17 +98,17 @@ func TestHandleSessionClosedSendsMqttGoodbyeOnExplicitExit(t *testing.T) {
 	manager.handleSessionClosed(session, chatSessionCloseReasonExplicitExit)
 
 	if manager.GetSession() != nil {
-		t.Fatalf("expected session to be cleared after explicit exit")
+		t.Fatalf("mong đợi session được xóa sau explicit exit")
 	}
 	if fakeConn.closeAudioCalls != 0 {
-		t.Fatalf("expected CloseAudioChannel to be skipped on explicit exit, got %d", fakeConn.closeAudioCalls)
+		t.Fatalf("mong đợi bỏ qua CloseAudioChannel khi explicit exit, nhận được %d", fakeConn.closeAudioCalls)
 	}
 	assertSingleGoodbyeCommand(t, fakeConn, "session-1")
 	if !manager.helloInited {
-		t.Fatalf("expected helloInited to stay true after mqtt explicit exit")
+		t.Fatalf("mong đợi helloInited vẫn true sau mqtt explicit exit")
 	}
 	if !manager.needFreshHello {
-		t.Fatalf("expected mqtt explicit exit to require a fresh hello before the next session bootstrap")
+		t.Fatalf("mong đợi mqtt explicit exit yêu cầu hello mới trước lần bootstrap session tiếp theo")
 	}
 }
 
@@ -129,17 +129,17 @@ func TestHandleSessionClosedSendsMqttGoodbyeOnFatalError(t *testing.T) {
 	manager.handleSessionClosed(session, chatSessionCloseReasonFatalError)
 
 	if manager.GetSession() != nil {
-		t.Fatalf("expected session to be cleared after fatal_error")
+		t.Fatalf("mong đợi session được xóa sau fatal_error")
 	}
 	if fakeConn.closeAudioCalls != 0 {
-		t.Fatalf("expected CloseAudioChannel to be skipped on fatal_error, got %d", fakeConn.closeAudioCalls)
+		t.Fatalf("mong đợi bỏ qua CloseAudioChannel khi fatal_error, nhận được %d", fakeConn.closeAudioCalls)
 	}
 	assertSingleGoodbyeCommand(t, fakeConn, "session-1")
 	if !manager.helloInited {
-		t.Fatalf("expected helloInited to stay true after fatal_error")
+		t.Fatalf("mong đợi helloInited vẫn true sau fatal_error")
 	}
 	if !manager.needFreshHello {
-		t.Fatalf("expected fatal_error to require a fresh hello before the next session bootstrap")
+		t.Fatalf("mong đợi fatal_error yêu cầu hello mới trước lần bootstrap session tiếp theo")
 	}
 }
 
@@ -160,19 +160,19 @@ func TestHandleSessionClosedSkipsMqttGoodbyeOnRetainedIdleTimeout(t *testing.T) 
 	manager.handleSessionClosed(session, chatSessionCloseReasonRetainedIdleTimeout)
 
 	if manager.GetSession() != nil {
-		t.Fatalf("expected session to be cleared after retained_idle_timeout")
+		t.Fatalf("mong đợi session được xóa sau retained_idle_timeout")
 	}
 	if fakeConn.closeAudioCalls != 0 {
-		t.Fatalf("expected CloseAudioChannel to be skipped on retained_idle_timeout, got %d", fakeConn.closeAudioCalls)
+		t.Fatalf("mong đợi bỏ qua CloseAudioChannel khi retained_idle_timeout, nhận được %d", fakeConn.closeAudioCalls)
 	}
 	if len(fakeConn.sentCmds) != 0 {
-		t.Fatalf("expected retained_idle_timeout to avoid sending mqtt goodbye, got %d commands", len(fakeConn.sentCmds))
+		t.Fatalf("mong đợi retained_idle_timeout không gửi mqtt goodbye, nhận được %d command", len(fakeConn.sentCmds))
 	}
 	if !manager.helloInited {
-		t.Fatalf("expected helloInited to stay true after retained_idle_timeout")
+		t.Fatalf("mong đợi helloInited vẫn true sau retained_idle_timeout")
 	}
 	if !manager.needFreshHello {
-		t.Fatalf("expected retained_idle_timeout to require a fresh hello before the next session bootstrap")
+		t.Fatalf("mong đợi retained_idle_timeout yêu cầu hello mới trước lần bootstrap session tiếp theo")
 	}
 }
 
@@ -193,17 +193,17 @@ func TestHandleSessionClosedSendsMqttGoodbyeOnAudioIdleTimeout(t *testing.T) {
 	manager.handleSessionClosed(session, chatSessionCloseReasonAudioIdleTimeout)
 
 	if manager.GetSession() != nil {
-		t.Fatalf("expected session to be cleared after audio_idle_timeout")
+		t.Fatalf("mong đợi session được xóa sau audio_idle_timeout")
 	}
 	if fakeConn.closeAudioCalls != 0 {
-		t.Fatalf("expected CloseAudioChannel to be skipped on audio_idle_timeout, got %d", fakeConn.closeAudioCalls)
+		t.Fatalf("mong đợi bỏ qua CloseAudioChannel khi audio_idle_timeout, nhận được %d", fakeConn.closeAudioCalls)
 	}
 	assertSingleGoodbyeCommand(t, fakeConn, "session-1")
 	if !manager.helloInited {
-		t.Fatalf("expected helloInited to stay true after audio_idle_timeout")
+		t.Fatalf("mong đợi helloInited vẫn true sau audio_idle_timeout")
 	}
 	if !manager.needFreshHello {
-		t.Fatalf("expected audio_idle_timeout to require a fresh hello before the next session bootstrap")
+		t.Fatalf("mong đợi audio_idle_timeout yêu cầu hello mới trước lần bootstrap session tiếp theo")
 	}
 }
 
@@ -224,7 +224,7 @@ func TestHandleSessionClosedDoesNotRequireHelloAfterMqttExplicitExit(t *testing.
 	manager.handleSessionClosed(session, chatSessionCloseReasonExplicitExit)
 
 	if !manager.needFreshHello {
-		t.Fatalf("expected explicit exit to require a fresh hello")
+		t.Fatalf("mong đợi explicit exit yêu cầu hello mới")
 	}
 }
 
@@ -246,13 +246,13 @@ func TestHandleSessionClosedIgnoresStaleSessionCallback(t *testing.T) {
 	manager.handleSessionClosed(staleSession, chatSessionCloseReasonExplicitExit)
 
 	if manager.GetSession() != currentSession {
-		t.Fatalf("expected current session to stay active after stale callback")
+		t.Fatalf("mong đợi session hiện tại vẫn active sau stale callback")
 	}
 	if fakeConn.closeAudioCalls != 0 {
-		t.Fatalf("expected stale callback to avoid closing audio, got %d", fakeConn.closeAudioCalls)
+		t.Fatalf("mong đợi stale callback không đóng audio, nhận được %d", fakeConn.closeAudioCalls)
 	}
 	if len(fakeConn.sentCmds) != 0 {
-		t.Fatalf("expected stale callback to avoid sending mqtt goodbye, got %d commands", len(fakeConn.sentCmds))
+		t.Fatalf("mong đợi stale callback không gửi mqtt goodbye, nhận được %d command", len(fakeConn.sentCmds))
 	}
 }
 
@@ -273,16 +273,16 @@ func TestEnsureSessionRejectsClosingSession(t *testing.T) {
 
 	session, err := manager.ensureSession()
 	if err == nil {
-		t.Fatalf("expected ensureSession to reject a closing session")
+		t.Fatalf("mong đợi ensureSession từ chối session đang đóng")
 	}
 	if session != nil {
-		t.Fatalf("expected no replacement session while current session is closing")
+		t.Fatalf("mong đợi không thay session khi session hiện tại đang đóng")
 	}
 	if manager.GetSession() != closingSession {
-		t.Fatalf("expected closing session to remain registered until close callback completes")
+		t.Fatalf("mong đợi session đang đóng vẫn được đăng ký tới khi close callback hoàn tất")
 	}
-	if !strings.Contains(err.Error(), "关闭") {
-		t.Fatalf("expected ensureSession error to mention closing state, got %v", err)
+	if !strings.Contains(err.Error(), "đóng") {
+		t.Fatalf("mong đợi lỗi ensureSession nhắc tới trạng thái đóng, nhận được %v", err)
 	}
 }
 
@@ -306,7 +306,7 @@ func TestEnsureSessionWaitsForStartingSession(t *testing.T) {
 
 	select {
 	case <-resultCh:
-		t.Fatalf("expected ensureSession to wait while session startup is in progress")
+		t.Fatalf("mong đợi ensureSession chờ khi session đang startup")
 	case <-time.After(50 * time.Millisecond):
 	}
 
@@ -321,13 +321,13 @@ func TestEnsureSessionWaitsForStartingSession(t *testing.T) {
 	select {
 	case result := <-resultCh:
 		if result.err != nil {
-			t.Fatalf("expected waiting ensureSession to succeed, got %v", result.err)
+			t.Fatalf("mong đợi ensureSession đang chờ thành công, nhận được %v", result.err)
 		}
 		if result.session != expectedSession {
-			t.Fatalf("expected waiting ensureSession to reuse published session")
+			t.Fatalf("mong đợi ensureSession đang chờ tái sử dụng published session")
 		}
 	case <-time.After(time.Second):
-		t.Fatalf("timed out waiting for ensureSession to resume")
+		t.Fatalf("timeout khi chờ ensureSession tiếp tục")
 	}
 }
 
@@ -352,16 +352,16 @@ func TestHandleSessionClosedClearsStartingSessionWithoutTransportCleanup(t *test
 	select {
 	case <-waitCh:
 	default:
-		t.Fatalf("expected startingSession wait channel to be closed")
+		t.Fatalf("mong đợi wait channel của startingSession được đóng")
 	}
 	if manager.startingSession != nil {
-		t.Fatalf("expected startingSession to be cleared after close callback")
+		t.Fatalf("mong đợi startingSession được xóa sau close callback")
 	}
 	if fakeConn.closeAudioCalls != 0 {
-		t.Fatalf("expected startup close callback to avoid closing audio, got %d", fakeConn.closeAudioCalls)
+		t.Fatalf("mong đợi startup close callback không đóng audio, nhận được %d", fakeConn.closeAudioCalls)
 	}
 	if len(fakeConn.sentCmds) != 0 {
-		t.Fatalf("expected startup close callback to avoid sending mqtt goodbye, got %d commands", len(fakeConn.sentCmds))
+		t.Fatalf("mong đợi startup close callback không gửi mqtt goodbye, nhận được %d command", len(fakeConn.sentCmds))
 	}
 }
 
@@ -385,18 +385,18 @@ func TestShutdownClosesStartingSession(t *testing.T) {
 	manager.startingSession = startingSession
 
 	if err := manager.shutdown(false); err != nil {
-		t.Fatalf("expected shutdown without transport to succeed, got %v", err)
+		t.Fatalf("mong đợi shutdown không kèm transport thành công, nhận được %v", err)
 	}
 	if manager.startingSession != nil {
-		t.Fatalf("expected shutdown to clear startingSession")
+		t.Fatalf("mong đợi shutdown xóa startingSession")
 	}
 	if !startingSession.IsClosing() {
-		t.Fatalf("expected shutdown to close startingSession")
+		t.Fatalf("mong đợi shutdown đóng startingSession")
 	}
 
 	select {
 	case <-waitCh:
 	default:
-		t.Fatalf("expected shutdown to release startingSession waiters")
+		t.Fatalf("mong đợi shutdown giải phóng waiter của startingSession")
 	}
 }

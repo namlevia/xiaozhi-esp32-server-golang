@@ -1,6 +1,6 @@
 package streaming
 
-// SentenceSignalType 表示一段音频前需要发送的句子级控制信号类型。
+// SentenceSignalType noi_dungaudiotrướcnoi_dunggửinoi_dungloại。
 type SentenceSignalType string
 
 const (
@@ -8,14 +8,14 @@ const (
 	SentenceSignalEnd   SentenceSignalType = "sentence_end"
 )
 
-// SentenceSignal 表示与当前音频块绑定的有序句子边界信号。
+// SentenceSignal noi_dunghiện tạiaudionoi_dungvừanoi_dung。
 type SentenceSignal struct {
 	Type SentenceSignalType
 	Text string
 }
 
-// SynthesisEvent 表示一段双流式 TTS 输出。
-// Audio 为当前音频块；SentenceSignals 表示在发送该音频块前需先发送的句子边界信号。
+// SynthesisEvent noi_dungdualstreaming TTS output。
+// Audio làhiện tạiaudionoi_dung；SentenceSignals noi_dunggửinoi_dungaudionoi_dungtrướcnoi_dunggửinoi_dungvừanoi_dung。
 type SynthesisEvent struct {
 	Audio           []byte
 	SentenceSignals []SentenceSignal

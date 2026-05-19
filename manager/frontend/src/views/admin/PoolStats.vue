@@ -3,7 +3,7 @@
     <el-card>
       <template #header>
         <div class="card-header">
-          <span>Thống kê resource pool</span>
+          <span>Thống kê nhóm tài nguyên</span>
           <div class="header-actions">
             <el-button type="primary" size="small" @click="refreshStats">
               <el-icon><Refresh /></el-icon>
@@ -16,7 +16,7 @@
         </div>
       </template>
 
-      <!-- 统计摘要 -->
+      <!-- Tóm tắt thống kê -->
       <el-row :gutter="20" style="margin-bottom: 20px;">
         <el-col :span="6">
           <el-statistic title="Tổng số bản ghi" :value="summary.total_records || 0" />
@@ -43,9 +43,9 @@
 
       <!-- Dữ liệu thống kê mới nhất -->
       <div v-if="viewType === 'latest' && latestStats">
-        <el-divider>Dữ liệu thống kê mới nhất（{{ formatTime(latestStats.timestamp) }}）</el-divider>
+        <el-divider>Dữ liệu thống kê mới nhất ({{ formatTime(latestStats.timestamp) }})</el-divider>
         <el-table :data="formatStatsData(latestStats.stats)" border stripe style="width: 100%" v-if="latestStats.stats">
-          <el-table-column prop="poolKey" label="Resource pool" width="200" />
+          <el-table-column prop="poolKey" label="Nhóm tài nguyên" width="200" />
           <el-table-column prop="total" label="Tổng số tài nguyên" width="120" />
           <el-table-column prop="available" label="Tài nguyên khả dụng" width="120" />
           <el-table-column prop="inUse" label="Đang sử dụng" width="120" />
@@ -88,7 +88,7 @@ let refreshTimer = null
 onMounted(() => {
   loadSummary()
   loadStats()
-  // 每30秒自动Làm mới
+  // Tự động làm mới mỗi 30 giây
   refreshTimer = setInterval(() => {
     loadStats()
   }, 30000)
@@ -100,25 +100,25 @@ onUnmounted(() => {
   }
 })
 
-// 加载统计摘要
+// Tải phần tóm tắt thống kê
 const loadSummary = async () => {
   try {
     const response = await api.get('/admin/pool/stats/summary')
-    // 后端返回格式: { data: { data: {...} } }
+    // Backend trả về theo dạng: { data: { data: {...} } }
     summary.value = response.data?.data || {}
   } catch (error) {
     console.error('Tải tóm tắt thống kê thất bại:', error)
   }
 }
 
-// 加载统计数据
+// Tải dữ liệu thống kê
 const loadStats = async () => {
   try {
     const response = await api.get('/admin/pool/stats?type=latest')
     console.log('Phản hồi dữ liệu thống kê mới nhất:', response)
-    // 后端返回格式: { data: { timestamp: "...", stats: {...} } }
-    // axios 会自动解析，所以 response.data 就是后端返回的 { data: {...} }
-    // 需要再取一层 data
+    // Backend trả về theo dạng: { data: { timestamp: "...", stats: {...} } }
+    // Axios tự phân tích sẵn, nên response.data chính là phần { data: {...} } từ backend
+    // Vì vậy cần lấy thêm một lớp data nữa
     latestStats.value = response.data?.data || response.data || null
     console.log('Dữ liệu mới nhất sau khi phân tích:', latestStats.value)
   } catch (error) {
@@ -127,14 +127,14 @@ const loadStats = async () => {
   }
 }
 
-// Làm mới统计数据
+// Làm mới dữ liệu thống kê
 const refreshStats = () => {
   loadSummary()
   loadStats()
   ElMessage.success('Làm mới thành công')
 }
 
-// 格式化统计数据
+// Định dạng dữ liệu thống kê
 const formatStatsData = (stats) => {
   if (!stats || typeof stats !== 'object') {
     return []
@@ -158,13 +158,13 @@ const formatStatsData = (stats) => {
   return result
 }
 
-// 格式化时间
+// Định dạng thời gian
 const formatTime = (timestamp) => {
   if (!timestamp) {
     return '-'
   }
   const date = new Date(timestamp)
-  return date.toLocaleString('zh-CN', {
+  return date.toLocaleString('vi-VN', {
     year: 'numeric',
     month: '2-digit',
     day: '2-digit',

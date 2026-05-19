@@ -146,13 +146,21 @@ const providerTypeMap = {
   doubao: 'openai',
   siliconflow: 'openai',
   deepseek: 'openai',
+  gemini: 'openai',
+  openrouter: 'openai',
+  '9router': 'openai',
+  groq: 'openai',
+  together: 'openai',
+  mistral: 'openai',
+  xai: 'openai',
+  perplexity: 'openai',
   dify: 'dify',
   coze: 'coze'
 }
 
 const knownProviders = new Set(Object.keys(providerTypeMap))
 
-const editableBaseURLProviders = new Set(['openai', 'ollama', 'azure', 'dify', 'coze'])
+const editableBaseURLProviders = new Set(['openai', 'ollama', 'azure', 'gemini', 'openrouter', '9router', 'groq', 'together', 'mistral', 'xai', 'perplexity', 'dify', 'coze'])
 
 const catalog = {
   openai: {
@@ -192,19 +200,19 @@ const catalog = {
   ollama: {
     quickUrl: 'http://127.0.0.1:11434/v1',
     modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
-    modelHint: 'Ollama 使用本地或私有Model服务，Model列表和地址都允许自定义。',
+    modelHint: 'Ollama dùng dịch vụ model cục bộ hoặc riêng tư; danh sách model và địa chỉ đều có thể tự tùy chỉnh.',
     models: [],
     fallbackThinking: null
   },
   azure: {
     quickUrl: 'https://your-resource-name.openai.azure.com/openai/v1/',
-    modelPlaceholder: '请选择官方Model名或输入自定义部署名',
-    modelHint: 'Azure 这里填写的是 deployment name；列表Trung bình的名称主要用于参考其底层Model能力。',
+    modelPlaceholder: 'Vui lòng chọn tên model chính thức hoặc nhập tên deployment tùy chỉnh',
+    modelHint: 'Với Azure, trường này là tên deployment; tên trong danh sách chủ yếu để tham chiếu năng lực của model nền bên dưới.',
     models: [
       createModel('gpt-5.4', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
       createModel('gpt-5.4-pro', { label: 'Cường độ suy luận', options: openAIReasoningLatestPro }, { request: openAIReasoningRequest }),
       createModel('gpt-5.2', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
-      createModel('gpt-5.2-chat', false, { hint: 'Azure 文档Trung bình的 Chat 型号通常Đạt deployment 名称接入；是否开放取决于区域和配额。' }),
+      createModel('gpt-5.2-chat', false, { hint: 'Các model chat trong tài liệu Azure thường được truy cập qua tên deployment; khả dụng hay không còn phụ thuộc khu vực và quota.' }),
       createModel('gpt-5.3-codex', { label: 'Cường độ suy luận', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
       createModel('gpt-5.2-codex', { label: 'Cường độ suy luận', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
       createModel('gpt-5-mini', { label: 'Cường độ suy luận', options: openAIReasoningStandard }, { request: openAIReasoningRequest }),
@@ -219,13 +227,13 @@ const catalog = {
     fallbackThinking: {
       label: 'Cường độ suy luận',
       options: openAIReasoningCodex,
-      hint: 'Azure 自定义 deployment 未命Tiếng Trung档Model时，会回退 đến 通用 reasoning_effort 配置；具体兼容性以部署Model为准。'
+      hint: 'Nếu deployment Azure tùy chỉnh không nằm trong danh sách model đã biết, hệ thống sẽ fallback về cấu hình reasoning_effort chung; khả năng tương thích thực tế phụ thuộc model được triển khai.'
     }
   },
   anthropic: {
     quickUrl: 'https://api.anthropic.com/v1/',
     modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
-    modelHint: 'Mặc định优先使用官方稳定别名；若需要固定版本或回归Kiểm tra，可改填带日期的精确Model ID。',
+    modelHint: 'Mặc định nên ưu tiên alias ổn định chính thức; nếu cần cố định phiên bản hoặc kiểm tra hồi quy, hãy nhập model ID chính xác có kèm ngày.',
     models: [
       createModel('claude-opus-4-6', anthropicAdaptiveThinking),
       createModel('claude-sonnet-4-6', anthropicAdaptiveThinking),
@@ -237,13 +245,13 @@ const catalog = {
     ],
     fallbackThinking: {
       ...anthropicAdaptiveThinking,
-      hint: '自定义Model未命Tiếng Trung档内列表。若使用Suy luận thủ công，需要显式填写 budget_tokens；Adaptive 请仅在文档确认支持的Model上使用。'
+      hint: 'Model tùy chỉnh không nằm trong danh sách tài liệu hiện có. Nếu dùng chế độ suy luận thủ công, bạn cần điền rõ budget_tokens; chỉ dùng Adaptive với các model đã được tài liệu xác nhận hỗ trợ.'
     }
   },
   zhipu: {
     quickUrl: 'https://open.bigmodel.cn/api/paas/v4',
     modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
-    modelHint: '智谱文档支持Đạt thinking.type 和 clear_thinking 控制Suy luậnChế độ。',
+    modelHint: 'Tài liệu Zhipu hỗ trợ dùng thinking.type và clear_thinking để điều khiển chế độ suy luận.',
     models: [
       createModel('glm-5', zhipuThinkingConfig),
       createModel('glm-4.7', zhipuThinkingConfig),
@@ -258,13 +266,13 @@ const catalog = {
     ],
     fallbackThinking: {
       ...zhipuThinkingConfig,
-      hint: '自定义Model未命Tiếng Trung档内列表，已回退 đến 通用 thinking.type / clear_thinking 配置。'
+      hint: 'Model tùy chỉnh không nằm trong danh sách tài liệu hiện có, nên đã fallback về cấu hình thinking.type / clear_thinking chung.'
     }
   },
   aliyun: {
     quickUrl: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
     modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
-    modelHint: 'Mặc định优先使用官方稳定别名；如果你要锁定具体版本，再手动填写带日期或小版本后缀的Model ID。',
+    modelHint: 'Mặc định nên ưu tiên alias ổn định chính thức; nếu muốn khóa vào phiên bản cụ thể, hãy nhập model ID có kèm ngày hoặc hậu tố tiểu phiên bản.',
     models: [
       createModel('qwen-plus-latest', aliyunThinkingConfig),
       createModel('qwen-turbo-latest', aliyunThinkingConfig),
@@ -277,19 +285,19 @@ const catalog = {
       createModel('glm-4.5', aliyunThinkingConfig),
       createModel('glm-4.5-air', aliyunThinkingConfig),
       createModel('kimi-k2-thinking', aliyunThinkingConfig),
-      createModel('qwen3-235b-a22b-thinking-2507', aliyunThinkingConfig, { label: 'qwen3-235b-a22b-thinking-2507（版本化）' }),
-      createModel('qwen3-30b-a3b-thinking-2507', aliyunThinkingConfig, { label: 'qwen3-30b-a3b-thinking-2507（版本化）' }),
-      createModel('kimi/kimi-k2.5', aliyunThinkingConfig, { label: 'kimi/kimi-k2.5（版本化）' })
+      createModel('qwen3-235b-a22b-thinking-2507', aliyunThinkingConfig, { label: 'qwen3-235b-a22b-thinking-2507 (bản phiên bản)' }),
+      createModel('qwen3-30b-a3b-thinking-2507', aliyunThinkingConfig, { label: 'qwen3-30b-a3b-thinking-2507 (bản phiên bản)' }),
+      createModel('kimi/kimi-k2.5', aliyunThinkingConfig, { label: 'kimi/kimi-k2.5 (bản phiên bản)' })
     ],
     fallbackThinking: {
       ...aliyunThinkingConfig,
-      hint: '自定义Model未命Tiếng Trung档内列表。若Model支持 thinking_budget，可按文档填写；留空时不会传该字段。'
+      hint: 'Model tùy chỉnh không nằm trong danh sách tài liệu hiện có. Nếu model hỗ trợ thinking_budget thì có thể điền theo tài liệu; để trống sẽ không gửi trường này.'
     }
   },
   doubao: {
     quickUrl: 'https://ark.cn-beijing.volces.com/api/v3',
-    modelPlaceholder: '请选择或输入Model ID（通常带版本后缀）',
-    modelHint: '豆包优先填写官方真实 Model ID。当前未确认有稳定别名可通用替代，建议以控制台或Model列表Trung bình的 Model ID 为准。',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập Model ID, thường có kèm hậu tố phiên bản',
+    modelHint: 'Với Doubao, nên ưu tiên dùng đúng Model ID chính thức. Hiện chưa xác nhận có alias ổn định dùng chung, nên hãy lấy Model ID từ console hoặc danh sách model chính thức.',
     models: [
       createModel('doubao-seed-2-0-pro-260215', { label: 'Cường độ suy luận', options: doubaoReasoningOptions }, { label: 'Doubao Seed 2.0 Pro (doubao-seed-2-0-pro-260215)' }),
       createModel('doubao-seed-2-0-lite-260215', { label: 'Cường độ suy luận', options: doubaoReasoningOptions }, { label: 'Doubao Seed 2.0 Lite (doubao-seed-2-0-lite-260215)' }),
@@ -305,7 +313,7 @@ const catalog = {
   siliconflow: {
     quickUrl: 'https://api.siliconflow.cn/v1',
     modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
-    modelHint: 'SiliconFlow 文档直接列出了 enable_thinking 支持Model；仅对文档列出的Model展示预算配置。',
+    modelHint: 'Tài liệu SiliconFlow liệt kê trực tiếp các model hỗ trợ enable_thinking; chỉ những model có trong tài liệu mới hiển thị cấu hình ngân sách suy luận.',
     models: [
       createModel('Pro/zai-org/GLM-5', siliconflowThinkingConfig),
       createModel('Pro/zai-org/GLM-4.7', siliconflowThinkingConfig),
@@ -329,26 +337,140 @@ const catalog = {
     ],
     fallbackThinking: {
       ...siliconflowThinkingConfig,
-      hint: '自定义Model未命Tiếng Trung档内列表。若Model支持 enable_thinking / thinking_budget，可按文档填写；留空时不会传 thinking_budget。'
+      hint: 'Model tùy chỉnh không nằm trong danh sách tài liệu hiện có. Nếu model hỗ trợ enable_thinking hoặc thinking_budget thì có thể điền theo tài liệu; để trống sẽ không gửi thinking_budget.'
     }
   },
   deepseek: {
     quickUrl: 'https://api.deepseek.com/v1',
     modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model',
-    modelHint: '官方 DeepSeek Đạt选择不同Model切换Suy luậnChế độ：deepseek-chat 为非Suy luận，deepseek-reasoner 为Suy luận。',
+    modelHint: 'Với DeepSeek, việc chọn model sẽ quyết định chế độ suy luận: deepseek-chat là không suy luận, còn deepseek-reasoner là suy luận.',
     models: [
       createModel('deepseek-chat', false, {
-        hint: 'deepseek-chat 是非Suy luậnModel，不需要额外 thinking 参数。'
+        hint: 'deepseek-chat là model không suy luận nên không cần tham số thinking bổ sung.'
       }),
       createModel('deepseek-reasoner', false, {
-        hint: 'deepseek-reasoner 已内置Suy luậnChế độ，不需要额外 thinking 参数。'
+        hint: 'deepseek-reasoner đã có sẵn chế độ suy luận nên không cần tham số thinking bổ sung.'
       })
     ],
     fallbackThinking: {
       label: 'Suy luận sâu',
       options: booleanThinkingOptions,
-      hint: '官方 DeepSeek 推荐ĐạtModel名切换Suy luậnChế độ。自定义代理若额外支持 thinking.type，可在这里Bật兼容开关。'
+      hint: 'DeepSeek chính thức khuyến nghị chuyển chế độ suy luận bằng cách đổi tên model. Nếu proxy tùy chỉnh còn hỗ trợ thinking.type, bạn có thể bật công tắc tương thích tại đây.'
     }
+  },
+  gemini: {
+    quickUrl: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model Gemini',
+    modelHint: 'Gemini hỗ trợ endpoint tương thích OpenAI; nếu dùng endpoint khác, hãy chỉnh Base URL theo tài liệu Google AI Studio.',
+    models: [
+      createModel('gemini-3-pro', booleanThinkingOptions),
+      createModel('gemini-3-flash', booleanThinkingOptions),
+      createModel('gemini-3-flash-lite', booleanThinkingOptions),
+      createModel('gemini-2.5-pro', booleanThinkingOptions),
+      createModel('gemini-2.5-flash', booleanThinkingOptions),
+      createModel('gemini-2.5-flash-lite', booleanThinkingOptions),
+      createModel('gemini-2.0-flash', false)
+    ],
+    fallbackThinking: {
+      label: 'Suy luận sâu',
+      options: booleanThinkingOptions,
+      hint: 'Model Gemini tùy chỉnh có thể không hỗ trợ thinking; hãy bật theo đúng tài liệu model đang dùng.'
+    }
+  },
+  openrouter: {
+    quickUrl: 'https://openrouter.ai/api/v1',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập model dạng nhà-cung-cấp/model',
+    modelHint: 'OpenRouter gom nhiều nhà cung cấp qua API tương thích OpenAI; tên model thường có dạng openai/gpt-*, anthropic/claude-*, google/gemini-*.',
+    models: [
+      createModel('openai/gpt-5', false),
+      createModel('anthropic/claude-sonnet-4.6', false),
+      createModel('google/gemini-2.5-pro', false),
+      createModel('deepseek/deepseek-chat', false),
+      createModel('meta-llama/llama-3.3-70b-instruct', false)
+    ],
+    fallbackThinking: null
+  },
+  '9router': {
+    quickUrl: 'https://api.9router.com/v1',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập model 9Router',
+    modelHint: '9Router dùng API tương thích OpenAI; nếu endpoint của anh khác thì sửa lại Base URL theo dashboard 9Router.',
+    models: [
+      createModel('cx/gpt-5.5', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
+      createModel('cx/gpt-5.5-pro', { label: 'Cường độ suy luận', options: openAIReasoningLatestPro }, { request: openAIReasoningRequest }),
+      createModel('cx/gpt-5.5-mini', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
+      createModel('cx/gpt-5.4', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
+      createModel('cx/gpt-5.4-pro', { label: 'Cường độ suy luận', options: openAIReasoningLatestPro }, { request: openAIReasoningRequest }),
+      createModel('cx/gpt-5.4-mini', { label: 'Cường độ suy luận', options: openAIReasoningLatest }, { request: openAIReasoningRequest }),
+      createModel('cx/gpt-5.3-codex', { label: 'Cường độ suy luận', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
+      createModel('cx/gpt-5.2-codex', { label: 'Cường độ suy luận', options: openAIReasoningCodexMax }, { request: openAIReasoningRequest }),
+      createModel('cx/gpt-5.1-codex', { label: 'Cường độ suy luận', options: openAIReasoningCodex }, { request: openAIReasoningRequest }),
+      createModel('cx/gpt-5-codex', { label: 'Cường độ suy luận', options: openAIReasoningLegacy }, { request: openAIReasoningRequest })
+    ],
+    fallbackThinking: {
+      label: 'Cường độ suy luận',
+      options: openAIReasoningLatest,
+      hint: 'Model 9Router tùy chỉnh đang dùng cấu hình reasoning_effort kiểu OpenAI-compatible; hiệu lực phụ thuộc gateway/model thực tế.'
+    }
+  },
+  groq: {
+    quickUrl: 'https://api.groq.com/openai/v1',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model Groq',
+    modelHint: 'Groq phù hợp phản hồi nhanh với các model mở như Llama, Mixtral, Gemma.',
+    models: [
+      createModel('llama-3.3-70b-versatile', false),
+      createModel('llama-3.1-8b-instant', false),
+      createModel('gemma2-9b-it', false),
+      createModel('mixtral-8x7b-32768', false)
+    ],
+    fallbackThinking: null
+  },
+  together: {
+    quickUrl: 'https://api.together.xyz/v1',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model Together AI',
+    modelHint: 'Together AI cung cấp nhiều model mở qua API tương thích OpenAI.',
+    models: [
+      createModel('meta-llama/Llama-3.3-70B-Instruct-Turbo', false),
+      createModel('meta-llama/Meta-Llama-3.1-8B-Instruct-Turbo', false),
+      createModel('mistralai/Mixtral-8x7B-Instruct-v0.1', false),
+      createModel('Qwen/Qwen2.5-72B-Instruct-Turbo', false)
+    ],
+    fallbackThinking: null
+  },
+  mistral: {
+    quickUrl: 'https://api.mistral.ai/v1',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model Mistral',
+    modelHint: 'Mistral API tương thích OpenAI cho chat completions với các model Mistral.',
+    models: [
+      createModel('mistral-large-latest', false),
+      createModel('mistral-medium-latest', false),
+      createModel('mistral-small-latest', false),
+      createModel('open-mistral-nemo', false)
+    ],
+    fallbackThinking: null
+  },
+  xai: {
+    quickUrl: 'https://api.x.ai/v1',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model xAI',
+    modelHint: 'xAI dùng API tương thích OpenAI cho dòng Grok.',
+    models: [
+      createModel('grok-4', false),
+      createModel('grok-3', false),
+      createModel('grok-3-mini', false),
+      createModel('grok-2-vision-1212', false)
+    ],
+    fallbackThinking: null
+  },
+  perplexity: {
+    quickUrl: 'https://api.perplexity.ai',
+    modelPlaceholder: 'Vui lòng chọn hoặc nhập tên model Perplexity',
+    modelHint: 'Perplexity phù hợp các tác vụ cần tìm kiếm web/câu trả lời có nguồn; API tương thích OpenAI.',
+    models: [
+      createModel('sonar', false),
+      createModel('sonar-pro', false),
+      createModel('sonar-reasoning', false),
+      createModel('sonar-reasoning-pro', false)
+    ],
+    fallbackThinking: null
   }
 }
 
@@ -401,7 +523,7 @@ export function getProviderModelHint(provider) {
 
 export function getProviderModelFieldLabel(provider) {
   if (provider === 'azure') {
-    return '部署名称'
+    return 'Tên deployment'
   }
   if (provider === 'doubao') {
     return 'Model ID'

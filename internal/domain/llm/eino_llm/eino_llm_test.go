@@ -116,12 +116,12 @@ func TestEinoLLMProvider_WithMaxTokens(t *testing.T) {
 	provider, err := NewEinoLLMProvider(config)
 	require.NoError(t, err)
 
-	// 测试链式调用
+	// Test chain call
 	newProvider := provider.WithMaxTokens(1000)
 
-	assert.NotEqual(t, provider, newProvider)    // 应该是不同的实例
-	assert.Equal(t, 500, provider.maxTokens)     // 原实例不变
-	assert.Equal(t, 1000, newProvider.maxTokens) // 新实例已更新
+	assert.NotEqual(t, provider, newProvider)    // Phải là instance khác nhau
+	assert.Equal(t, 500, provider.maxTokens)     // Instance gốc không đổi
+	assert.Equal(t, 1000, newProvider.maxTokens) // Instance mới đã update
 }
 
 func TestEinoLLMProvider_WithStreamable(t *testing.T) {
@@ -135,12 +135,12 @@ func TestEinoLLMProvider_WithStreamable(t *testing.T) {
 	provider, err := NewEinoLLMProvider(config)
 	require.NoError(t, err)
 
-	// 测试链式调用
+	// Test chain call
 	newProvider := provider.WithStreamable(false)
 
-	assert.NotEqual(t, provider, newProvider)      // 应该是不同的实例
-	assert.Equal(t, true, provider.streamable)     // 原实例不变
-	assert.Equal(t, false, newProvider.streamable) // 新实例已更新
+	assert.NotEqual(t, provider, newProvider)      // Phải là instance khác nhau
+	assert.Equal(t, true, provider.streamable)     // Instance gốc không đổi
+	assert.Equal(t, false, newProvider.streamable) // Instance mới đã update
 }
 
 func TestEinoLLMProvider_GetChatModel(t *testing.T) {
@@ -174,43 +174,43 @@ func TestEinoLLMProvider_GetProviderType(t *testing.T) {
 
 func TestEinoLLMProvider_ResponseWithEinoMessages(t *testing.T) {
 	config := map[string]interface{}{
-		"type":       "openai", // 使用openai类型
+		"type":       "openai", // Dùng type openai
 		"model_name": "gpt-3.5-turbo",
 		"api_key":    "test-key",
-		"streamable": false, // 使用非流式以便测试
+		"streamable": false, // Dùng non-streaming để tiện test
 	}
 
 	provider, err := NewEinoLLMProvider(config)
 	require.NoError(t, err)
 
-	// 使用Eino原生消息类型
+	// nội dungEinonội dung
 	messages := []*schema.Message{
 		{
 			Role:    schema.System,
-			Content: "你是一个助手",
+			Content: "nội dung",
 		},
 		{
 			Role:    schema.User,
-			Content: "你好",
+			Content: "nội dung",
 		},
 	}
 
-	// 测试Response方法 - 注意：这将尝试真实API调用
-	// 在没有真实API密钥的情况下，这会失败，但我们主要测试结构
+	// nội dungResponsenội dung - nội dung：nội dungAPInội dung
+	// nội dungAPInội dung，nội dung，nội dung
 	responseChan := provider.Response("test_session", messages)
 	var responses []string
 	for content := range responseChan {
 		responses = append(responses, content)
-		break // 只获取第一个响应以避免长时间等待
+		break // nội dung
 	}
 
-	// 对于真实API调用，我们主要验证不会panic
+	// nội dungAPInội dung，nội dungpanic
 	// assert.Len(t, responses, 1)
 }
 
 func TestEinoLLMProvider_ResponseWithFunctionsEinoTypes(t *testing.T) {
 	config := map[string]interface{}{
-		"type":       "openai", // 使用openai类型
+		"type":       "openai", // Dùng type openai
 		"model_name": "gpt-3.5-turbo",
 		"api_key":    "test-key",
 		"streamable": false,
@@ -219,35 +219,35 @@ func TestEinoLLMProvider_ResponseWithFunctionsEinoTypes(t *testing.T) {
 	provider, err := NewEinoLLMProvider(config)
 	require.NoError(t, err)
 
-	// 使用Eino原生消息类型
+	// nội dungEinonội dung
 	messages := []*schema.Message{
 		{
 			Role:    schema.User,
-			Content: "今天北京的天气如何？",
+			Content: "nội dung？",
 		},
 	}
 
-	// 使用Eino原生工具类型
+	// nội dungEinonội dung
 	tools := []*schema.ToolInfo{
 		{
 			Name:        "get_weather",
 			ParamsOneOf: &schema.ParamsOneOf{
-				// 简化的工具参数定义
+				// nội dung
 			},
 		},
 	}
 
-	// 测试ResponseWithFunctions方法 - 仅验证结构
+	// nội dungResponseWithFunctionsnội dung - nội dung
 	responseChan := provider.ResponseWithFunctions("test_session", messages, tools)
 	go func() {
 		for range responseChan {
-			// 消费响应但不验证内容
+			// nội dung
 		}
 	}()
 }
 
 func TestEinoConfig_Structure(t *testing.T) {
-	// 测试配置结构体
+	// nội dung
 	config := EinoConfig{
 		Type:       "openai",
 		ModelName:  "gpt-4",
@@ -267,10 +267,10 @@ func TestEinoConfig_Structure(t *testing.T) {
 	assert.Contains(t, config.Parameters, "temperature")
 }
 
-// BenchmarkEinoLLMProvider_Response 性能基准测试
+// BenchmarkEinoLLMProvider_Response nội dung
 func BenchmarkEinoLLMProvider_Response(b *testing.B) {
 	config := map[string]interface{}{
-		"type":       "openai", // 使用openai类型
+		"type":       "openai", // Dùng type openai
 		"model_name": "gpt-3.5-turbo",
 		"api_key":    "test-key",
 	}
@@ -279,26 +279,26 @@ func BenchmarkEinoLLMProvider_Response(b *testing.B) {
 	messages := []*schema.Message{
 		{
 			Role:    schema.User,
-			Content: "这是一个性能测试的内容",
+			Content: "nội dung",
 		},
 	}
 
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		responseChan := provider.Response("bench_session", messages)
-		// 消费响应以完成调用
+		// nội dung
 		go func() {
 			for range responseChan {
-				// 消费响应
+				// nội dung
 			}
 		}()
 	}
 }
 
-// BenchmarkEinoLLMProvider_WithMaxTokens 链式调用性能测试
+// BenchmarkEinoLLMProvider_WithMaxTokens nội dung
 func BenchmarkEinoLLMProvider_WithMaxTokens(b *testing.B) {
 	config := map[string]interface{}{
-		"type":       "openai", // 使用openai类型
+		"type":       "openai", // Dùng type openai
 		"model_name": "gpt-3.5-turbo",
 		"api_key":    "test-key",
 	}
@@ -311,7 +311,7 @@ func BenchmarkEinoLLMProvider_WithMaxTokens(b *testing.B) {
 	}
 }
 
-// TestExampleConfig 测试示例配置
+// TestExampleConfig nội dung
 func TestExampleConfig(t *testing.T) {
 	assert.Equal(t, "eino_llm", ExampleConfig["type"])
 	assert.Equal(t, "gpt-3.5-turbo", ExampleConfig["model_name"])
@@ -319,58 +319,58 @@ func TestExampleConfig(t *testing.T) {
 	assert.Equal(t, true, ExampleConfig["streamable"])
 }
 
-// TestEinoLLMProvider_FullWorkflow 完整工作流测试（仅结构验证，不涉及真实API）
+// TestEinoLLMProvider_FullWorkflow nội dung（nội dung，nội dungAPI）
 func TestEinoLLMProvider_FullWorkflow(t *testing.T) {
 	config := map[string]interface{}{
-		"type":       "openai", // 使用openai类型
+		"type":       "openai", // Dùng type openai
 		"model_name": "gpt-3.5-turbo",
 		"api_key":    "test-key",
 		"max_tokens": 500,
 		"streamable": true,
 	}
 
-	// 1. 创建提供者
+	// 1. nội dung
 	provider, err := NewEinoLLMProvider(config)
 	require.NoError(t, err)
 	assert.NotNil(t, provider)
 
-	// 2. 测试配置链式调用
+	// 2. nội dung
 	enhancedProvider := provider.WithMaxTokens(1000).WithStreamable(false)
 	assert.Equal(t, 1000, enhancedProvider.maxTokens)
 	assert.Equal(t, false, enhancedProvider.streamable)
 
-	// 3. 测试模型信息获取
+	// 3. nội dung
 	info := enhancedProvider.GetModelInfo()
 	assert.Equal(t, "eino", info["framework"])
 	assert.Equal(t, "eino", info["type"])
 	assert.Equal(t, "openai", info["provider_type"])
 
-	// 4. 测试底层ChatModel访问
+	// 4. nội dungChatModelnội dung
 	chatModel := enhancedProvider.GetChatModel()
 	assert.NotNil(t, chatModel)
 
-	// 5. 测试提供者类型
+	// 5. nội dung
 	providerType := enhancedProvider.GetProviderType()
 	assert.Equal(t, "openai", providerType)
 
-	// 6. 测试结构验证（不调用真实API）
+	// 6. nội dung（nội dungAPI）
 	messages := []*schema.Message{
 		{
 			Role:    schema.User,
-			Content: "测试消息",
+			Content: "nội dung",
 		},
 	}
 
-	// 仅验证函数调用不会panic，不验证响应内容
+	// nội dungpanic，nội dung
 	responseChan := provider.Response("full_workflow_test", messages)
 	go func() {
 		for range responseChan {
-			// 消费响应但不验证内容
+			// nội dung
 		}
 	}()
 }
 
-// TestMultipleProviderTypes 测试多种提供者类型
+// TestMultipleProviderTypes nội dung
 func TestMultipleProviderTypes(t *testing.T) {
 	testCases := []struct {
 		name         string
@@ -407,19 +407,19 @@ func TestMultipleProviderTypes(t *testing.T) {
 			assert.Equal(t, tc.providerType, provider.GetProviderType())
 			assert.Equal(t, tc.modelName, provider.modelName)
 
-			// 测试基本结构
+			// nội dung
 			messages := []*schema.Message{
 				{
 					Role:    schema.User,
-					Content: fmt.Sprintf("测试%s提供者", tc.providerType),
+					Content: fmt.Sprintf("nội dung%snội dung", tc.providerType),
 				},
 			}
 
-			// 仅验证函数调用不会panic
+			// nội dungpanic
 			responseChan := provider.Response("multi_provider_test", messages)
 			go func() {
 				for range responseChan {
-					// 消费响应
+					// nội dung
 				}
 			}()
 		})

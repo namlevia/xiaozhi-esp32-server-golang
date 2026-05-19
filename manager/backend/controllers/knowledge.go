@@ -405,7 +405,7 @@ func isWeknoraLLMModel(model knowledgeProviderModelOption) bool {
 	if strings.Contains(corpus, "gpt") || strings.Contains(corpus, "qwen") || strings.Contains(corpus, "deepseek") || strings.Contains(corpus, "glm") || strings.Contains(corpus, "claude") || strings.Contains(corpus, "gemini") {
 		return true
 	}
-	// 类型为空时做宽松兜底，保留可选择性
+	// Khi type trống, fallback linh hoạt để vẫn giữ khả năng chọn.
 	return strings.TrimSpace(model.Type) == ""
 }
 
@@ -465,7 +465,7 @@ func buildKnowledgeGlobalConfigData(db *gorm.DB) gin.H {
 
 	var configs []models.Config
 	if err := db.Where("type = ? AND enabled = ?", "knowledge_search", true).Find(&configs).Error; err != nil {
-		log.Printf("[Knowledge] 获取知识库全局配置失败: %v", err)
+		log.Printf("[Knowledge] Lấy cấu hình toàn cục kho tri thức thất bại: %v", err)
 		return fallback
 	}
 
@@ -613,7 +613,7 @@ func (uc *UserController) CreateKnowledgeBase(c *gin.Context) {
 		_ = uc.DB.Where("id = ?", item.ID).First(&item).Error
 		c.JSON(http.StatusCreated, gin.H{
 			"data":       item,
-			"warning":    "知识库已保存，但同步任务入队失败",
+			"warning":    "Kho tri thức đã được lưu, nhưng đưa tác vụ đồng bộ vào hàng đợi thất bại",
 			"sync_error": err.Error(),
 		})
 		return
@@ -683,7 +683,7 @@ func (uc *UserController) UpdateKnowledgeBase(c *gin.Context) {
 		_ = uc.DB.Where("id = ?", item.ID).First(&item).Error
 		c.JSON(http.StatusOK, gin.H{
 			"data":       item,
-			"warning":    "知识库已更新，但同步任务入队失败",
+			"warning":    "Kho tri thức đã được cập nhật, nhưng đưa tác vụ đồng bộ vào hàng đợi thất bại",
 			"sync_error": err.Error(),
 		})
 		return
@@ -727,7 +727,7 @@ func (uc *UserController) DeleteKnowledgeBase(c *gin.Context) {
 		if err := enqueueKnowledgeDocumentSyncDelete(uc.DB, item, doc); err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"message":    "Xóa thành công",
-				"warning":    "本地Xóa thành công，但部分知识库文档清理任务入队失败",
+				"warning":    "Đã xóa cục bộ thành công, nhưng một phần tác vụ dọn tài liệu kho tri thức vào hàng đợi thất bại",
 				"sync_error": err.Error(),
 			})
 			return
@@ -738,7 +738,7 @@ func (uc *UserController) DeleteKnowledgeBase(c *gin.Context) {
 		if err := enqueueKnowledgeSyncDelete(uc.DB, item); err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"message":    "Xóa thành công",
-				"warning":    "本地Xóa thành công，但知识库清理任务入队失败",
+				"warning":    "Đã xóa cục bộ thành công, nhưng đưa tác vụ dọn kho tri thức vào hàng đợi thất bại",
 				"sync_error": err.Error(),
 			})
 			return
@@ -949,7 +949,7 @@ func (uc *UserController) TestKnowledgeBaseSearch(c *gin.Context) {
 	)
 	if len(hits) == 0 {
 		log.Printf(
-			"[KnowledgeTest] EmptyResultHint kb_id=%d dataset_id=%s provider=%s hint=请优先检查文档是否已同步成功且外部平台索引已完成，再检查阈值和query关键词",
+			"[KnowledgeTest] EmptyResultHint kb_id=%d dataset_id=%s provider=%s hint=Vui lòng kiểm tra trước tài liệu đã đồng bộ thành công và nền tảng bên ngoài đã hoàn tất index, sau đó kiểm tra ngưỡng và từ khóa query",
 			kb.ID,
 			datasetID,
 			provider,
@@ -1026,7 +1026,7 @@ func (uc *UserController) CreateKnowledgeBaseDocument(c *gin.Context) {
 	if enqueueErr != nil {
 		c.JSON(http.StatusCreated, gin.H{
 			"data":       doc,
-			"warning":    "文档已保存，但同步任务入队失败",
+			"warning":    "Tài liệu đã được lưu, nhưng đưa tác vụ đồng bộ vào hàng đợi thất bại",
 			"sync_error": enqueueErr.Error(),
 		})
 		return
@@ -1082,7 +1082,7 @@ func (uc *UserController) CreateKnowledgeBaseDocumentByUpload(c *gin.Context) {
 	if enqueueErr != nil {
 		c.JSON(http.StatusCreated, gin.H{
 			"data":       doc,
-			"warning":    "文件已上传并创建文档，但同步任务入队失败",
+			"warning":    "File đã được upload và tạo tài liệu, nhưng đưa tác vụ đồng bộ vào hàng đợi thất bại",
 			"sync_error": enqueueErr.Error(),
 		})
 		return
@@ -1098,7 +1098,7 @@ func (uc *UserController) createKnowledgeBaseDocumentRecord(kbID uint, name, con
 		SyncStatus:      knowledgeSyncStatusPending,
 	}
 	if doc.Name == "" {
-		doc.Name = "上传文档"
+		doc.Name = "Tài liệu upload"
 	}
 	if err := uc.DB.Create(&doc).Error; err != nil {
 		return doc, nil, err
@@ -1165,7 +1165,7 @@ func (uc *UserController) UpdateKnowledgeBaseDocument(c *gin.Context) {
 		_ = uc.DB.Where("id = ?", doc.ID).First(&doc).Error
 		c.JSON(http.StatusOK, gin.H{
 			"data":       doc,
-			"warning":    "文档已更新，但同步任务入队失败",
+			"warning":    "Tài liệu đã được cập nhật, nhưng đưa tác vụ đồng bộ vào hàng đợi thất bại",
 			"sync_error": err.Error(),
 		})
 		return
@@ -1200,7 +1200,7 @@ func (uc *UserController) DeleteKnowledgeBaseDocument(c *gin.Context) {
 	if err := enqueueKnowledgeDocumentSyncDelete(uc.DB, *kb, doc); err != nil {
 		c.JSON(http.StatusOK, gin.H{
 			"message":    "Xóa thành công",
-			"warning":    "本地Xóa thành công，但知识库文档清理任务入队失败",
+			"warning":    "Đã xóa cục bộ thành công, nhưng đưa tác vụ dọn tài liệu kho tri thức vào hàng đợi thất bại",
 			"sync_error": err.Error(),
 		})
 		return
@@ -1339,7 +1339,7 @@ func (uc *UserController) assertAgentOwnership(userID uint, agentID uint) error 
 		return err
 	}
 	if count == 0 {
-		return fmt.Errorf("智能体不存在或不属于当前用户")
+		return fmt.Errorf("Trợ lý không tồn tại hoặc không thuộc người dùng hiện tại")
 	}
 	return nil
 }
@@ -1354,7 +1354,7 @@ func (uc *UserController) validateKnowledgeBaseOwnership(userID uint, knowledgeB
 		return err
 	}
 	if count != int64(len(uniqueIDs)) {
-		return fmt.Errorf("包含无效或越权的知识库ID")
+		return fmt.Errorf("Chứa ID kho tri thức không hợp lệ hoặc vượt quyền")
 	}
 	return nil
 }
@@ -1400,11 +1400,11 @@ func buildKnowledgeRetrievalThreshold(inherit *bool, value *float64) (*float64, 
 		return nil, nil
 	}
 	if value == nil {
-		return nil, fmt.Errorf("请填写自定义检索阈值（0~1）")
+		return nil, fmt.Errorf("Vui lòng nhập ngưỡng truy xuất tùy chỉnh (0~1)")
 	}
 	v := *value
 	if v < 0 || v > 1 {
-		return nil, fmt.Errorf("检索阈值必须在0到1之间")
+		return nil, fmt.Errorf("Ngưỡng truy xuất phải nằm trong khoảng 0 đến 1")
 	}
 	ret := v
 	return &ret, nil
@@ -1489,7 +1489,7 @@ func queryKnowledgeTestByDify(
 	}
 	statusCode, bodyBytes, err := doDifyJSONRequest(client, http.MethodPost, buildDifyURL(cfg.BaseURL, path), cfg.APIKey, payload, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("Dify检索失败(dataset_id=%s): %w", datasetID, err)
+		return nil, fmt.Errorf("Truy xuất Dify thất bại(dataset_id=%s): %w", datasetID, err)
 	}
 
 	title := strings.TrimSpace(datasetName)
@@ -1593,7 +1593,7 @@ func queryKnowledgeTestByRagflow(
 	}
 	statusCode, bodyBytes, err := doRagflowJSONRequest(client, http.MethodPost, buildRagflowURL(cfg.BaseURL, "/retrieval"), cfg.APIKey, payload, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("RAGFlow检索失败(dataset_id=%s): %w", datasetID, err)
+		return nil, fmt.Errorf("Truy xuất RAGFlow thất bại(dataset_id=%s): %w", datasetID, err)
 	}
 
 	title := strings.TrimSpace(datasetName)
@@ -1688,7 +1688,7 @@ func queryKnowledgeTestByWeknora(
 	}
 	statusCode, bodyBytes, err := doWeknoraJSONRequest(client, http.MethodPost, buildWeknoraURL(cfg.BaseURL, "/knowledge-search"), cfg.APIKey, payload, &resp)
 	if err != nil {
-		return nil, fmt.Errorf("Weknora检索失败(dataset_id=%s): %w", datasetID, err)
+		return nil, fmt.Errorf("Truy xuất Weknora thất bại(dataset_id=%s): %w", datasetID, err)
 	}
 
 	title := strings.TrimSpace(datasetName)
@@ -1815,37 +1815,37 @@ func parseKnowledgeSearchBool(input interface{}, defaultValue bool) bool {
 
 func readKnowledgeUploadFileData(provider string, fileHeader *multipart.FileHeader) (string, []byte, error) {
 	if fileHeader == nil {
-		return "", nil, fmt.Errorf("上传文件不能为空")
+		return "", nil, fmt.Errorf("File upload không được để trống")
 	}
 	if fileHeader.Size > knowledgeDocumentUploadMaxBytes {
-		return "", nil, fmt.Errorf("文件过大，最大支持 %dMB", knowledgeDocumentUploadMaxBytes/(1024*1024))
+		return "", nil, fmt.Errorf("File quá lớn, hỗ trợ tối đa %dMB", knowledgeDocumentUploadMaxBytes/(1024*1024))
 	}
 
 	fileName := sanitizeKnowledgeUploadFileName(fileHeader.Filename)
 	ext := strings.ToLower(filepath.Ext(fileName))
 	allowedExtMap, supportedText := getAllowedKnowledgeUploadExtByProvider(provider)
 	if ext == "" {
-		return "", nil, fmt.Errorf("文件类型不支持，缺少扩展名，%s支持格式: %s", strings.ToUpper(provider), supportedText)
+		return "", nil, fmt.Errorf("Loại file không được hỗ trợ, thiếu phần mở rộng; %s hỗ trợ định dạng: %s", strings.ToUpper(provider), supportedText)
 	}
 	if _, ok := allowedExtMap[ext]; !ok {
-		return "", nil, fmt.Errorf("文件类型不支持，%s支持格式: %s", strings.ToUpper(provider), supportedText)
+		return "", nil, fmt.Errorf("Loại file không được hỗ trợ; %s hỗ trợ định dạng: %s", strings.ToUpper(provider), supportedText)
 	}
 
 	f, err := fileHeader.Open()
 	if err != nil {
-		return "", nil, fmt.Errorf("读取上传文件失败: %w", err)
+		return "", nil, fmt.Errorf("Đọc file upload thất bại: %w", err)
 	}
 	defer f.Close()
 
 	data, err := io.ReadAll(io.LimitReader(f, knowledgeDocumentUploadMaxBytes+1))
 	if err != nil {
-		return "", nil, fmt.Errorf("读取上传文件失败: %w", err)
+		return "", nil, fmt.Errorf("Đọc file upload thất bại: %w", err)
 	}
 	if int64(len(data)) > knowledgeDocumentUploadMaxBytes {
-		return "", nil, fmt.Errorf("文件过大，最大支持 %dMB", knowledgeDocumentUploadMaxBytes/(1024*1024))
+		return "", nil, fmt.Errorf("File quá lớn, hỗ trợ tối đa %dMB", knowledgeDocumentUploadMaxBytes/(1024*1024))
 	}
 	if len(data) == 0 {
-		return "", nil, fmt.Errorf("上传文件为空")
+		return "", nil, fmt.Errorf("File upload trống")
 	}
 	return fileName, data, nil
 }
@@ -1859,7 +1859,7 @@ func getAllowedKnowledgeUploadExtByProvider(provider string) (map[string]struct{
 	case "weknora":
 		return allowedKnowledgeWeknoraFileExt, "txt, text, md, markdown, pdf, doc, docx, ppt, pptx, xls, xlsx, wps, json, csv, log, xml, html, htm, yml, yaml, rtf, sql, ini, jpg, jpeg, png, gif, bmp, webp, tif, tiff, eml, msg"
 	default:
-		return allowedKnowledgeRagflowFileExt, "txt, md, pdf, docx 等"
+		return allowedKnowledgeRagflowFileExt, "txt, md, pdf, docx, v.v."
 	}
 }
 
@@ -1872,7 +1872,7 @@ func buildKnowledgeUploadDocumentName(inputName, fileName string) string {
 		}
 	}
 	if name == "" {
-		name = "上传文档"
+		name = "Tài liệu upload"
 	}
 	return truncateRunes(name, 200)
 }
@@ -1923,7 +1923,7 @@ func decodeKnowledgeUploadContent(content string) (string, []byte, bool, error) 
 
 	jsonPart := strings.TrimSpace(strings.TrimPrefix(raw, knowledgeUploadContentPrefix))
 	if jsonPart == "" {
-		return "", nil, true, fmt.Errorf("上传文件元数据为空")
+		return "", nil, true, fmt.Errorf("Metadata file upload trống")
 	}
 
 	var payload struct {
@@ -1931,18 +1931,18 @@ func decodeKnowledgeUploadContent(content string) (string, []byte, bool, error) 
 		ContentBase64 string `json:"content_base64"`
 	}
 	if err := json.Unmarshal([]byte(jsonPart), &payload); err != nil {
-		return "", nil, true, fmt.Errorf("解析上传文件元数据失败: %w", err)
+		return "", nil, true, fmt.Errorf("Phân tích metadata file upload thất bại: %w", err)
 	}
 	payload.FileName = sanitizeKnowledgeUploadFileName(payload.FileName)
 	if strings.TrimSpace(payload.ContentBase64) == "" {
-		return "", nil, true, fmt.Errorf("上传文件内容为空")
+		return "", nil, true, fmt.Errorf("Nội dung file upload trống")
 	}
 	fileData, err := base64.StdEncoding.DecodeString(payload.ContentBase64)
 	if err != nil {
-		return "", nil, true, fmt.Errorf("解析上传文件内容失败: %w", err)
+		return "", nil, true, fmt.Errorf("Phân tích nội dung file upload thất bại: %w", err)
 	}
 	if len(fileData) == 0 {
-		return "", nil, true, fmt.Errorf("上传文件内容为空")
+		return "", nil, true, fmt.Errorf("Nội dung file upload trống")
 	}
 	return payload.FileName, fileData, true, nil
 }
@@ -2012,7 +2012,7 @@ func (ac *AdminController) CreateUserKnowledgeBaseAdmin(c *gin.Context) {
 		_ = ac.DB.Where("id = ?", item.ID).First(&item).Error
 		c.JSON(http.StatusCreated, gin.H{
 			"data":       item,
-			"warning":    "知识库已保存，但同步任务入队失败",
+			"warning":    "Kho tri thức đã được lưu, nhưng đưa tác vụ đồng bộ vào hàng đợi thất bại",
 			"sync_error": err.Error(),
 		})
 		return
@@ -2075,7 +2075,7 @@ func (ac *AdminController) UpdateUserKnowledgeBaseAdmin(c *gin.Context) {
 		_ = ac.DB.Where("id = ?", item.ID).First(&item).Error
 		c.JSON(http.StatusOK, gin.H{
 			"data":       item,
-			"warning":    "知识库已更新，但同步任务入队失败",
+			"warning":    "Kho tri thức đã được cập nhật, nhưng đưa tác vụ đồng bộ vào hàng đợi thất bại",
 			"sync_error": err.Error(),
 		})
 		return
@@ -2119,7 +2119,7 @@ func (ac *AdminController) DeleteUserKnowledgeBaseAdmin(c *gin.Context) {
 		if err := enqueueKnowledgeDocumentSyncDelete(ac.DB, item, doc); err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"message":    "Xóa thành công",
-				"warning":    "本地Xóa thành công，但部分知识库文档清理任务入队失败",
+				"warning":    "Đã xóa cục bộ thành công, nhưng một phần tác vụ dọn tài liệu kho tri thức vào hàng đợi thất bại",
 				"sync_error": err.Error(),
 			})
 			return
@@ -2130,7 +2130,7 @@ func (ac *AdminController) DeleteUserKnowledgeBaseAdmin(c *gin.Context) {
 		if err := enqueueKnowledgeSyncDelete(ac.DB, item); err != nil {
 			c.JSON(http.StatusOK, gin.H{
 				"message":    "Xóa thành công",
-				"warning":    "本地Xóa thành công，但知识库清理任务入队失败",
+				"warning":    "Đã xóa cục bộ thành công, nhưng đưa tác vụ dọn kho tri thức vào hàng đợi thất bại",
 				"sync_error": err.Error(),
 			})
 			return

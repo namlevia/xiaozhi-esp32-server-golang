@@ -18,12 +18,12 @@ import (
 func OpusToWav(opusData [][]byte, sampleRate int, channels int, fileName string) ([][]int16, error) {
 	opusDecoder, err := opus.NewDecoder(sampleRate, channels)
 	if err != nil {
-		return nil, fmt.Errorf("创建Opus解码器失败: %v", err)
+		return nil, fmt.Errorf("tạoOpusdecoderthất bại: %v", err)
 	}
 
 	wavOut, err := os.Create(fileName)
 	if err != nil {
-		return nil, fmt.Errorf("创建WAV文件失败: %v", err)
+		return nil, fmt.Errorf("tạoWAVnoi_dungthất bại: %v", err)
 	}
 
 	pcmDataList := make([][]int16, 0)
@@ -32,7 +32,7 @@ func OpusToWav(opusData [][]byte, sampleRate int, channels int, fileName string)
 	wavEncoder := wav.NewEncoder(wavOut, sampleRate, 16, channels, 1)
 	wavBuffer := audio.IntBuffer{
 		Format: &audio.Format{
-			NumChannels: channels, // 使用传入的通道数
+			NumChannels: channels, // dùngnoi_dungchannelnoi_dung
 			SampleRate:  sampleRate,
 		},
 		SourceBitDepth: 16,
@@ -42,7 +42,7 @@ func OpusToWav(opusData [][]byte, sampleRate int, channels int, fileName string)
 	for _, frame := range opusData {
 		n, err := opusDecoder.Decode(frame, pcmBuffer)
 		if err != nil {
-			return nil, fmt.Errorf("解码失败: %v", err)
+			return nil, fmt.Errorf("noi_dungthất bại: %v", err)
 		}
 		copyData := make([]int16, len(pcmBuffer[:n]))
 		copy(copyData, pcmBuffer[:n])
@@ -50,16 +50,16 @@ func OpusToWav(opusData [][]byte, sampleRate int, channels int, fileName string)
 
 		//fmt.Println("pcmData len: ", len(copyData))
 
-		// 将PCM数据转换为int格式
+		// noi_dungPCMdatachuyểnlàintformat
 		for i := 0; i < len(copyData); i++ {
 			wavBuffer.Data = append(wavBuffer.Data, int(copyData[i]))
 		}
 	}
 
-	// 写入WAV文件
+	// ghiWAVnoi_dung
 	err = wavEncoder.Write(&wavBuffer)
 	if err != nil {
-		return nil, fmt.Errorf("写入WAV文件失败: %v", err)
+		return nil, fmt.Errorf("ghiWAVnoi_dungthất bại: %v", err)
 	}
 
 	wavEncoder.Close()
@@ -68,18 +68,18 @@ func OpusToWav(opusData [][]byte, sampleRate int, channels int, fileName string)
 }
 
 func initLog() error {
-	// 使用标准输出而不是文件
+	// dùngchuẩnoutputnoi_dung
 	logrus.SetOutput(os.Stdout)
 
-	// 禁用默认的调用者报告，使用自定义的caller字段
+	// tắtmặc địnhnoi_dung，dùngnoi_dungcallerfield
 	logrus.SetReportCaller(false)
 	logrus.SetFormatter(&logrus.TextFormatter{
-		TimestampFormat: "2006-01-02 15:04:05.000", //时间格式化，添加毫秒
-		ForceColors:     true,                      // 启用颜色输出
+		TimestampFormat: "2006-01-02 15:04:05.000", //thời gianformatnoi_dung，noi_dung
+		ForceColors:     true,                      // bậtnoi_dungoutput
 	})
 	logLevel, _ := logrus.ParseLevel(viper.GetString("log.level"))
 	if logLevel == 0 {
-		logLevel = logrus.DebugLevel // 默认设置为Debug级别
+		logLevel = logrus.DebugLevel // mặc địnhnoi_dunglàDebugnoi_dung
 	}
 	logrus.SetLevel(logLevel)
 	return nil
@@ -140,10 +140,10 @@ func TestXiaozhiProviderUnsupportedSetVoiceAndLifecycle(t *testing.T) {
 
 func TestTextToSpeechStream(t *testing.T) {
 	if os.Getenv("RUN_XIAOZHI_TEST") != "1" {
-		t.Skip("跳过小智在线 TTS 测试，设置 RUN_XIAOZHI_TEST=1 以启用")
+		t.Skip("Bỏ quanoi_dung TTS test，noi_dung RUN_XIAOZHI_TEST=1 để bật")
 	}
 
-	//初始化log日志输出至标准输出
+	//noi_dungloglogoutputnoi_dungchuẩnoutput
 	//initLog()
 	provider := NewXiaozhiProvider(map[string]interface{}{
 		"server_addr": "wss://api.tenclass.net/xiaozhi/v1/",
@@ -151,49 +151,49 @@ func TestTextToSpeechStream(t *testing.T) {
 	})
 
 	textList := []string{
-		"你好，小智TTS单元测试",
-		"讲个笑话",
-		"今天天气怎么样",
-		"你叫什么名字",
-		"你今年几岁",
-		"你住在哪里",
-		"你喜欢吃什么",
-		"你最喜欢什么颜色",
-		"你最喜欢什么食物",
-		"你最喜欢什么动物",
+		"Xin chào，noi_dungTTSnoi_dungtest",
+		"noi_dung",
+		"noi_dung",
+		"noi_dung",
+		"noi_dung",
+		"noi_dung",
+		"noi_dung",
+		"noi_dung",
+		"noi_dung",
+		"noi_dung",
 	}
 
 	workqueue.ParallelizeUntil(context.Background(), 3, len(textList), func(piece int) {
 		text := textList[piece]
-		fmt.Println("开始 speech text: ", text)
+		fmt.Println("noi_dung speech text: ", text)
 		ch, err := provider.TextToSpeechStream(context.Background(), text, 16000, 1, 20)
 		if err != nil {
-			fmt.Println("TextToSpeechStream 连接失败: ", err)
+			fmt.Println("TextToSpeechStream kết nốithất bại: ", err)
 			return
 		}
 		opusDataList := [][]byte{}
 		for frame := range ch {
 			opusDataList = append(opusDataList, frame)
 			if len(frame) == 0 {
-				t.Error("收到空音频帧")
+				t.Error("Nhậnrỗngaudioframe")
 			}
 		}
-		fmt.Printf("text: %s, 收到 %d 个音频帧\n", text, len(opusDataList))
+		fmt.Printf("text: %s, Nhận %d noi_dungaudioframe\n", text, len(opusDataList))
 	})
 
 	/*
 		for _, text := range textList {
-			fmt.Println("开始 speech text: ", text)
+			fmt.Println("noi_dung speech text: ", text)
 			ch, err := provider.TextToSpeechStream(context.Background(), text)
 			if err != nil {
-				fmt.Println("TextToSpeechStream 连接失败: ", err)
+				fmt.Println("TextToSpeechStream kết nốithất bại: ", err)
 				return
 			}
 			opusDataList := [][]byte{}
 			for frame := range ch {
 				opusDataList = append(opusDataList, frame)
 				if len(frame) == 0 {
-					t.Error("收到空音频帧")
+					t.Error("Nhậnrỗngaudioframe")
 				}
 			}
 			//OpusToWav(opusDataList, 24000, 1, "output_24000.wav")

@@ -30,11 +30,11 @@ func TestHandleResponseIgnoresSnapshotDuplicateChunk(t *testing.T) {
 		}, deliver)
 	}
 
-	send(1, "明天天津天气不错，气温 1", false, "chunk")
-	send(2, "5 到", false, "chunk")
+	send(1, "Ngày mai thời tiết Hà Nội đẹp, nhiệt độ 1", false, "chunk")
+	send(2, "5 đến", false, "chunk")
 	send(3, "22", false, "chunk")
-	send(4, "度。", false, "chunk")
-	send(5, "明天天津天气不错，气温 15 到 22 度。", false, "chunk")
+	send(4, " độ.", false, "chunk")
+	send(5, "Ngày mai thời tiết Hà Nội đẹp, nhiệt độ 15 đến 22  độ.", false, "chunk")
 	send(6, "", true, "final")
 
 	if len(events) != 2 {
@@ -43,7 +43,7 @@ func TestHandleResponseIgnoresSnapshotDuplicateChunk(t *testing.T) {
 	if !events[0].IsStart || events[0].IsEnd {
 		t.Fatalf("unexpected first event flags: %+v", events[0])
 	}
-	if openClawCanonicalKey(events[0].Text) != openClawCanonicalKey("明天天津天气不错，气温 15 到 22 度。") {
+	if openClawCanonicalKey(events[0].Text) != openClawCanonicalKey("Ngày mai thời tiết Hà Nội đẹp, nhiệt độ 15 đến 22  độ.") {
 		t.Fatalf("unexpected first event text: %q", events[0].Text)
 	}
 	if events[1].Text != "" || events[1].IsStart || !events[1].IsEnd {
@@ -76,13 +76,13 @@ func TestHandleResponseIgnoresChunkReplayWithPunctuationVariants(t *testing.T) {
 		}, deliver)
 	}
 
-	send(1, "北京后天多云转晴气温1", false, "chunk")
-	send(2, "5到 ", false, "chunk")
+	send(1, "Đà Nẵng ngày kia nhiều mây rồi nắng, nhiệt độ 1", false, "chunk")
+	send(2, "5 đến ", false, "chunk")
 	send(3, "19", false, "chunk")
-	send(4, " 度，", false, "chunk")
-	send(5, "没有雨", false, "chunk")
-	send(6, "天气不错。", false, "chunk")
-	send(7, "北京后天多云转晴，气温 15 到 19 度，没有雨，天气不错。", false, "chunk")
+	send(4, " độ,", false, "chunk")
+	send(5, "không có mưa", false, "chunk")
+	send(6, "thời tiết đẹp.", false, "chunk")
+	send(7, "Đà Nẵng ngày kia nhiều mây rồi nắng, nhiệt độ 15 đến 19 độ, không có mưa, thời tiết đẹp.", false, "chunk")
 	send(8, "", true, "final")
 
 	if len(events) != 2 {
@@ -91,7 +91,7 @@ func TestHandleResponseIgnoresChunkReplayWithPunctuationVariants(t *testing.T) {
 	if !events[0].IsStart || events[0].IsEnd {
 		t.Fatalf("unexpected first event flags: %+v", events[0])
 	}
-	if openClawComparableKey(events[0].Text) != openClawComparableKey("北京后天多云转晴，气温 15 到 19 度，没有雨，天气不错。") {
+	if openClawComparableKey(events[0].Text) != openClawComparableKey("Đà Nẵng ngày kia nhiều mây rồi nắng, nhiệt độ 15 đến 19 độ, không có mưa, thời tiết đẹp.") {
 		t.Fatalf("unexpected first event text: %q", events[0].Text)
 	}
 	if events[1].Text != "" || events[1].IsStart || !events[1].IsEnd {
@@ -124,15 +124,15 @@ func TestHandleResponseIgnoresDuplicateSeq(t *testing.T) {
 		}, deliver)
 	}
 
-	send(1, "明天天津天", false)
-	send(2, "气不错。", false)
-	send(2, "明天天津天气不错。", false)
+	send(1, "Ngày mai Hà Nội th", false)
+	send(2, "ời tiết đẹp.", false)
+	send(2, "Ngày mai thời tiết Hà Nội đẹp.", false)
 	send(3, "", true)
 
 	if len(events) != 2 {
 		t.Fatalf("unexpected event count: got %d want 2, events=%+v", len(events), events)
 	}
-	if openClawComparableKey(events[0].Text) != openClawComparableKey("明天天津天气不错。") {
+	if openClawComparableKey(events[0].Text) != openClawComparableKey("Ngày mai thời tiết Hà Nội đẹp.") {
 		t.Fatalf("unexpected first event text: %q", events[0].Text)
 	}
 	if events[1].Text != "" || events[1].IsStart || !events[1].IsEnd {
@@ -166,15 +166,15 @@ func TestHandleResponseBuffersExplicitSnapshotWithoutReplay(t *testing.T) {
 		}, deliver)
 	}
 
-	send(1, "北京后天多云转晴气温1", false, "chunk", "")
-	send(2, "5到 19 度，没有雨天气不错。", false, "chunk", "")
-	send(3, "北京后天多云转晴，气温 15 到 19 度，没有雨，天气不错。", false, "snapshot", "snapshot")
+	send(1, "Đà Nẵng ngày kia nhiều mây rồi nắng, nhiệt độ 1", false, "chunk", "")
+	send(2, "5 đến 19 độ,không có mưathời tiết đẹp.", false, "chunk", "")
+	send(3, "Đà Nẵng ngày kia nhiều mây rồi nắng, nhiệt độ 15 đến 19 độ, không có mưa, thời tiết đẹp.", false, "snapshot", "snapshot")
 	send(4, "", true, "final", "")
 
 	if len(events) != 2 {
 		t.Fatalf("unexpected event count: got %d want 2, events=%+v", len(events), events)
 	}
-	if openClawComparableKey(events[0].Text) != openClawComparableKey("北京后天多云转晴气温15到 19 度，没有雨天气不错。") {
+	if openClawComparableKey(events[0].Text) != openClawComparableKey("Đà Nẵng ngày kia nhiều mây rồi nắng, nhiệt độ 15 đến 19 độ,không có mưathời tiết đẹp.") {
 		t.Fatalf("unexpected first event text: %q", events[0].Text)
 	}
 	if events[1].Text != "" || events[1].IsStart || !events[1].IsEnd {
@@ -195,7 +195,7 @@ func TestHandleResponseUsesExplicitSnapshotWhenNoDeltaExists(t *testing.T) {
 	}
 
 	manager.HandleResponse("agent-1", session, correlationID, ResponsePayload{
-		Content: "明天天津天气不错。",
+		Content: "Ngày mai thời tiết Hà Nội đẹp.",
 		Metadata: map[string]interface{}{
 			"device_id":    "device-1",
 			"seq":          int64(1),
@@ -220,7 +220,7 @@ func TestHandleResponseUsesExplicitSnapshotWhenNoDeltaExists(t *testing.T) {
 	if len(events) != 2 {
 		t.Fatalf("unexpected event count: got %d want 2, events=%+v", len(events), events)
 	}
-	if openClawCanonicalKey(events[0].Text) != openClawCanonicalKey("明天天津天气不错。") {
+	if openClawCanonicalKey(events[0].Text) != openClawCanonicalKey("Ngày mai thời tiết Hà Nội đẹp.") {
 		t.Fatalf("unexpected first event text: %q", events[0].Text)
 	}
 	if !events[0].IsStart || events[0].IsEnd {
@@ -256,15 +256,15 @@ func TestHandleResponseTreatsGrowingSnapshotAsReplacementBeforeSentenceEnds(t *t
 		}, deliver)
 	}
 
-	send(1, "明天天津天", false, "chunk")
-	send(2, "明天天津天气不错", false, "chunk")
+	send(1, "Ngày mai Hà Nội th", false, "chunk")
+	send(2, "Ngày mai thời tiết Hà Nội đẹp", false, "chunk")
 	send(3, "。", false, "chunk")
 	send(4, "", true, "final")
 
 	if len(events) != 1 {
 		t.Fatalf("unexpected event count: got %d want 1, events=%+v", len(events), events)
 	}
-	if openClawCanonicalKey(events[0].Text) != openClawCanonicalKey("明天天津天气不错") {
+	if openClawCanonicalKey(events[0].Text) != openClawCanonicalKey("Ngày mai thời tiết Hà Nội đẹp") {
 		t.Fatalf("unexpected first event text: %q", events[0].Text)
 	}
 	if !events[0].IsStart || !events[0].IsEnd {
@@ -297,14 +297,14 @@ func TestHandleResponseTestDeviceKeepsOnlyIncrementalSuffix(t *testing.T) {
 		}, deliver)
 	}
 
-	send(1, "明天天津天", false)
-	send(2, "明天天津天气不错", false)
+	send(1, "Ngày mai Hà Nội th", false)
+	send(2, "Ngày mai thời tiết Hà Nội đẹp", false)
 	send(3, "。", true)
 
 	if len(events) != 1 {
 		t.Fatalf("unexpected event count: got %d want 1, events=%+v", len(events), events)
 	}
-	if openClawCanonicalKey(events[0].Text) != openClawCanonicalKey("明天天津天气不错") {
+	if openClawCanonicalKey(events[0].Text) != openClawCanonicalKey("Ngày mai thời tiết Hà Nội đẹp") {
 		t.Fatalf("unexpected first event: %+v", events[0])
 	}
 	if !events[0].IsStart || !events[0].IsEnd {
@@ -325,7 +325,7 @@ func TestHandleResponseFallsBackToSnapshotOnEmptyFinal(t *testing.T) {
 	}
 
 	manager.HandleResponse("agent-1", session, correlationID, ResponsePayload{
-		Content: "明天天津天气不错。",
+		Content: "Ngày mai thời tiết Hà Nội đẹp.",
 		Metadata: map[string]interface{}{
 			"device_id": "device-1",
 			"seq":       int64(1),
@@ -348,7 +348,7 @@ func TestHandleResponseFallsBackToSnapshotOnEmptyFinal(t *testing.T) {
 	if len(events) != 2 {
 		t.Fatalf("unexpected event count: got %d want 2, events=%+v", len(events), events)
 	}
-	if openClawCanonicalKey(events[0].Text) != openClawCanonicalKey("明天天津天气不错。") {
+	if openClawCanonicalKey(events[0].Text) != openClawCanonicalKey("Ngày mai thời tiết Hà Nội đẹp.") {
 		t.Fatalf("unexpected first event text: %q", events[0].Text)
 	}
 	if !events[0].IsStart || events[0].IsEnd {
@@ -360,47 +360,47 @@ func TestHandleResponseFallsBackToSnapshotOnEmptyFinal(t *testing.T) {
 }
 
 func TestBuildOpenClawPromptedContentWrapsUserMessage(t *testing.T) {
-	got := buildOpenClawPromptedContent("  天津后天的天气怎么样？  ")
+	got := buildOpenClawPromptedContent("  Thời tiết Hà Nội ngày kia thế nào?  ")
 
-	if !strings.Contains(got, "你正在以语音助手的角色和用户直接对话。") {
+	if !strings.Contains(got, "Bạn đang trò chuyện trực tiếp với người dùng trong vai trò trợ lý giọng nói.") {
 		t.Fatalf("missing voice assistant prompt: %q", got)
 	}
-	if !strings.Contains(got, "回答要简练、口语化、自然，适合直接语音播报。") {
+	if !strings.Contains(got, "Câu trả lời cần ngắn gọn, tự nhiên, giống văn nói và phù hợp để đọc bằng giọng nói.") {
 		t.Fatalf("missing concise speech constraint: %q", got)
 	}
-	if !strings.Contains(got, "用户消息：\n天津后天的天气怎么样？") {
+	if !strings.Contains(got, "Tin nhắn người dùng:\nThời tiết Hà Nội ngày kia thế nào?") {
 		t.Fatalf("missing wrapped user message: %q", got)
 	}
-	if strings.Contains(got, "  天津后天的天气怎么样？  ") {
+	if strings.Contains(got, "  Thời tiết Hà Nội ngày kia thế nào?  ") {
 		t.Fatalf("user message was not trimmed: %q", got)
 	}
 }
 
 func TestExtractOpenClawSentencesKeepsLeadingClauseTogether(t *testing.T) {
-	text := "好的，我先帮你查一下今天上海的天气。然后我再继续处理"
+	text := "Được, tôi sẽ kiểm tra thời tiết TP.HCM hôm nay trước. Sau đó tôi xử lý tiếp"
 
 	sentences, remaining := extractOpenClawSentences(text, openClawSentenceMinLen, true)
 
 	if len(sentences) != 1 {
 		t.Fatalf("unexpected sentence count: got %d want 1", len(sentences))
 	}
-	if sentences[0] != "好的，我先帮你查一下今天上海的天气。" {
+	if sentences[0] != "Được, tôi sẽ kiểm tra thời tiết TP.HCM hôm nay trước." {
 		t.Fatalf("unexpected first sentence: %q", sentences[0])
 	}
-	if remaining != "然后我再继续处理" {
+	if remaining != "Sau đó tôi xử lý tiếp" {
 		t.Fatalf("unexpected remaining text: %q", remaining)
 	}
 }
 
 func TestExtractOpenClawSentencesMergesShortClauses(t *testing.T) {
-	text := "可以。先这样。然后我继续处理。"
+	text := "Được. Tạm vậy trước. Sau đó tôi xử lý tiếp."
 
 	sentences, remaining := extractOpenClawSentences(text, openClawSentenceMinLen, true)
 
 	if len(sentences) != 3 {
 		t.Fatalf("unexpected sentence count: got %d want 3", len(sentences))
 	}
-	if sentences[0] != "可以。" || sentences[1] != "先这样。" || sentences[2] != "然后我继续处理。" {
+	if sentences[0] != "Được." || sentences[1] != "Tạm vậy trước." || sentences[2] != "Sau đó tôi xử lý tiếp." {
 		t.Fatalf("unexpected sentence split: %+v", sentences)
 	}
 	if remaining != "" {
@@ -409,7 +409,7 @@ func TestExtractOpenClawSentencesMergesShortClauses(t *testing.T) {
 }
 
 func TestNormalizeOpenClawSpeechTextStripsMarkdownAndBullets(t *testing.T) {
-	raw := "🌤️ **天津后天（3月9日）天气预报**\n\n- **温度**：3°C ~ 12°C\n- **天气**：晴朗☀️"
+	raw := "🌤️ **Dự báo thời tiết Hà Nội ngày kia (9/3)**\n\n- **Nhiệt độ**: 3°C ~ 12°C\n- **Thời tiết**: trời nắng☀️"
 
 	got := normalizeOpenClawSpeechText(raw)
 
@@ -419,16 +419,16 @@ func TestNormalizeOpenClawSpeechTextStripsMarkdownAndBullets(t *testing.T) {
 	if strings.Contains(got, "\n") {
 		t.Fatalf("unexpected newline in normalized text: %q", got)
 	}
-	if !strings.Contains(got, "温度：3°C ~ 12°C") {
+	if !strings.Contains(got, "Nhiệt độ: 3°C ~ 12°C") {
 		t.Fatalf("missing normalized temperature segment: %q", got)
 	}
-	if !strings.Contains(got, "天气：晴朗☀️") {
+	if !strings.Contains(got, "Thời tiết: trời nắng☀️") {
 		t.Fatalf("missing normalized weather segment: %q", got)
 	}
 }
 
 func TestExtractOpenClawSentencesGroupsWeatherListIntoLongerSegments(t *testing.T) {
-	text := "🌤️ **天津后天（3月9日）天气预报**\n\n- **温度**：3°C ~ 12°C\n- **天气**：晴朗☀️\n- **降水**：无降雨\n- **湿度**：15% ~ 38%\n- **风向**：西南风，风速 2-13km/h\n\n后天天津天气不错，晴天为主，最高温度 12°C，最低 3°C。"
+	text := "🌤️ **Dự báo thời tiết Hà Nội ngày kia (9/3)**\n\n- **Nhiệt độ**: 3°C ~ 12°C\n- **Thời tiết**: trời nắng☀️\n- **Lượng mưa**: không mưa\n- **Độ ẩm**: 15% ~ 38%\n- **Hướng gió**: gió tây nam, tốc độ 2-13km/h\n\nNgày kia thời tiết Hà Nội đẹp, chủ yếu trời nắng, nhiệt độ cao nhất 12°C, thấp nhất 3°C."
 
 	sentences, remaining := extractOpenClawSentences(text, openClawSentenceMinLen, true)
 
@@ -444,10 +444,10 @@ func TestExtractOpenClawSentencesGroupsWeatherListIntoLongerSegments(t *testing.
 	if strings.Contains(sentences[0], "**") || strings.Contains(sentences[0], "\n") {
 		t.Fatalf("unexpected raw markdown in first sentence: %q", sentences[0])
 	}
-	if !strings.Contains(sentences[0], "温度：") || !strings.Contains(sentences[0], "天气：") {
+	if !strings.Contains(sentences[0], "Nhiệt độ:") || !strings.Contains(sentences[0], "Thời tiết:") {
 		t.Fatalf("first sentence still too short: %q", sentences[0])
 	}
-	if !strings.Contains(sentences[0], "最高温度 12°C") {
+	if !strings.Contains(sentences[0], "nhiệt độ cao nhất 12°C") {
 		t.Fatalf("missing summary in final sentence: %q", sentences[0])
 	}
 }

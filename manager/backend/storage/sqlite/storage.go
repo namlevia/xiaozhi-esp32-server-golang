@@ -9,13 +9,13 @@ import (
 	"gorm.io/gorm/logger"
 )
 
-// Storage SQLite存储实现
+// Storage triển khai lưu trữ SQLite
 type Storage struct {
 	DB     *gorm.DB
 	config *Config
 }
 
-// NewStorage 创建SQLite存储实例
+// NewStorage tạo instance lưu trữ SQLite
 func NewStorage(config *Config) (*Storage, error) {
 	if err := config.Validate(); err != nil {
 		return nil, fmt.Errorf("invalid config: %w", err)
@@ -40,7 +40,7 @@ func NewStorage(config *Config) (*Storage, error) {
 	return s, nil
 }
 
-// Connect 连接数据库
+// Connect kết nối cơ sở dữ liệu
 func (s *Storage) Connect() error {
 	dsn := s.config.DSN()
 	db, err := gorm.Open(sqlite.Open(dsn), &gorm.Config{})
@@ -53,7 +53,7 @@ func (s *Storage) Connect() error {
 	return nil
 }
 
-// configureConnectionPool 配置连接池
+// configureConnectionPool cấu hình connection pool
 func (s *Storage) configureConnectionPool() {
 	if s.DB == nil {
 		return
@@ -69,7 +69,7 @@ func (s *Storage) configureConnectionPool() {
 	sqlDB.SetConnMaxLifetime(time.Duration(s.config.ConnMaxLifetime) * time.Second)
 }
 
-// Close 关闭数据库连接
+// Close đóng kết nối cơ sở dữ liệu
 func (s *Storage) Close() error {
 	if s.DB == nil {
 		return nil
@@ -83,7 +83,7 @@ func (s *Storage) Close() error {
 	return sqlDB.Close()
 }
 
-// Ping 检查数据库连接
+// Ping kiểm tra kết nối cơ sở dữ liệu
 func (s *Storage) Ping() error {
 	if s.DB == nil {
 		return fmt.Errorf("database connection is nil")

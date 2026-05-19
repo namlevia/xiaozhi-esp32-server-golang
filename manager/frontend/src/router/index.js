@@ -2,7 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '../stores/auth'
 import { isMobile } from '../utils/device'
 
-// 根据设备类型动态加载组件
+// Tải component động theo loại thiết bị
 const getLoginComponent = () => {
   return isMobile()
     ? import('../views/mobile/MobileLogin.vue')
@@ -55,7 +55,7 @@ const routes = [
         component: () => import('../views/Dashboard.vue'),
         meta: { titleKey: 'menu.dashboard', requiresAdmin: true }
       },
-      // 管理员路由
+      // Route dành cho quản trị viên
       {
         path: '/admin',
         name: 'Admin',
@@ -189,7 +189,7 @@ const routes = [
           }
         ]
       },
-      // 用户路由
+      // Route dành cho người dùng
       {
         path: '/console',
         redirect: '/agents',
@@ -292,13 +292,13 @@ const router = createRouter({
 router.beforeEach(async (to, from, next) => {
   const authStore = useAuthStore()
   
-  // 如果访问引导页面，直接通过
+  // Nếu truy cập trang hướng dẫn thì cho qua trực tiếp
   if (to.path === '/setup') {
     next()
     return
   }
   
-  // 如果访问登录页且已登录，根据角色跳转（管理员首次未完成向导则去routes.configWizard）
+  // Nếu vào trang đăng nhập khi đã đăng nhập thì chuyển theo vai trò; admin chưa hoàn tất wizard lần đầu sẽ sang config wizard
   if (to.path === '/login' && authStore.isAuthenticated) {
     if (authStore.user?.role === 'admin') {
       if (!localStorage.getItem('admin_first_login_done')) {
@@ -312,40 +312,40 @@ router.beforeEach(async (to, from, next) => {
     return
   }
   
-  // 如果需要认证
+  // Nếu route này yêu cầu xác thực
   if (to.meta.requiresAuth) {
     if (!authStore.isAuthenticated) {
-      // 没有token，跳转到登录页
+      // Không có token thì chuyển về trang đăng nhập
       next('/login')
       return
     }
     
-    // 有token但没有用户信息，尝试验证token有效性
+    // Có token nhưng chưa có thông tin người dùng thì thử xác thực lại token
     if (!authStore.user && !authStore.isValidating) {
       try {
         await authStore.getProfile()
       } catch (error) {
-        // 如果是401错误（token无效），跳转到登录页
+        // Nếu là lỗi 401 (token không hợp lệ) thì chuyển về trang đăng nhập
         if (error.response?.status === 401) {
           next('/login')
           return
         }
-        // 如果是网络错误（后端连接失败），允许继续访问（但会显示错误）
+        // Nếu là lỗi mạng (backend kết nối thất bại) thì vẫn cho đi tiếp, nhưng sẽ hiển thị lỗi
         if (error.code === 'ERR_NETWORK' || error.message?.includes('Failed to fetch') || error.message?.includes('ERR_CONNECTION_REFUSED')) {
-          // 网络错误时，如果本地有用户信息，允许继续访问
+          // Khi lỗi mạng xảy ra, nếu máy cục bộ đã có thông tin người dùng thì vẫn cho truy cập
           if (!authStore.user) {
             next('/login')
             return
           }
-          // 注意：这里不调用 next()，让代码继续执行到最后的 next()
+          // Không gọi next() ở đây để luồng tiếp tục chạy tới next() cuối cùng
         } else {
-          // 其他错误，允许继续访问（可能是后端暂时不可用）
-          // 注意：这里不调用 next()，让代码继续执行到最后的 next()
+          // Với lỗi khác thì vẫn cho đi tiếp, có thể backend chỉ đang tạm thời không khả dụng
+          // Không gọi next() ở đây để luồng tiếp tục chạy tới next() cuối cùng
         }
       }
     }
     
-    // 如果正在验证中，等待验证完成（最多等待2秒）
+    // Nếu đang trong quá trình xác thực thì chờ hoàn tất, tối đa 2 giây
     if (authStore.isValidating) {
       let waitCount = 0
       while (authStore.isValidating && waitCount < 20) {
@@ -355,7 +355,7 @@ router.beforeEach(async (to, from, next) => {
     }
   }
   
-  // 如果访问根路径，根据角色跳转（管理员首次未完成向导则去routes.configWizard）
+  // Nếu vào đường dẫn gốc thì chuyển theo vai trò; admin chưa hoàn tất wizard lần đầu sẽ sang config wizard
   if (to.path === '/' && authStore.isAuthenticated) {
     if (authStore.user?.role === 'admin') {
       if (!localStorage.getItem('admin_first_login_done')) {
@@ -369,7 +369,7 @@ router.beforeEach(async (to, from, next) => {
     return
   }
   
-  // 如果普通用户访问管理员页面，跳转到routes.agentWorkspace
+  // Nếu người dùng thường vào trang quản trị thì chuyển về workspace tác tử
   if (to.meta.requiresAdmin && authStore.user?.role !== 'admin') {
     next('/agents')
     return

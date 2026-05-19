@@ -9,40 +9,40 @@ import (
 )
 
 func TestConfigManager_GetSystemConfig(t *testing.T) {
-	// 创建配置管理器
+	// Tạo manager cấu hình
 	config := map[string]interface{}{
-		"backend_url": "http://192.168.208.214:8080", // 根据实际backend地址调整
+		"backend_url": "http://192.168.208.214:8080", // Điều chỉnh theo địa chỉ backend thực tế
 	}
 
 	manager, err := NewManagerUserConfigProvider(config)
 	if err != nil {
-		t.Fatalf("创建配置管理器失败: %v", err)
+		t.Fatalf("Tạo manager cấu hình thất bại: %v", err)
 	}
 
-	// 创建上下文
+	// Tạo context
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
-	// 获取系统配置
+	// Lấy system config
 	configJSON, err := manager.GetSystemConfig(ctx)
 	if err != nil {
-		t.Fatalf("获取系统配置失败: %v", err)
+		t.Fatalf("Lấy system config thất bại: %v", err)
 	}
 
-	// 验证返回的JSON格式
+	// Xác minh định dạng JSON trả về
 	var configMap map[string]interface{}
 	if err := json.Unmarshal([]byte(configJSON), &configMap); err != nil {
-		t.Fatalf("解析配置JSON失败: %v", err)
+		t.Fatalf("Parse JSON config thất bại: %v", err)
 	}
 
-	// 检查是否包含预期的配置项
+	// Kiểm tra có chứa các config item kỳ vọng hay không
 	expectedKeys := []string{"mqtt", "mqtt_server", "udp", "ota"}
 	for _, key := range expectedKeys {
 		if _, exists := configMap[key]; !exists {
-			t.Errorf("配置中缺少预期的键: %s", key)
+			t.Errorf("Config thiếu key kỳ vọng: %s", key)
 		}
 	}
 
-	fmt.Printf("获取到的系统配置: %s\n", configJSON)
-	t.Logf("配置大小: %d 字节", len(configJSON))
+	fmt.Printf("System config nhận được: %s\n", configJSON)
+	t.Logf("Kích thước config: %d byte", len(configJSON))
 }

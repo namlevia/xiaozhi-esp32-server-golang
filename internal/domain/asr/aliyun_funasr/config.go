@@ -15,20 +15,20 @@ const (
 	defaultTimeoutSeconds = 30
 )
 
-// Config 阿里云 FunASR 配置
+// Config là config Aliyun FunASR.
 type Config struct {
-	APIKey                    string
-	WsURL                     string
-	Model                     string
-	Format                    string
-	SampleRate                int
-	VocabularyID              string
-	DisfluencyRemovalEnabled  bool
+	APIKey                     string
+	WsURL                      string
+	Model                      string
+	Format                     string
+	SampleRate                 int
+	VocabularyID               string
+	DisfluencyRemovalEnabled   bool
 	SemanticPunctuationEnabled bool
-	Timeout                   time.Duration
+	Timeout                    time.Duration
 }
 
-// DefaultConfig 返回默认配置
+// DefaultConfig trả về config mặc định.
 func DefaultConfig() Config {
 	return Config{
 		WsURL:      defaultWsURL,
@@ -39,21 +39,21 @@ func DefaultConfig() Config {
 	}
 }
 
-// ConfigFromMap 从配置 map 合并生成配置（支持配置文件 + 内控系统）
+// ConfigFromMap merge config từ map, hỗ trợ file config và hệ thống nội bộ.
 func ConfigFromMap(cfg map[string]interface{}) Config {
 	conf := DefaultConfig()
 
-	// 先合并配置文件中的默认值
+	// Merge giá trị mặc định từ file config trước
 	applyViperDefaults(&conf)
 
-	// 兼容老格式：若传入 { aliyun_funasr: { ... } }，则优先取内部 map
+	// Tương thích format cũ: nếu truyền { aliyun_funasr: { ... } } thì ưu tiên map bên trong
 	if nested, ok := cfg["aliyun_funasr"].(map[string]interface{}); ok {
 		cfg = nested
 	}
 
 	applyMapOverrides(&conf, cfg)
 
-	// api_key 允许为空时回退环境变量
+	// Khi api_key rỗng thì fallback sang biến môi trường
 	if conf.APIKey == "" {
 		conf.APIKey = os.Getenv("DASHSCOPE_API_KEY")
 	}

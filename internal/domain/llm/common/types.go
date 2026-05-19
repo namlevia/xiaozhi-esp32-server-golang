@@ -4,10 +4,10 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// 请求与响应结构体
-// Message 表示对话消息
+// Struct request và response.
+// Message biểu diễn message hội thoại.
 
-// 响应类型常量
+// Hằng loại response.
 const (
 	ResponseTypeContent   = "content"
 	ResponseTypeToolCalls = "tool_calls"

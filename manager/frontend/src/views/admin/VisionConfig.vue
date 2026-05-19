@@ -1,6 +1,6 @@
 <template>
   <div class="config-page">
-    <!-- Cấu hình cơ bản部分 -->
+    <!-- Phần cấu hình cơ bản -->
     <el-card class="base-config-card" style="margin-bottom: 20px;">
       <template #header>
         <div class="card-header">
@@ -31,13 +31,13 @@
         
         <el-form-item>
           <el-button type="primary" @click="saveBaseConfig" :loading="baseSaving">
-            LưuCấu hình cơ bản
+            Lưu cấu hình cơ bản
           </el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
-    <!-- 配置列表部分 -->
+    <!-- Phần danh sách cấu hình -->
     <el-card>
       <template #header>
         <div class="card-header">
@@ -173,13 +173,13 @@ const editingConfig = ref(null)
 const formRef = ref()
 const baseFormRef = ref()
 
-// Cấu hình cơ bản表单
+// Form cấu hình cơ bản
 const baseForm = reactive({
   enable_auth: false,
   vision_url: ''
 })
 
-// Cấu hình cơ bản验证规则
+// Rule kiểm tra cho cấu hình cơ bản
 const baseRules = {
   vision_url: [
     { required: true, message: 'Vui lòng nhập Vision URL', trigger: 'blur' },
@@ -246,7 +246,7 @@ const normalizeVisionConfigRow = (config) => {
   }
 }
 
-// 加载Cấu hình cơ bản
+// Tải cấu hình cơ bản
 const loadBaseConfig = async () => {
   try {
     const response = await api.get('/admin/vision-base-config')
@@ -258,7 +258,7 @@ const loadBaseConfig = async () => {
   }
 }
 
-// LưuCấu hình cơ bản
+// Lưu cấu hình cơ bản
 const saveBaseConfig = async () => {
   if (!baseFormRef.value) return
   
@@ -270,7 +270,7 @@ const saveBaseConfig = async () => {
           enable_auth: baseForm.enable_auth,
           vision_url: baseForm.vision_url
         })
-        ElMessage.success('Cấu hình cơ bảnLưuthành công')
+        ElMessage.success('Cấu hình cơ bản lưu thành công')
       } catch (error) {
         ElMessage.error('Lưu thất bại, vui lòng kiểm tra kết nối mạng và nội dung nhập')
       } finally {
@@ -284,7 +284,7 @@ const loadConfigs = async () => {
   loading.value = true
   try {
     const response = await api.get('/admin/vision-configs')
-    // 过滤掉vision_base配置，确保不在列表Trung bình显示
+    // Lọc bỏ cấu hình vision_base để đảm bảo không hiển thị trong danh sách
     const allConfigs = response.data.data || []
     configs.value = allConfigs.filter(config => config.config_id !== 'vision_base').map(normalizeVisionConfigRow)
   } catch (error) {
@@ -359,7 +359,7 @@ const handleSave = async () => {
 const toggleEnable = async (config) => {
   try {
     await api.post(`/admin/configs/${config.id}/toggle`)
-    ElMessage.success(`${config.enabled ? 'Bật' : 'Tắt'}thành công`)
+    ElMessage.success(`${config.enabled ? 'Bật' : 'Tắt'} thành công`)
   } catch (error) {
     config.enabled = !config.enabled
     ElMessage.error('Thao tác thất bại')
@@ -383,7 +383,7 @@ const toggleDefault = async (config) => {
     }
     
     await api.put(`/admin/vision-configs/${config.id}`, configData)
-    ElMessage.success(config.is_default ? 'Đặt làm mặc định thành công' : 'HủyMặc địnhthành công')
+    ElMessage.success(config.is_default ? 'Đặt làm mặc định thành công' : 'Hủy mặc định thành công')
     loadConfigs()
   } catch (error) {
     config.is_default = !config.is_default
@@ -404,7 +404,7 @@ const deleteConfig = async (id) => {
     })
     
     await api.delete(`/admin/vision-configs/${id}`)
-    ElMessage.success('Xóathành công')
+    ElMessage.success('Xóa thành công')
     loadConfigs()
   } catch (error) {
     if (error !== 'cancel') {

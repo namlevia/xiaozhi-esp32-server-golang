@@ -17,8 +17,8 @@ func hashToken(raw string) string {
 	return hex.EncodeToString(sum[:])
 }
 
-// OpenAPIAuth 支持 JWT 或 API Token 的鉴权。
-// API Token 支持两种请求头：
+// OpenAPIAuth hỗ trợ xác thực bằng JWT hoặc API Token.
+// API Token hỗ trợ hai loại header:
 // 1) Authorization: Bearer <token>
 // 2) X-API-Token: <token>
 func OpenAPIAuth(db *gorm.DB) gin.HandlerFunc {

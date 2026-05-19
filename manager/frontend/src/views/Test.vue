@@ -1,18 +1,18 @@
 <template>
   <div class="test-page">
-    <h1>测试页面</h1>
-    <p>如果你能看到这个页面，说明路由系统正常工作。</p>
+    <h1>Trang kiểm tra</h1>
+    <p>Nếu bạn thấy được trang này, hệ thống định tuyến đang hoạt động bình thường.</p>
     <div class="debug-info">
-      <h3>调试信息：</h3>
-      <p>当前路径: {{ $route.path }}</p>
-      <p>用户认证状态: {{ authStore.isAuthenticated }}</p>
-      <p>用户信息: {{ authStore.user }}</p>
-      <p>是否管理员: {{ authStore.isAdmin }}</p>
+      <h3>Thông tin gỡ lỗi:</h3>
+      <p>Đường dẫn hiện tại: {{ $route.path }}</p>
+      <p>Trạng thái xác thực: {{ authStore.isAuthenticated }}</p>
+      <p>Thông tin người dùng: {{ authStore.user }}</p>
+      <p>Có phải quản trị viên: {{ authStore.isAdmin }}</p>
     </div>
     <div class="actions">
-      <el-button @click="$router.push('/login')">去登录页</el-button>
-      <el-button @click="$router.push('/dashboard')">去仪表板</el-button>
-      <el-button @click="$router.push('/agents')">去智能体列表</el-button>
+      <el-button @click="$router.push('/login')">Đến trang đăng nhập</el-button>
+      <el-button @click="$router.push('/dashboard')">Đến bảng điều khiển</el-button>
+      <el-button @click="$router.push('/agents')">Đến danh sách trợ lý</el-button>
     </div>
   </div>
 </template>

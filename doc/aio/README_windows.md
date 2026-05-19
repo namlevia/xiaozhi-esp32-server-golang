@@ -1,98 +1,99 @@
-# 小智服务 Windows 使用说明
+# Hướng dẫn sử dụng Xiaozhi Server trên Windows
 
-欢迎使用小智服务 Windows aio 包。本文档包含启动、配置和端口说明。
+Chào mừng bạn sử dụng gói Windows AIO của Xiaozhi Server. Tài liệu này bao gồm hướng dẫn khởi động, cấu hình và mô tả cổng.
 
-## 目录结构
+## Cấu trúc thư mục
 
-```
+```text
 xiaozhi_server-windows-amd64-<version>/
-├── xiaozhi_server.exe          # 主程序
-├── onnxruntime.dll             # ONNX Runtime 依赖库
-├── sherpa-onnx-c-api.dll       # Sherpa-ONNX 依赖库
-├── sherpa-onnx-cxx-api.dll     # Sherpa-ONNX C++ 依赖库
-├── ten_vad.dll                 # VAD 依赖库
-├── start.bat                   # 启动脚本
-├── main_config.yaml            # 主配置文件
-├── manager.json                # 管理后台配置
-├── asr_server.json             # ASR 服务配置
-├── models/                     # 模型文件目录
-├── data/                       # 数据目录
-└── logs/                       # 日志目录
+├── xiaozhi_server.exe          # Chương trình chính
+├── onnxruntime.dll             # Thư viện dependency ONNX Runtime
+├── sherpa-onnx-c-api.dll       # Thư viện dependency Sherpa-ONNX
+├── sherpa-onnx-cxx-api.dll     # Thư viện dependency Sherpa-ONNX C++
+├── ten_vad.dll                 # Thư viện dependency VAD
+├── start.bat                   # Script khởi động
+├── main_config.yaml            # File cấu hình chính
+├── manager.json                # Cấu hình backend quản trị
+├── asr_server.json             # Cấu hình dịch vụ ASR
+├── models/                     # Thư mục file model
+├── data/                       # Thư mục dữ liệu
+└── logs/                       # Thư mục log
 ```
 
-## 快速启动
+## Khởi động nhanh
 
-双击 `start.bat` 即可启动服务。启动后可在 `logs/` 目录查看日志。
+Nhấp đúp `start.bat` để khởi động service. Sau khi khởi động, có thể xem log trong thư mục `logs/`.
 
-> 提示：首次启动时，程序会自动下载所需的模型文件（如果 models 目录为空）。
+> Gợi ý: khi khởi động lần đầu, chương trình sẽ tự tải file model cần thiết (nếu thư mục `models` đang trống).
 
-## 端口与服务
+## Cổng và service
 
-| 端口 | 配置来源 | 说明 |
+| Cổng | Nguồn cấu hình | Mô tả |
 |------|----------|------|
-| **8080** | `manager.json` → `server.port` | **管理后台**：Web 控制台 + HTTP API |
-| **8989** | `main_config.yaml` → `websocket.port` | **主服务 WebSocket**：设备/客户端连接 |
-| **9000** | `asr_server.json` → `server.port` | **ASR/声纹服务**：语音识别内部接口 |
-| **2883** | 控制台配置 | **MQTT 服务**：设备 MQTT 连接 |
-| **8990** | 控制台配置 | **UDP 服务**：设备 UDP 通信 |
-| **6060** | 控制台配置 | **pprof**：性能分析（默认关闭） |
+| **8080** | `manager.json` → `server.port` | **Backend quản trị**: Web console + HTTP API |
+| **8989** | `main_config.yaml` → `websocket.port` | **WebSocket service chính**: thiết bị/client kết nối |
+| **9000** | `asr_server.json` → `server.port` | **Dịch vụ ASR/voiceprint**: interface nội bộ nhận diện giọng nói |
+| **2883** | Cấu hình console | **MQTT service**: thiết bị kết nối MQTT |
+| **8990** | Cấu hình console | **UDP service**: thiết bị giao tiếp UDP |
+| **6060** | Cấu hình console | **pprof**: phân tích hiệu năng (mặc định tắt) |
 
-## 访问地址
+## Địa chỉ truy cập
 
-### 管理后台
+### Backend quản trị
 
-- **本地访问**：`http://localhost:8080/`
-- **局域网访问**：`http://<本机IP>:8080/`
+- **Truy cập local**: `http://localhost:8080/`
+- **Truy cập LAN**: `http://<IP máy hiện tại>:8080/`
 
-### 设备/客户端连接
+### Kết nối thiết bị/client
 
-- **WebSocket**：`ws://<服务器IP>:8989/`
-- **MQTT**：`<服务器IP>:2883`
-- **UDP**：`<服务器IP>:8990`
+- **WebSocket**: `ws://<IP server>:8989/`
+- **MQTT**: `<IP server>:2883`
+- **UDP**: `<IP server>:8990`
 
-## 修改配置
+## Sửa cấu hình
 
-### 需在配置文件中修改的端口
+### Cổng cần sửa trong file cấu hình
 
-以下端口修改后需重启服务生效：
+Các cổng sau cần khởi động lại service sau khi sửa mới có hiệu lực:
 
-| 端口 | 配置文件 | 配置项 |
+| Cổng | File cấu hình | Mục cấu hình |
 |------|----------|--------|
 | 8080 | `manager.json` | `server.port` |
 | 8989 | `main_config.yaml` | `websocket.port` |
 | 9000 | `asr_server.json` | `server.port` |
 
-### 控制台配置
+### Cấu hình console
 
-以下端口及所有其他配置通过管理后台控制台进行变更：
+Các cổng sau và toàn bộ cấu hình khác được thay đổi qua console quản trị:
 
-- **端口配置**：MQTT (2883)、UDP (8990)、pprof (6060)
-- **功能配置**：LLM、TTS、ASR、声纹识别等
-- 访问 `http://localhost:8080/` 进入管理后台
-- 配置变更实时生效，无需重启服务
+- **Cấu hình cổng**: MQTT (2883), UDP (8990), pprof (6060)
+- **Cấu hình chức năng**: LLM, TTS, ASR, nhận diện voiceprint, v.v.
+- Truy cập `http://localhost:8080/` để vào backend quản trị
+- Thay đổi cấu hình có hiệu lực realtime, không cần khởi động lại service
 
-## 常见问题
+## Câu hỏi thường gặp
 
-### 防火墙提示
+### Cảnh báo firewall
 
-首次运行时，Windows 可能会弹出防火墙提示，请允许程序访问网络。
+Khi chạy lần đầu, Windows có thể hiển thị cảnh báo firewall; hãy cho phép chương trình truy cập mạng.
 
-### 端口被占用
+### Cổng bị chiếm
 
-如果启动失败提示端口被占用，请：
+Nếu khởi động thất bại và báo cổng bị chiếm, hãy:
 
-1. 使用 `netstat -ano | findstr :端口号` 查看占用进程
-2. 修改配置文件中的端口号
-3. 或结束占用该端口的进程
+1. Dùng `netstat -ano | findstr :số_cổng` để xem process đang chiếm cổng
+2. Sửa số cổng trong file cấu hình
+3. Hoặc kết thúc process đang chiếm cổng đó
 
-### DLL 缺失
+### Thiếu DLL
 
-如果提示缺少 DLL 文件，请确保以下文件与 `xiaozhi_server.exe` 在同一目录：
+Nếu báo thiếu file DLL, hãy đảm bảo các file sau nằm cùng thư mục với `xiaozhi_server.exe`:
+
 - `onnxruntime.dll`
 - `sherpa-onnx-c-api.dll`
 - `sherpa-onnx-cxx-api.dll`
 - `ten_vad.dll`
 
-## 停止服务
+## Dừng service
 
-在启动窗口按 `Ctrl + C` 或直接关闭窗口即可停止服务。
+Nhấn `Ctrl + C` trong cửa sổ khởi động hoặc đóng trực tiếp cửa sổ để dừng service.

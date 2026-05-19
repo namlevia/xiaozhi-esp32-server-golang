@@ -31,10 +31,10 @@ const authStore = useAuthStore()
 
 const activeTab = ref('')
 
-// 根据用户角色定义标签栏
+// Xác định tab bar theo vai trò người dùng
 const tabs = computed(() => {
   if (authStore.isAdmin) {
-    // 管理员标签栏
+    // Tab bar cho quản trị viên
     return [
       { name: 'dashboard', label: t('menu.home'), icon: 'home-o', path: '/dashboard' },
       { name: 'config', label: t('menu.config'), icon: 'setting-o', path: '/admin/vad-config' },
@@ -42,7 +42,7 @@ const tabs = computed(() => {
       { name: 'more', label: t('menu.more'), icon: 'ellipsis', path: '/more' }
     ]
   } else {
-    // 普通用户标签栏
+    // Tab bar cho người dùng thường
     return [
       { name: 'agents', label: t('menu.agents'), icon: 'apps-o', path: '/agents' },
       { name: 'speakers', label: t('menu.speakers'), icon: 'user-o', path: '/user/speakers' },
@@ -51,14 +51,14 @@ const tabs = computed(() => {
   }
 })
 
-// 根据当前路由设置活动标签
+// Đặt tab đang active theo route hiện tại
 const updateActiveTab = () => {
   const currentPath = route.path
   const currentTab = tabs.value.find(tab => {
     if (tab.path === currentPath) {
       return true
     }
-    // 支持路径前缀匹配
+    // Hỗ trợ khớp theo tiền tố đường dẫn
     if (currentPath.startsWith(tab.path)) {
       return true
     }
@@ -70,7 +70,7 @@ const updateActiveTab = () => {
   }
 }
 
-// 标签切换处理
+// Xử lý chuyển tab
 const handleTabChange = (name) => {
   const tab = tabs.value.find(item => item.name === name)
   if (tab && tab.path !== route.path) {
@@ -78,7 +78,7 @@ const handleTabChange = (name) => {
   }
 }
 
-// 监听路由变化
+// Theo dõi thay đổi route
 watch(
   () => route.path,
   () => {

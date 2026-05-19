@@ -41,11 +41,58 @@ func TestNormalizeProviderInfersKnownProviderInsteadOfConfigID(t *testing.T) {
 			want: "aliyun_qwen",
 		},
 		{
+			name:       "tts piper model path",
+			configType: "tts",
+			configID:   "offline_voice",
+			data: map[string]interface{}{
+				"model_path":        "tts_server/tts-model/banmai.onnx",
+				"model_config_path": "tts_server/tts-model/banmai.onnx.json",
+			},
+			want: "piper",
+		},
+		{
 			name:       "unknown vad falls back to managed default",
 			configType: "vad",
 			configID:   "custom_vad",
 			data:       map[string]interface{}{},
 			want:       "ten_vad",
+		},
+		{
+			name:       "unknown asr falls back to Vietnamese ASR default",
+			configType: "asr",
+			configID:   "custom_asr",
+			data:       map[string]interface{}{},
+			want:       "wyoming_vietnamese_asr",
+		},
+		{
+			name:       "llm gemini openai compatible endpoint",
+			configType: "llm",
+			configID:   "gemini_chat",
+			data: map[string]interface{}{
+				"type":     "openai",
+				"base_url": "https://generativelanguage.googleapis.com/v1beta/openai/",
+			},
+			want: "gemini",
+		},
+		{
+			name:       "llm openrouter endpoint",
+			configType: "llm",
+			configID:   "router_chat",
+			data: map[string]interface{}{
+				"type":     "openai",
+				"base_url": "https://openrouter.ai/api/v1",
+			},
+			want: "openrouter",
+		},
+		{
+			name:       "llm 9router endpoint",
+			configType: "llm",
+			configID:   "nine_router_chat",
+			data: map[string]interface{}{
+				"type":     "openai",
+				"base_url": "https://api.9router.com/v1",
+			},
+			want: "9router",
 		},
 	}
 

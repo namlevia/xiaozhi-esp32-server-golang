@@ -2,6 +2,7 @@
   <el-form ref="formRef" :model="model" :rules="rules" label-width="140px">
     <el-form-item label="Nhà cung cấp" prop="provider">
       <el-select v-model="model.provider" placeholder="Vui lòng chọn nhà cung cấp" style="width: 100%" @change="onProviderChange">
+        <el-option label="Vietnamese ASR (Go)" value="wyoming_vietnamese_asr" />
         <el-option label="FunASR" value="funasr" />
         <el-option label="Aliyun FunASR" value="aliyun_funasr" />
         <el-option label="Doubao" value="doubao" />
@@ -63,6 +64,23 @@
           <el-icon><InfoFilled /></el-icon>
           Hãy đảm bảo FunASR đã được cấu hình tương ứng
         </div>
+      </el-form-item>
+    </div>
+    <div v-if="model.provider === 'wyoming_vietnamese_asr'">
+      <el-form-item label="URL dịch vụ Go" prop="wyoming_vietnamese_asr.base_url">
+        <el-input v-model="model.wyoming_vietnamese_asr.base_url" placeholder="http://127.0.0.1:8082" />
+        <div class="form-tip">
+          <el-icon><InfoFilled /></el-icon>
+          Dịch vụ ASR tiếng Việt Go-native, endpoint nhận dạng là /transcribe
+        </div>
+      </el-form-item>
+      <el-form-item label="Sample rate" prop="wyoming_vietnamese_asr.sample_rate">
+        <el-select v-model="model.wyoming_vietnamese_asr.sample_rate" placeholder="Vui lòng chọn sample rate" style="width: 100%">
+          <el-option label="16000" :value="16000" />
+        </el-select>
+      </el-form-item>
+      <el-form-item label="Timeout (ms)" prop="wyoming_vietnamese_asr.timeout_ms">
+        <el-input-number v-model="model.wyoming_vietnamese_asr.timeout_ms" :min="1000" :step="1000" style="width: 100%" />
       </el-form-item>
     </div>
     <div v-if="model.provider === 'aliyun_funasr'">
@@ -235,6 +253,15 @@ const props = defineProps({
 const formRef = ref()
 
 const ASR_PROVIDER_DEFAULTS = {
+  wyoming_vietnamese_asr: {
+    name: 'Vietnamese ASR (Go)',
+    config_id: 'wyoming_vietnamese_asr_default',
+    data: {
+      base_url: 'http://127.0.0.1:8082',
+      sample_rate: 16000,
+      timeout_ms: 30000
+    }
+  },
   funasr: {
     name: 'FunASR ASR',
     config_id: 'funasr_default',
@@ -359,6 +386,7 @@ watch(() => props.model?.provider, (provider) => {
 
 function getJsonData() {
   const m = props.model
+  if (m.provider === 'wyoming_vietnamese_asr') return JSON.stringify(m.wyoming_vietnamese_asr || {})
   if (m.provider === 'funasr') return JSON.stringify(m.funasr || {})
   if (m.provider === 'aliyun_funasr') return JSON.stringify(m.aliyun_funasr || {})
   if (m.provider === 'doubao') return JSON.stringify(m.doubao || {})

@@ -27,33 +27,33 @@ func markTestClientConnected(client *McpClientInstance, lastPing time.Time) *Mcp
 }
 
 func TestGlobalMCPManager_Singleton(t *testing.T) {
-	// 测试单例模式
+	// Test singleton pattern
 	manager1 := GetGlobalMCPManager()
 	manager2 := GetGlobalMCPManager()
 
-	assert.Equal(t, manager1, manager2, "应该返回同一个实例")
+	assert.Equal(t, manager1, manager2, "Phải trả về cùng một instance")
 }
 
 func TestDeviceMCPManager_Singleton(t *testing.T) {
 	t.Skip("GetDeviceMCPManager function not implemented yet")
-	// // 测试单例模式
+	// // Test singleton pattern
 	// manager1 := GetDeviceMCPManager()
 	// manager2 := GetDeviceMCPManager()
 	//
-	// assert.Equal(t, manager1, manager2, "应该返回同一个实例")
+	// assert.Equal(t, manager1, manager2, "Phải trả về cùng một instance")
 }
 
 func TestGlobalMCPManager_StartStop(t *testing.T) {
-	// 设置测试配置
+	// Thiết lập config test
 	viper.Set("mcp.global.enabled", false)
 
 	manager := GetGlobalMCPManager()
 
-	// 测试启动（禁用状态）
+	// Test start ở trạng thái disabled
 	err := manager.Start()
 	assert.NoError(t, err)
 
-	// 测试停止
+	// Test stop
 	err = manager.Stop()
 	assert.NoError(t, err)
 }
@@ -62,41 +62,41 @@ func TestMCPTool_Info(t *testing.T) {
 	tool := &McpTool{
 		info: &schema.ToolInfo{
 			Name: "test_tool",
-			Desc: "测试工具",
+			Desc: "Tool test",
 		},
 		serverName: "test_server",
-		client:     nil, // 测试中不需要真实客户端
+		client:     nil, // Test không cần client thật
 	}
 
 	info, err := tool.Info(context.Background())
 	require.NoError(t, err)
 
 	assert.Equal(t, "test_tool", info.Name)
-	assert.Equal(t, "测试工具", info.Desc)
+	assert.Equal(t, "Tool test", info.Desc)
 }
 
 func TestMCPTool_InvokableRun(t *testing.T) {
 	tool := &McpTool{
 		info: &schema.ToolInfo{
 			Name: "test_tool",
-			Desc: "测试工具",
+			Desc: "Tool test",
 		},
 		serverName: "test_server",
-		client:     nil, // 测试中不需要真实客户端
+		client:     nil, // Test không cần client thật
 	}
 
-	// 这个测试会失败，因为客户端为nil
-	// 但可以验证方法签名和基本逻辑
+	// Test này sẽ fail vì client nil
+	// Nhưng có thể validate method signature và logic cơ bản
 	_, err := tool.InvokableRun(context.Background(), `{"query": "test"}`)
-	assert.Error(t, err)                         // 预期会有错误，因为客户端为nil
-	assert.Contains(t, err.Error(), "调用MCP工具失败") // 验证错误消息包含预期文本
+	assert.Error(t, err)                                     // Kỳ vọng có lỗi vì client nil
+	assert.Contains(t, err.Error(), "Gọi MCP tool thất bại") // Xác minh error message chứa text kỳ vọng
 }
 
 func TestDeviceMCPManager_GetDeviceTools(t *testing.T) {
 	t.Skip("GetDeviceMCPManager function not implemented yet")
 	// manager := GetDeviceMCPManager()
 	//
-	// // 测试获取不存在设备的工具
+	// // Test lấy tool của thiết bị không tồn tại
 	// tools := manager.GetDeviceTools("non_existent_device")
 	// assert.Empty(t, tools)
 }
@@ -104,7 +104,7 @@ func TestDeviceMCPManager_GetDeviceTools(t *testing.T) {
 func TestGlobalMCPManager_GetAllTools(t *testing.T) {
 	manager := GetGlobalMCPManager()
 
-	// 测试获取所有工具（初始状态应该为空）
+	// Test lấy toàn bộ tool, trạng thái ban đầu nên rỗng
 	tools := manager.GetAllTools()
 	assert.NotNil(t, tools)
 }
@@ -112,7 +112,7 @@ func TestGlobalMCPManager_GetAllTools(t *testing.T) {
 func TestGlobalMCPManager_GetToolByName(t *testing.T) {
 	manager := GetGlobalMCPManager()
 
-	// 测试获取不存在的工具
+	// Test lấy tool không tồn tại
 	tool, exists := manager.GetToolByName("non_existent_tool")
 	assert.False(t, exists)
 	assert.Nil(t, tool)
@@ -354,7 +354,7 @@ func TestGlobalMCPConnectionFailsWhenInitialToolsListFails(t *testing.T) {
 
 	err := conn.connect()
 	require.Error(t, err)
-	assert.Contains(t, err.Error(), "获取工具列表失败")
+	assert.Contains(t, err.Error(), "Lấy danh sách tool thất bại")
 	assert.False(t, conn.connected)
 	assert.Nil(t, conn.client)
 	assert.Empty(t, manager.GetAllTools())
@@ -363,7 +363,7 @@ func TestGlobalMCPConnectionFailsWhenInitialToolsListFails(t *testing.T) {
 	conn.mu.RUnlock()
 }
 
-// TestMCPGoStructures 测试 mcp-go 库结构体的使用
+// TestMCPGoStructures test cách dùng struct của thư viện mcp-go.
 func TestMCPGoStructures(t *testing.T) {
 	t.Run("InitializeRequest", func(t *testing.T) {
 		initRequest := mcp.InitializeRequest{
@@ -410,21 +410,21 @@ func TestMCPGoStructures(t *testing.T) {
 	})
 }
 
-// 创建测试工具
+// Tạo Tool test
 func TestMCPTool_InvokableRun_NewTool(t *testing.T) {
 	testTool := &McpTool{
 		info: &schema.ToolInfo{
 			Name: "test_tool",
-			Desc: "测试工具",
+			Desc: "Tool test",
 		},
 		serverName: "test_server",
-		client:     nil, // 测试中不需要真实客户端
+		client:     nil, // Test không cần client thật
 	}
 
-	// 这个测试会失败，因为没有真实的MCP服务器
-	// 但可以验证方法签名和基本逻辑
+	// Test này sẽ fail vì không có server MCP thật
+	// Nhưng có thể validate method signature và logic cơ bản
 	_, err := testTool.InvokableRun(context.Background(), `{"query": "test"}`)
-	assert.Error(t, err) // 预期会有网络错误
+	assert.Error(t, err) // Kỳ vọng có lỗi mạng
 }
 
 func TestIsRetryableRemoteCallError(t *testing.T) {
@@ -456,23 +456,23 @@ func TestMCPToolInvokableRunReconnectsOnRetryableRemoteCallError(t *testing.T) {
 		}
 
 		assert.Same(t, reconnectedClient, cli)
-		require.Equal(t, map[string]interface{}{"city": "北京"}, request.Params.Arguments)
+		require.Equal(t, map[string]interface{}{"city": "Hà Nội"}, request.Params.Arguments)
 		return mcp.NewToolResultText("weather ok"), nil
 	}
 
 	reconnectGlobalMCPServer = func(serverName string) (*client.Client, error) {
 		reconnectCount++
-		assert.Equal(t, "高德地图", serverName)
+		assert.Equal(t, "Bản đồ Amap", serverName)
 		return reconnectedClient, nil
 	}
 
 	testTool := &McpTool{
-		info:       &schema.ToolInfo{Name: "maps_weather", Desc: "天气查询"},
-		serverName: "高德地图",
+		info:       &schema.ToolInfo{Name: "maps_weather", Desc: "Tra cứu thời tiết"},
+		serverName: "Bản đồ Amap",
 		client:     initialClient,
 	}
 
-	result, err := testTool.InvokableRun(context.Background(), `{"city":"北京"}`)
+	result, err := testTool.InvokableRun(context.Background(), `{"city":"Hà Nội"}`)
 	require.NoError(t, err)
 	assert.Contains(t, result, "weather ok")
 	assert.Equal(t, 2, callCount)
@@ -507,7 +507,7 @@ func TestMCPToolInvokableRunUsesOriginNameForRemoteCall(t *testing.T) {
 func TestConvertMcpToolListToInvokableToolListSanitizesInvalidNames(t *testing.T) {
 	tools := []mcp.Tool{
 		mcp.NewTool("browser.click", mcp.WithDescription("click")),
-		mcp.NewTool("中文工具", mcp.WithDescription("unicode")),
+		mcp.NewTool("tool_unicode", mcp.WithDescription("unicode")),
 		mcp.NewTool("browser click", mcp.WithDescription("space")),
 	}
 

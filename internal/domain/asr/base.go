@@ -10,27 +10,27 @@ import (
 	log "xiaozhi-esp32-server-golang/logger"
 )
 
-// Asr 语音识别接口
+// Asr là interface nhận diện giọng nói.
 type AsrProvider interface {
-	// Process 一次性处理整段音频，返回完整识别结果
+	// Process xử lý toàn bộ đoạn audio một lần và trả về kết quả nhận diện đầy đủ.
 	Process(pcmData []float32) (string, error)
 
-	// StreamingRecognize 流式识别接口
-	// 输入音频数据通过 audioStream 通道，识别结果通过返回的通道获取
-	// 当 audioStream 被关闭时，表示输入结束，最终结果将会通过返回的通道发送，然后关闭该通道
-	// 可以通过 ctx 控制识别过程的取消和超时
+	// StreamingRecognize là interface nhận diện streaming.
+	// Dữ liệu audio input đi qua channel audioStream, kết quả nhận diện lấy từ channel trả về.
+	// Khi audioStream đóng nghĩa là input kết thúc; kết quả cuối sẽ được gửi qua channel trả về rồi đóng channel đó.
+	// Có thể dùng ctx để điều khiển hủy và timeout quá trình nhận diện.
 	StreamingRecognize(ctx context.Context, audioStream <-chan []float32) (chan types.StreamingResult, error)
-	// Close 关闭资源，释放连接等
+	// Close đóng tài nguyên và giải phóng kết nối.
 	Close() error
-	// IsValid 检查资源是否有效
+	// IsValid kiểm tra tài nguyên có hợp lệ hay không.
 	IsValid() bool
 }
 
-// NewAsrProvider 创建一个新的ASR实例
-// asrType: ASR引擎类型，目前支持 "funasr"
-// config: ASR引擎配置，为 map[string]interface{} 类型
+// NewAsrProvider tạo instance ASR mới.
+// asrType: loại engine ASR, hiện hỗ trợ "funasr".
+// config: config engine ASR, kiểu map[string]interface{}.
 func NewAsrProvider(asrType string, config map[string]interface{}) (AsrProvider, error) {
-	// 优先使用 config 中的 provider，否则使用参数中的 provider
+	// Ưu tiên dùng provider trong config, nếu không có thì dùng provider từ tham số.
 	if configProvider, ok := config["provider"].(string); ok && configProvider != "" {
 		asrType = configProvider
 	}
@@ -40,33 +40,42 @@ func NewAsrProvider(asrType string, config map[string]interface{}) (AsrProvider,
 	case constants.AsrTypeAliyunFunASR:
 		return NewAliyunFunASRAdapter(config)
 	case constants.AsrTypeDoubao:
-		log.Info("使用 豆包ASR 提供者")
+		log.Info("Dùng provider ASR Doubao")
 		provider, err := doubao.NewDoubaoV2Adapter(config)
 		if err != nil {
-			log.Errorf("豆包ASR适配器创建失败: %v", err)
+			log.Errorf("Tạo adapter ASR Doubao thất bại: %v", err)
 		} else {
-			log.Info("豆包ASR适配器创建成功")
+			log.Info("Tạo adapter ASR Doubao thành công")
 		}
 		return provider, err
 	case constants.AsrTypeAliyunQwen3:
-		log.Info("使用 阿里云 Qwen3 ASR 提供者")
+		log.Info("Dùng provider ASR Aliyun Qwen3")
 		provider, err := NewAliyunQwen3Adapter(config)
 		if err != nil {
-			log.Errorf("阿里云 Qwen3 ASR 适配器创建失败: %v", err)
+			log.Errorf("Tạo adapter ASR Aliyun Qwen3 thất bại: %v", err)
 		} else {
-			log.Info("阿里云 Qwen3 ASR 适配器创建成功")
+			log.Info("Tạo adapter ASR Aliyun Qwen3 thành công")
 		}
 		return provider, err
 	case constants.AsrTypeXunfei:
-		log.Info("使用 讯飞 ASR 提供者")
+		log.Info("Sử dụng provider ASR Xunfei")
 		provider, err := NewXunfeiAdapter(config)
 		if err != nil {
-			log.Errorf("讯飞 ASR 适配器创建失败: %v", err)
+			log.Errorf("Tạo adapter ASR Xunfei thất bại: %v", err)
 		} else {
-			log.Info("讯飞 ASR 适配器创建成功")
+			log.Info("Tạo adapter ASR Xunfei thành công")
+		}
+		return provider, err
+	case constants.AsrTypeWyomingVietnamese:
+		log.Info("Sử dụng provider ASR tiếng Việt Wyoming")
+		provider, err := NewWyomingVietnameseAdapter(config)
+		if err != nil {
+			log.Errorf("Tạo adapter ASR tiếng Việt Wyoming thất bại: %v", err)
+		} else {
+			log.Info("Tạo adapter ASR tiếng Việt Wyoming thành công")
 		}
 		return provider, err
 	default:
-		return nil, fmt.Errorf("不支持的ASR引擎类型: %s，目前仅支持 'funasr', 'aliyun_funasr', 'doubao', 'aliyun_qwen3', 'xunfei'", asrType)
+		return nil, fmt.Errorf("loại ASR không được hỗ trợ: %s; hiện hỗ trợ 'funasr', 'aliyun_funasr', 'doubao', 'aliyun_qwen3', 'xunfei', 'wyoming_vietnamese_asr'", asrType)
 	}
 }

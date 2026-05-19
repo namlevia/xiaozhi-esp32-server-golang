@@ -1,159 +1,159 @@
-# LLM 打断标识与历史内容增强方案（待确认）
+# Phương án bổ sung cờ ngắt LLM và tăng cường nội dung lịch sử (chờ xác nhận)
 
-## 1. 目标
+## 1. Mục tiêu
 
-在当前项目中实现两件事：
+Triển khai hai việc trong dự án hiện tại:
 
-1. 当 LLM 流式处理中途被打断时，把打断标识写入该条 assistant 历史消息的 `Extra`。  
-2. 后续组装 LLM 请求历史时，若检测到该标识，则在该条消息 `content` 末尾追加 `" [用户打断]"` 后再送给模型。
+1. Khi quá trình xử lý stream của LLM bị ngắt giữa chừng, ghi cờ ngắt vào `Extra` của tin nhắn lịch sử assistant tương ứng.  
+2. Khi lắp ráp lịch sử cho yêu cầu LLM sau đó, nếu phát hiện cờ này thì thêm `" [người dùng đã ngắt]"` vào cuối `content` của tin nhắn đó trước khi gửi cho model.
 
-说明：此方案先描述实现路径，不直接改代码。
-
----
-
-## 2. 现状代码路径（关键点）
-
-- 中断触发：`/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/common.go:3`  
-  `StopSpeaking()` 会取消 `SessionCtx`，导致 LLM/TTS 处理上下文结束。
-
-- LLM 流式处理与落历史：`/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go:323`  
-  当前 `handleLLMResponse()` 只有在 `llmResponse.IsEnd=true` 时才保存 assistant 消息；  
-  `ctx.Done()` 分支直接 return，不会保存“已输出但被打断”的 assistant。
-
-- 历史组装入口：`/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go:1050`  
-  `GetMessages()` 当前直接把历史 `msg` 追加到请求，未根据 `Extra` 做内容增强。
+Ghi chú: tài liệu này chỉ mô tả hướng triển khai, chưa trực tiếp sửa code.
 
 ---
 
-## 3. 设计原则
+## 2. Đường dẫn code hiện tại (điểm chính)
 
-1. **最小侵入**：仅改 `llm.go` 的历史保存与历史组装逻辑。  
-2. **不污染原始历史**：在组装请求时复制消息再改 `content`，不原地修改内存中的历史对象。  
-3. **避免重复落库**：中断落历史只做一次，且与正常 `IsEnd` 路径互斥。  
-4. **向后兼容**：未带 `Extra.interrupt` 的历史保持原行为。
+- Kích hoạt ngắt: `/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/common.go:3`  
+  `StopSpeaking()` sẽ hủy `SessionCtx`, khiến context xử lý LLM/TTS kết thúc.
+
+- Xử lý stream LLM và ghi lịch sử: `/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go:323`  
+  Hiện tại `handleLLMResponse()` chỉ lưu tin nhắn assistant khi `llmResponse.IsEnd=true`;  
+  nhánh `ctx.Done()` return trực tiếp, không lưu phần assistant “đã xuất ra nhưng bị ngắt”.
+
+- Điểm lắp ráp lịch sử: `/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go:1050`  
+  `GetMessages()` hiện append trực tiếp `msg` trong lịch sử vào request, chưa tăng cường nội dung dựa trên `Extra`.
 
 ---
 
-## 4. 方案细节
+## 3. Nguyên tắc thiết kế
 
-### 4.1 打断时写入 Extra（LLM 阶段）
+1. **Can thiệp tối thiểu**: chỉ sửa logic lưu lịch sử và lắp ráp lịch sử trong `llm.go`.  
+2. **Không làm bẩn lịch sử gốc**: khi lắp ráp request, copy message rồi mới sửa `content`, không sửa trực tiếp object lịch sử trong bộ nhớ.  
+3. **Tránh ghi DB lặp**: lịch sử khi bị ngắt chỉ ghi một lần và loại trừ với đường xử lý `IsEnd` bình thường.  
+4. **Tương thích ngược**: lịch sử không có `Extra.interrupt` giữ nguyên hành vi cũ.
 
-改动位置：`/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go:324` 的 `handleLLMResponse()`
+---
 
-新增逻辑：
+## 4. Chi tiết phương án
 
-1. 在函数内引入局部状态：
-   - `assistantSaved bool`：防止同一次处理重复保存。
+### 4.1 Ghi Extra khi bị ngắt (giai đoạn LLM)
 
-2. 抽一个内部 helper（函数内局部闭包或私有方法），在 `ctx.Done()` 触发时执行：
-   - 从 `fullText.String()` 取当前已累计文本；
-   - 若文本为空，跳过；
-   - 构造 `assistantMsg := schema.AssistantMessage(text, nil)`；
-   - 设置：
+Vị trí sửa: `handleLLMResponse()` tại `/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go:324`
+
+Logic mới:
+
+1. Thêm trạng thái cục bộ trong hàm:
+   - `assistantSaved bool`: tránh lưu lặp trong cùng một lần xử lý.
+
+2. Tách một helper nội bộ (closure cục bộ trong hàm hoặc private method), chạy khi `ctx.Done()` được kích hoạt:
+   - Lấy phần text hiện đã tích lũy từ `fullText.String()`;
+   - Nếu text rỗng thì bỏ qua;
+   - Tạo `assistantMsg := schema.AssistantMessage(text, nil)`;
+   - Thiết lập:
      - `assistantMsg.Extra["interrupt"] = true`
      - `assistantMsg.Extra["interrupt_by"] = "user"`
      - `assistantMsg.Extra["interrupt_stage"] = "llm"`
-   - `AddLlmMessage(ctx, assistantMsg)` 保存历史。
+   - Gọi `AddLlmMessage(ctx, assistantMsg)` để lưu lịch sử.
 
-3. 在 `ctx.Done()` 的多个返回点调用该 helper，再返回。
+3. Gọi helper này ở các điểm return trong nhánh `ctx.Done()`, rồi mới return.
 
-备注：
-- 正常 `IsEnd` 路径保持不变（不加 interrupt 标识）。
-- 仅在确有已累计文本时保存，避免空 assistant 消息。
+Ghi chú:
+- Đường xử lý `IsEnd` bình thường giữ nguyên, không thêm cờ interrupt.
+- Chỉ lưu khi thật sự có text đã tích lũy, tránh tạo message assistant rỗng.
 
 ---
 
-### 4.2 组装历史时按 Extra 增强 content
+### 4.2 Tăng cường content theo Extra khi lắp ráp lịch sử
 
-改动位置：`/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go:1050` 的 `GetMessages()`
+Vị trí sửa: `GetMessages()` tại `/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go:1050`
 
-新增逻辑：
+Logic mới:
 
-1. 遍历历史消息时，不直接 append 原 `msg`，而是先做浅拷贝（必要字段复制）。  
-2. 如果满足：
+1. Khi duyệt tin nhắn lịch sử, không append trực tiếp `msg` gốc; trước tiên tạo bản shallow copy, copy các trường cần thiết.  
+2. Nếu thỏa mãn:
    - `msg.Role == schema.Assistant`
    - `msg.Extra != nil`
    - `msg.Extra["interrupt"] == true`
-   - `msg.Content` 非空
+   - `msg.Content` không rỗng
    
-   则将请求侧内容改为：
-   - `newMsg.Content = msg.Content + " [用户打断]"`
+   thì đổi nội dung phía request thành:
+   - `newMsg.Content = msg.Content + " [người dùng đã ngắt]"`
 
-3. 为避免重复追加，若内容已以 `" [用户打断]"` 结尾则不重复追加。
+3. Để tránh append lặp, nếu nội dung đã kết thúc bằng `" [người dùng đã ngắt]"` thì không append nữa.
 
-注意：
-- 只在“请求组装副本”里改 `content`，不改原历史。
-
----
-
-### 4.3 历史尾部 user 过滤（避免污染当前轮 user）
-
-改动位置：`/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go:1050` 的 `GetMessages()`
-
-新增逻辑：
-
-1. 在 `messageList := l.clientState.GetMessages(count)` 后，先检查“历史消息最后一条”：
-   - 若最后一条 `Role == schema.User`，则从 `messageList` 中移除该条。
-
-2. 仅过滤“尾部连续 user”：
-   - 推荐循环从尾部回退，删除连续 `user`，直到尾部不是 `user` 或列表为空。
-
-目的：
-- 防止历史里残留的上一轮 user 文本与本轮 `userMessage` 混在一起，污染当前会话意图。
-
-注意：
-- 这是“组装请求时过滤”，不改内存中的原始历史数据。
+Lưu ý:
+- Chỉ sửa `content` trong “bản copy dùng để lắp ráp request”, không sửa lịch sử gốc.
 
 ---
 
-## 5. 建议补充的辅助函数
+### 4.3 Lọc user ở cuối lịch sử để tránh làm nhiễu lượt hiện tại
 
-建议放在 `llm.go` 私有方法区域：
+Vị trí sửa: `GetMessages()` tại `/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go:1050`
+
+Logic mới:
+
+1. Sau `messageList := l.clientState.GetMessages(count)`, kiểm tra “tin nhắn cuối cùng trong lịch sử”:
+   - Nếu tin nhắn cuối có `Role == schema.User`, loại bỏ tin nhắn đó khỏi `messageList`.
+
+2. Chỉ lọc các message `user` liên tiếp ở cuối:
+   - Khuyến nghị dùng vòng lặp lùi từ cuối danh sách, xóa các message `user` liên tiếp cho đến khi phần tử cuối không còn là `user` hoặc danh sách rỗng.
+
+Mục đích:
+- Tránh text user còn sót từ lượt trước trong lịch sử bị trộn với `userMessage` của lượt hiện tại, làm nhiễu ý định hội thoại hiện tại.
+
+Lưu ý:
+- Đây là bước lọc khi lắp ráp request, không sửa dữ liệu lịch sử gốc trong bộ nhớ.
+
+---
+
+## 5. Helper nên bổ sung
+
+Nên đặt trong khu vực private method của `llm.go`:
 
 1. `isInterruptedMessage(msg *schema.Message) bool`  
-   统一判断 `Extra.interrupt`（支持 bool/字符串 `"true"` 容错）。
+   Thống nhất cách kiểm tra `Extra.interrupt`, hỗ trợ cả bool và chuỗi `"true"` để chịu lỗi dữ liệu.
 
 2. `decorateInterruptedContent(content string) string`  
-   统一追加逻辑，避免重复 `" [用户打断]"`。
+   Thống nhất logic append, tránh lặp `" [người dùng đã ngắt]"`.
 
 3. `cloneMessageForRequest(msg *schema.Message) *schema.Message`  
-   复制 `Role/Content/Name/ToolCalls/ToolCallID/Extra/ResponseMeta`（最少保证 `Content` 与 `Extra` 可安全改写）。
+   Copy `Role/Content/Name/ToolCalls/ToolCallID/Extra/ResponseMeta`, tối thiểu đảm bảo có thể sửa `Content` và `Extra` an toàn.
 
 ---
 
-## 6. 兼容性与风险
+## 6. Tương thích và rủi ro
 
-1. `Extra` 对模型是否直接生效：  
-   当前 OpenAI 适配层组请求时不透传 `Extra`，所以模型行为主要由我们追加到 `content` 的 `" [用户打断]"` 决定。
+1. `Extra` có tác động trực tiếp tới model hay không:  
+   Hiện tầng adapter OpenAI không truyền tiếp `Extra` khi lắp request, nên hành vi model chủ yếu phụ thuộc vào việc ta append `" [người dùng đã ngắt]"` vào `content`.
 
-2. 历史存储差异：  
-   - `redis` 模式下，`schema.Message` 直接 JSON 入库，`Extra` 可保留。  
-   - `manager` 模式当前只存 `role/content/tool_calls`，`Extra` 可能丢失。  
-   因此若未来在 manager 模式也需要该能力，需要同步扩展 manager history 协议。
+2. Khác biệt trong lưu trữ lịch sử:  
+   - Ở chế độ `redis`, `schema.Message` được lưu JSON trực tiếp, nên `Extra` có thể được giữ lại.  
+   - Ở chế độ `manager`, hiện chỉ lưu `role/content/tool_calls`, nên `Extra` có thể bị mất.  
+   Vì vậy nếu sau này cần năng lực này ở chế độ manager, cần mở rộng đồng bộ giao thức manager history.
 
-3. 文案影响：  
-   `" [用户打断]"` 是显式提示，会影响模型续写风格；这是本需求预期行为。
-
----
-
-## 7. 验收标准（确认后实施）
-
-1. 场景：user 已入历史，assistant 流式中途打断  
-   - 历史中新增 assistant 一条，`Extra.interrupt=true`。
-
-2. 下一轮发 LLM 前查看请求消息  
-   - 对应 assistant 内容变为 `"<原文片段> [用户打断]"`。
-
-3. 非打断完成消息  
-   - `Extra.interrupt` 不存在，`content` 不加前缀。
-
-4. 当历史尾部为 user 时，请求中该尾部 user 被过滤，不与当前轮 user 重复/混杂。
-
-5. 不出现重复标记、不出现空 assistant 记录。
+3. Ảnh hưởng của wording:  
+   `" [người dùng đã ngắt]"` là prompt rõ ràng, sẽ ảnh hưởng phong cách viết tiếp của model; đây là hành vi mong muốn của yêu cầu này.
 
 ---
 
-## 8. 实施文件清单（确认后）
+## 7. Tiêu chí nghiệm thu (triển khai sau khi xác nhận)
+
+1. Kịch bản: user đã vào lịch sử, assistant đang stream thì bị ngắt giữa chừng  
+   - Lịch sử có thêm một tin nhắn assistant, `Extra.interrupt=true`.
+
+2. Trước khi gửi LLM ở lượt kế tiếp, kiểm tra request messages  
+   - Nội dung assistant tương ứng trở thành `"<đoạn gốc> [người dùng đã ngắt]"`.
+
+3. Tin nhắn hoàn tất bình thường, không bị ngắt  
+   - Không có `Extra.interrupt`, `content` không được thêm hậu tố.
+
+4. Khi cuối lịch sử là user, user cuối đó bị lọc khỏi request, không trùng/lẫn với user của lượt hiện tại.
+
+5. Không xuất hiện marker lặp, không xuất hiện bản ghi assistant rỗng.
+
+---
+
+## 8. Danh sách file triển khai (sau khi xác nhận)
 
 - `/Users/shijingbo/git/xiaozhi-esp32-server-golang/internal/app/server/chat/llm.go`
-- （可选）`/Users/shijingbo/git/xiaozhi-esp32-server-golang/test/interrupt_history/main.go` 用于验证演示
+- Tùy chọn: `/Users/shijingbo/git/xiaozhi-esp32-server-golang/test/interrupt_history/main.go` để xác minh demo

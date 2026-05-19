@@ -1,9 +1,9 @@
 <template>
   <div class="test-route">
-    <h1>测试路由页面</h1>
-    <p>如果您能看到这个页面，说明路由系统正常工作。</p>
+    <h1>Trang kiểm tra định tuyến</h1>
+    <p>Nếu bạn thấy được trang này, hệ thống định tuyến đang hoạt động bình thường.</p>
     <div class="route-state">{{ message }}</div>
-    <el-button @click="testFunction">测试按钮</el-button>
+    <el-button @click="testFunction">Nút kiểm tra</el-button>
   </div>
 </template>
 
@@ -13,7 +13,7 @@ import { ref } from 'vue'
 const message = ref('Hello World')
 
 const testFunction = () => {
-  message.value = '按钮被点击了'
+  message.value = 'Nút đã được bấm'
 }
 </script>
 

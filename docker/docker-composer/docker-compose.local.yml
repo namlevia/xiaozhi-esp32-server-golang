@@ -1,7 +1,7 @@
 version: '3.8'
 
 services:
-  # MySQL数据库服务
+  # Dịch vụ database MySQL
   mysql:
     image: mysql:8.0
     container_name: xiaozhi-mysql
@@ -9,7 +9,7 @@ services:
       MYSQL_ROOT_PASSWORD: password
       MYSQL_DATABASE: xiaozhi_admin
     ports:
-      - "23306:3306"        #可以不进行映射
+      - "23306:3306"        # Có thể không cần map cổng
     volumes:
       - mysql_data:/var/lib/mysql
     command: --default-authentication-plugin=mysql_native_password --skip-ssl
@@ -23,20 +23,21 @@ services:
       interval: 10s
       start_period: 180s
 
-  # 主程序服务（本地构建版本）
+  # Dịch vụ chương trình chính, bản build local
   main-server:
     build:
       context: ../..
       dockerfile: docker/Dockerfile.main
-      platform: linux/amd64
       args:
         TARGETARCH: amd64
+    platform: linux/amd64
     container_name: xiaozhi-main-server
-    command: ["/workspace/bin/xiaozhi_server", "-c", "/workspace/config/config.personal.yaml"]
+    command: ["/workspace/bin/xiaozhi_server", "-c", "/workspace/config/config.yaml", "-tts-enable", "-tts-config", "/workspace/tts_server.json"]
     ports:
-      - "8989:8989"        # websocket服务 端口 18989端口
-      - "2883:2883"        # mqtt server 12883
-      - "8888:8888/udp"     # udp server 8888
+      - "18989:8989"       # Cổng WebSocket service
+      - "19001:9001"       # Cổng TTS local
+      - "12883:2883"       # mqtt server
+      - "18888:8888/udp"   # udp server
     depends_on:
       mysql:
         condition: service_healthy
@@ -49,44 +50,68 @@ services:
       - DB_PASSWORD=password
       - DB_NAME=xiaozhi_admin
       - BACKEND_URL=http://backend:8080
+    dns:
+      - 1.1.1.1
+      - 8.8.8.8
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ../../config:/workspace/config
       - ../../logs:/workspace/logs
+      - ../../build/common/tts_server.json:/workspace/tts_server.json:ro
+      - ../../tts_server/tts-model:/workspace/tts-model
     networks:
       - xiaozhi-network
     restart: unless-stopped
 
-  # 后端管理服务（本地构建版本）
+  # Dịch vụ ASR tiếng Việt Go, bản build local
+  voice-server:
+    build:
+      context: ../../asr_server
+      dockerfile: Dockerfile
+    platform: linux/amd64
+    container_name: xiaozhi-voice-server
+    ports:
+      - "18082:9000"       # Cổng ASR tiếng Việt Go
+    networks:
+      - xiaozhi-network
+    restart: unless-stopped
+
+  # Dịch vụ backend quản trị, bản build local
   backend:
     build:
       context: ../../manager/backend
       dockerfile: Dockerfile
     container_name: xiaozhi-backend
     ports:
-      - "8081:8080"        # 后端管理服务 端口 映射至宿主机 28080
+      - "28080:8080"       # Map cổng backend quản trị ra host
     depends_on:
       mysql:
         condition: service_healthy
+      voice-server:
+        condition: service_started
     environment:
       - DB_HOST=mysql
       - DB_PORT=3306
       - DB_USER=root
       - DB_PASSWORD=password
       - DB_NAME=xiaozhi_admin
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ../../manager/backend/config:/root/config
     networks:
       - xiaozhi-network
     restart: unless-stopped
 
-  # 前端管理服务（本地构建版本）
+  # Dịch vụ frontend quản trị, bản build local
   frontend:
     build:
       context: ../../manager/frontend
       dockerfile: Dockerfile
     container_name: xiaozhi-frontend
     ports:
-      - "8080:80"           # 前端管理服务 端口 映射至宿主机 18080
+      - "18080:80"          # Map cổng frontend quản trị ra host
     depends_on:
       - backend
     networks:

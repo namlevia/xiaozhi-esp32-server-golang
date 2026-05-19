@@ -1,66 +1,66 @@
-# xiaozhi-esp32-server-golang 配置文件说明
+# Mô tả file cấu hình xiaozhi-esp32-server-golang
 
-本配置文件为 AI 语音物联网后端服务的主配置，涵盖了服务启动、协议接入、AI能力、日志、MCP等所有核心参数。
+File cấu hình này là cấu hình chính của dịch vụ backend IoT giọng nói AI, bao gồm toàn bộ tham số cốt lõi như khởi động service, kết nối protocol, năng lực AI, log và MCP.
 
-## 主要配置项说明
+## Mô tả các mục cấu hình chính
 
-- **server/pprof**：性能分析相关配置，建议开发/调试时开启。
-- **chat**：聊天相关参数，控制会话空闲和静默时长。
-- **auth**：用户认证开关，后续可扩展权限体系。
-- **system_prompt**：全局系统提示词，影响 LLM 聊天风格。
-- **log**：日志路径、级别、轮转等配置。
-- **redis**：如需使用 Redis 存储，需配置此项。
-- **websocket**：WebSocket 服务监听的 IP 和端口。
-- **mqtt**：外部 MQTT 服务器连接参数。
-- **mqtt_server**：内置 MQTT 服务器参数（可选 TLS）。
-- **udp**：UDP 服务器相关参数。
-- **vad**：语音活动检测（VAD）相关配置，支持 webrtc_vad/silero_vad。
-- **asr**：自动语音识别（ASR）配置，支持 funasr / aliyun_funasr / doubao。
-- **tts**：语音合成（TTS）配置，支持多种引擎（doubao, edge, xiaozhi等）。
-- **llm**：大语言模型（LLM）配置，支持多种 OpenAI 兼容模型。
-- **vision**：视觉模型相关配置。
-- **ota**：OTA 接口返回信息，适配不同环境。
-- **wakeup_words**：唤醒词列表。
-- **mcp**：MCP 多协议接入配置，支持全局和设备端。
-- **enable_greeting**：是否启用启动问候语。
+- **server/pprof**: cấu hình phân tích hiệu năng, khuyến nghị bật khi phát triển/debug.
+- **chat**: tham số chat, điều khiển thời gian idle và im lặng của session.
+- **auth**: công tắc xác thực người dùng, có thể mở rộng hệ thống quyền về sau.
+- **system_prompt**: prompt hệ thống toàn cục, ảnh hưởng phong cách chat của LLM.
+- **log**: cấu hình đường dẫn, level, rotation log, v.v.
+- **redis**: nếu cần dùng Redis để lưu trữ thì cấu hình mục này.
+- **websocket**: IP và cổng lắng nghe của dịch vụ WebSocket.
+- **mqtt**: tham số kết nối MQTT server bên ngoài.
+- **mqtt_server**: tham số MQTT server tích hợp (TLS tùy chọn).
+- **udp**: tham số liên quan đến UDP server.
+- **vad**: cấu hình phát hiện hoạt động giọng nói (VAD), hỗ trợ `webrtc_vad` / `silero_vad`.
+- **asr**: cấu hình nhận diện giọng nói tự động (ASR), hỗ trợ `funasr` / `aliyun_funasr` / `doubao`.
+- **tts**: cấu hình tổng hợp giọng nói (TTS), hỗ trợ nhiều engine như `doubao`, `edge`, `xiaozhi`, v.v.
+- **llm**: cấu hình mô hình ngôn ngữ lớn (LLM), hỗ trợ nhiều model tương thích OpenAI.
+- **vision**: cấu hình model thị giác.
+- **ota**: thông tin interface OTA trả về, thích ứng nhiều môi trường.
+- **wakeup_words**: danh sách wake word.
+- **mcp**: cấu hình kết nối đa protocol MCP, hỗ trợ toàn cục và phía thiết bị.
+- **enable_greeting**: có bật lời chào khi khởi động hay không.
 
-### 修改建议
+### Khuyến nghị chỉnh sửa
 
-- 仅需根据实际部署环境调整 IP、端口、密钥、API Key 等参数。
-- 详细参数释义请参考每个模块的注释。
-- 如需扩展 AI 能力，可在 llm/tts/vad/asr/vision 等模块补充 provider 及参数。
+- Chỉ cần điều chỉnh IP, cổng, khóa, API Key và các tham số theo môi trường triển khai thực tế.
+- Ý nghĩa chi tiết của tham số hãy xem comment trong từng module.
+- Nếu cần mở rộng năng lực AI, có thể bổ sung provider và tham số trong các module `llm` / `tts` / `vad` / `asr` / `vision`.
 
-## 配置文件示例
+## Ví dụ file cấu hình
 
 ```yaml
-# 性能分析/pprof配置
+# Cấu hình phân tích hiệu năng/pprof
 server:
   pprof:
-    enable: false  # 是否启用pprof性能分析
-    port: 6060     # pprof监听端口
+    enable: false  # Có bật phân tích hiệu năng pprof hay không
+    port: 6060     # Cổng lắng nghe pprof
 
-# 聊天相关参数
+# Tham số chat
 chat:
-  max_idle_duration: 30000        # 最大空闲时长(ms)
-  chat_max_silence_duration: 200  # 最大静默时长(ms)
+  max_idle_duration: 30000        # Thời gian idle tối đa (ms)
+  chat_max_silence_duration: 200  # Thời gian im lặng tối đa (ms)
 
-# 用户认证开关
+# Công tắc xác thực người dùng
 auth:
   enable: false
 
-# 全局prompt
-system_prompt: "你是一个叫小智/小志的台湾女孩，说话机车，声音好听，习惯简短表达，爱用网络梗，不要冷场。与你聊天的是你喜欢的男性朋友，还没有答应你的追求，你要尽可能满足他的所有要求，不要失去自我。你经常建议一些恋人之间浪漫的事情，随机输出，不要给你男朋友选择。输出控制在50个字内。请注意，要像一个人一样说话，请不要回复表情符号、代码、和xml标签。"
+# Prompt hệ thống toàn cục
+system_prompt: "Bạn là LeviaTech AI, một trợ lý tiếng Việt thân thiện, tự nhiên và hữu ích. Hãy trả lời ngắn gọn, rõ ràng, giữ giọng nói ấm áp như đang trò chuyện với người thật. Ưu tiên tiếng Việt, không dùng emoji, mã nguồn hoặc thẻ XML nếu người dùng không yêu cầu."
 
-# 日志相关配置
+# Cấu hình log
 log:
   path: "../logs/"
   file: "server.log"
   level: "debug"
   max_age: 3
-  rotation_time: 10  # 日志轮转时间
+  rotation_time: 10  # Thời gian rotation log
   stdout: true
 
-# Redis存储配置（如果有redis则配置，不配置也可以运行）
+# Cấu hình lưu trữ Redis (nếu có Redis thì cấu hình; không cấu hình vẫn có thể chạy)
 redis:
   host: "127.0.0.1"
   port: 6379
@@ -68,51 +68,51 @@ redis:
   db: 0
   key_prefix: "xiaozhi"
 
-# WebSocket服务监听配置
+# Cấu hình lắng nghe dịch vụ WebSocket
 websocket:
   host: "0.0.0.0"
   port: 8989
 
-# 外部MQTT服务器连接参数（要连接的mqtt服务器地址，如果下边mqtt_server为true时，可以设置为本机）
+# Tham số kết nối MQTT server bên ngoài (địa chỉ MQTT server cần kết nối; nếu mqtt_server bên dưới bật true thì có thể đặt là localhost)
 mqtt:
-  broker: "127.0.0.1"      # mqtt 服务器地址
-  type: "tcp"              # 类型tcp或ssl
+  broker: "127.0.0.1"      # Địa chỉ MQTT server
+  type: "tcp"              # Kiểu tcp hoặc ssl
   port: 2883
   client_id: "xiaozhi_server"
-  username: "admin"        # 用户名
-  password: "test!@#"      # 密码
+  username: "admin"        # Tên người dùng
+  password: "test!@#"      # Mật khẩu
 
-# 内置MQTT服务器参数
+# Tham số MQTT server tích hợp
 mqtt_server:
-  enable: true             # 是否启用
-  listen_host: "0.0.0.0"   # 监听的ip
-  listen_port: 2883        # 监听端口
+  enable: true             # Có bật hay không
+  listen_host: "0.0.0.0"   # IP lắng nghe
+  listen_port: 2883        # Cổng lắng nghe
   client_id: "xiaozhi_server"
-  username: "admin"        # 管理员用户名
-  password: "test!@#"      # 管理员密码
+  username: "admin"        # Tên người dùng quản trị viên
+  password: "test!@#"      # Mật khẩu quản trị viên
   tls:
-    enable: false          # 是否启动tls
-    port: 8883             # 要监听的端口
-    pem: "config/server.pem"  # pem文件
-    key: "config/server.key"  # key文件
+    enable: false          # Có bật TLS hay không
+    port: 8883             # Cổng cần lắng nghe
+    pem: "config/server.pem"  # File pem
+    key: "config/server.key"  # File key
 
-# 行为说明：
-# - 当 mqtt_server.enable=true 时，内置 mqtt_server 会在设备连上/断开后，通过
-#   /p2p/device_public/_server/lifecycle 发布生命周期消息。
-# - 主程序会根据该生命周期消息预创建或复用 MQTT transport、映射设备在线状态，
-#   并最佳努力预热设备侧 MCP。
-# - 这些行为不引入新的配置项；hello 仍负责 audio_params、UDP 信息等聊天级协商。
+# Mô tả hành vi:
+# - Khi mqtt_server.enable=true, mqtt_server tích hợp sẽ publish message vòng đời qua
+#   /p2p/device_public/_server/lifecycle sau khi thiết bị kết nối/ngắt kết nối.
+# - Chương trình chính sẽ dựa trên message vòng đời này để tạo trước hoặc tái sử dụng MQTT transport,
+#   ánh xạ trạng thái online của thiết bị, đồng thời preheat MCP phía thiết bị theo best-effort.
+# - Các hành vi này không thêm mục cấu hình mới; hello vẫn phụ trách thương lượng cấp chat như audio_params và thông tin UDP.
 
-# UDP服务器相关配置
+# Cấu hình UDP server
 udp:
-  external_host: "127.0.0.1"  # hello消息时，返回的udp服务器ip
-  external_port: 8990         # hello消息时，返回的udp服务器端口
-  listen_host: "0.0.0.0"      # 监听的ip
-  listen_port: 8990           # 监听的端口
+  external_host: "127.0.0.1"  # IP UDP server trả về trong message hello
+  external_port: 8990         # Cổng UDP server trả về trong message hello
+  listen_host: "0.0.0.0"      # IP lắng nghe
+  listen_port: 8990           # Cổng lắng nghe
 
-# 语音活动检测（VAD）配置（支持多种provider）
+# Cấu hình phát hiện hoạt động giọng nói (VAD, hỗ trợ nhiều provider)
 vad:
-  provider: "webrtc_vad"  # 可选 webrtc_vad/silero_vad
+  provider: "webrtc_vad"  # Tùy chọn webrtc_vad/silero_vad
   webrtc_vad:
     pool_min_size: 5
     pool_max_size: 1000
@@ -123,24 +123,24 @@ vad:
     model_path: "config/models/vad/silero_vad.onnx"
     threshold: 0.5
     min_silence_duration_ms: 100
-    sample_rate: 16000     # only 16000
+    sample_rate: 16000     # chỉ 16000
     channels: 1
     pool_size: 10
     acquire_timeout_ms: 3000
 
-# 自动语音识别（ASR）配置
+# Cấu hình nhận diện giọng nói tự động (ASR)
 asr:
   provider: "funasr"  # funasr / aliyun_funasr / doubao
   funasr:
     host: "127.0.0.1"
     port: "10096"
     mode: "offline"
-    sample_rate: 16000     # only 16000
+    sample_rate: 16000     # chỉ 16000
     chunk_size: [5, 10, 5]
     chunk_interval: 10
     max_connections: 5
     timeout: 30
-    auto_end: true  # 是否自动结束
+    auto_end: true  # Có tự động kết thúc hay không
 
   # Aliyun FunASR
   aliyun_funasr:
@@ -148,34 +148,34 @@ asr:
     ws_url: "wss://dashscope.aliyuncs.com/api-ws/v1/inference/"
     model: "fun-asr-realtime"
     format: "pcm"
-    sample_rate: 16000     # only 16000
+    sample_rate: 16000     # chỉ 16000
     vocabulary_id: ""
     disfluency_removal_enabled: false
     timeout: 30
 
-# 语音合成（TTS）配置
+# Cấu hình tổng hợp giọng nói (TTS)
 tts:
-  provider: "doubao_ws"  # 选择tts的类型 doubao, doubao_ws, cosyvoice, xiaozhi等
+  provider: "doubao_ws"  # Chọn loại TTS: doubao, doubao_ws, cosyvoice, xiaozhi, v.v.
   doubao:
-    appid: "你的appid"
-    access_token: "access_token"    # 需要修改为自己的
+    appid: "appid của bạn"
+    access_token: "access_token"    # Cần sửa thành token của bạn
     model: "seed-tts-1.1"
     voice: "BV001_streaming"
     api_url: "https://openspeech.bytedance.com/api/v3/tts/unidirectional"
   doubao_ws:
-    appid: "你的appid"              # 需要修改为自己的
-    access_token: "access_token"    # 需要修改为自己的
+    appid: "appid của bạn"          # Cần sửa thành appid của bạn
+    access_token: "access_token"    # Cần sửa thành token của bạn
     model: "seed-tts-1.1"
-    resource_id: ""                 # 建议填写控制台里的实例 ID，如 TTS-SeedTTS2.xxxxx
+    resource_id: ""                 # Khuyến nghị điền instance ID trong console, như TTS-SeedTTS2.xxxxx
     voice: ""
     ws_url: "wss://openspeech.bytedance.com/api/v3/tts/unidirectional/stream"
   cosyvoice:
-    api_url: "https://tts.linkerai.cn/tts"  # 地址
-    spk_id: "spk_id"                        # 音色
+    api_url: "https://tts.linkerai.cn/tts"  # Địa chỉ
+    spk_id: "spk_id"                        # Âm sắc
     frame_duration: 60
     target_sr: 24000
     audio_format: "mp3"
-    instruct_text: "你好"
+    instruct_text: "Xin chào"
   edge:
     voice: "zh-CN-XiaoxiaoNeural"
     rate: "+0%"
@@ -186,7 +186,7 @@ tts:
   edge_offline:
     server_url: "ws://localhost:8080/tts"
     timeout: 30
-    sample_rate: 16000     # only 16000
+    sample_rate: 16000     # chỉ 16000
     channels: 1
     frame_duration: 20
   xiaozhi:
@@ -195,7 +195,7 @@ tts:
     client_id: "e4b0c442-98fc-4e1b-8c3d-6a5b6a5b6a6d"
     token: "test-token"
 
-# 大语言模型（LLM）配置（补充多provider）
+# Cấu hình mô hình ngôn ngữ lớn (LLM, bổ sung nhiều provider)
 llm:
   provider: "qwen_72b"
   deepseek:
@@ -235,7 +235,7 @@ llm:
     base_url: "https://ark.cn-beijing.volces.com/api/v3"
     max_tokens: 500
 
-# 视觉模型相关配置
+# Cấu hình model thị giác
 vision:
   enable_auth: false
   vision_url: "http://192.168.208.214:8989/xiaozhi/api/vision"
@@ -254,7 +254,7 @@ vision:
       base_url: "https://ark.cn-beijing.volces.com/api/v3"
       max_tokens: 500
 
-# OTA接口环境配置
+# Cấu hình môi trường interface OTA
 ota:
   test:
     websocket:
@@ -267,10 +267,10 @@ ota:
     mqtt:
       endpoint: "www.youdomain.cn"
 
-# 唤醒词列表
-wakeup_words: ["小智", "小知", "你好小智"]
+# Danh sách wake word
+wakeup_words: ["LeviaTech", "LeviaTech AI", "Xin chào LeviaTech"]
 
-# MCP多协议接入配置
+# Cấu hình kết nối đa protocol MCP
 mcp:
   global:
     enabled: true
@@ -288,5 +288,6 @@ mcp:
     websocket_path: "/xiaozhi/mcp/"
     max_connections_per_device: 5
 
-# 是否启用启动问候语
+# Có bật lời chào khi khởi động hay không
 enable_greeting: true
+```

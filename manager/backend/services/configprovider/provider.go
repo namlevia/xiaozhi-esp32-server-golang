@@ -9,16 +9,17 @@ var knownProviders = map[string]map[string]struct{}{
 		"ten_vad": {}, "webrtc_vad": {}, "silero_vad": {},
 	},
 	"asr": {
-		"funasr": {}, "aliyun_funasr": {}, "doubao": {}, "aliyun_qwen3": {}, "xunfei": {},
+		"funasr": {}, "aliyun_funasr": {}, "doubao": {}, "aliyun_qwen3": {}, "xunfei": {}, "wyoming_vietnamese_asr": {},
 	},
 	"llm": {
 		"openai": {}, "ollama": {}, "azure": {}, "anthropic": {}, "zhipu": {}, "aliyun": {},
-		"doubao": {}, "siliconflow": {}, "deepseek": {}, "dify": {}, "coze": {},
+		"doubao": {}, "siliconflow": {}, "deepseek": {}, "gemini": {}, "openrouter": {}, "9router": {},
+		"groq": {}, "together": {}, "mistral": {}, "xai": {}, "perplexity": {}, "dify": {}, "coze": {},
 	},
 	"tts": {
 		"doubao": {}, "doubao_ws": {}, "cosyvoice": {}, "edge": {}, "edge_offline": {},
 		"xiaozhi": {}, "xunfei": {}, "xunfei_super_tts": {}, "openai": {}, "zhipu": {},
-		"minimax": {}, "aliyun_qwen": {}, "indextts_vllm": {},
+		"minimax": {}, "aliyun_qwen": {}, "indextts_vllm": {}, "piper": {},
 	},
 	"memory": {
 		"nomemo": {}, "memobase": {}, "mem0": {}, "memos": {},
@@ -118,11 +119,11 @@ func defaultProvider(configType string) string {
 	case "vad":
 		return "ten_vad"
 	case "asr":
-		return "funasr"
+		return "wyoming_vietnamese_asr"
 	case "llm":
 		return "openai"
 	case "tts":
-		return "doubao_ws"
+		return "edge_offline"
 	case "memory":
 		return "memobase"
 	case "vision":
@@ -252,6 +253,22 @@ func inferLLMProvider(data map[string]interface{}) string {
 		return "siliconflow"
 	case containsAny(baseURL, "deepseek.com"):
 		return "deepseek"
+	case containsAny(baseURL, "generativelanguage.googleapis.com", "googleapis.com/v1beta/openai"):
+		return "gemini"
+	case containsAny(baseURL, "openrouter.ai"):
+		return "openrouter"
+	case containsAny(baseURL, "9router"):
+		return "9router"
+	case containsAny(baseURL, "groq.com"):
+		return "groq"
+	case containsAny(baseURL, "together.xyz"):
+		return "together"
+	case containsAny(baseURL, "mistral.ai"):
+		return "mistral"
+	case containsAny(baseURL, "api.x.ai"):
+		return "xai"
+	case containsAny(baseURL, "perplexity.ai"):
+		return "perplexity"
 	case containsAny(baseURL, "localhost:11434", "127.0.0.1:11434"):
 		return "ollama"
 	}
@@ -290,6 +307,8 @@ func inferTTSProvider(data map[string]interface{}) string {
 		return "minimax"
 	case containsAny(model, "indextts"):
 		return "indextts_vllm"
+	case hasAny(data, "model_path", "model_config_path") || containsAny(apiURL, "piper"):
+		return "piper"
 	case containsAny(apiURL, "openspeech", "volces.com", "volcengine"):
 		if hasAny(data, "ws_url", "ws_host", "use_stream", "resource_id") {
 			return "doubao_ws"

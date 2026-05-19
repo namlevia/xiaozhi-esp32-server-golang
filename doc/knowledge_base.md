@@ -1,23 +1,23 @@
-# 知识库功能说明
+# Hướng dẫn chức năng kho tri thức
 
-本文档介绍项目中的 **知识库（Knowledge Base / RAG）** 功能，包括管理员侧 provider 配置、普通用户侧知识库与文档管理、召回测试，以及主程序聊天链路中的知识库检索集成。
+Tài liệu này giới thiệu chức năng **kho tri thức (Knowledge Base / RAG)** trong dự án, bao gồm cấu hình provider phía quản trị viên, quản lý kho tri thức và tài liệu phía người dùng thường, kiểm thử truy hồi, và tích hợp truy hồi kho tri thức trong luồng chat của chương trình chính.
 
-相关文档：
+Tài liệu liên quan:
 
-- [管理后台使用指南](./manager_console_guide.md)
-- [MCP 架构说明](./mcp.md)（知识库检索工具 `search_knowledge` 会通过本地工具链路触发）
+- [Hướng dẫn sử dụng trang quản trị](./manager_console_guide.md)
+- [Mô tả kiến trúc MCP](./mcp.md) (công cụ truy hồi kho tri thức `search_knowledge` sẽ được kích hoạt qua luồng công cụ cục bộ)
 
 ---
 
-## 1. 功能概览
+## 1. Tổng quan chức năng
 
-知识库功能用于为智能体提供“文档依据型回答”能力，包含三层：
+Chức năng kho tri thức dùng để cung cấp năng lực “trả lời dựa trên tài liệu” cho agent, gồm ba tầng:
 
-1. 管理员配置知识库检索 provider（Dify / RAGFlow / WeKnora）
-2. 普通用户创建知识库与文档，并异步同步到 provider
-3. 智能体关联知识库，在对话时触发本地 `search_knowledge` 工具完成召回
+1. Quản trị viên cấu hình provider truy hồi kho tri thức (Dify / RAGFlow / WeKnora)
+2. Người dùng thường tạo kho tri thức và tài liệu, sau đó đồng bộ bất đồng bộ lên provider
+3. Agent liên kết kho tri thức và kích hoạt công cụ cục bộ `search_knowledge` trong hội thoại để hoàn tất truy hồi
 
-当前前端管理页已支持的 provider：
+Provider hiện đã được trang quản trị frontend hỗ trợ:
 
 - `dify`
 - `ragflow`
@@ -25,60 +25,60 @@
 
 ---
 
-## 2. 角色分工
+## 2. Phân công vai trò
 
-## 2.1 管理员
+## 2.1 Quản trị viên
 
-负责：
+Chịu trách nhiệm:
 
-- 配置知识库检索 provider（全局）
-- 维护 provider 连接参数与默认阈值
-- （可选）代用户管理知识库
+- Cấu hình provider truy hồi kho tri thức (toàn cục)
+- Duy trì tham số kết nối provider và ngưỡng mặc định
+- (Tùy chọn) quản lý kho tri thức thay người dùng
 
-入口：
+Lối vào:
 
-- `管理员 -> 知识库检索配置`
+- `Quản trị viên -> Cấu hình truy hồi kho tri thức`
 
-## 2.2 普通用户
+## 2.2 Người dùng thường
 
-负责：
+Chịu trách nhiệm:
 
-- 创建/编辑/删除自己的知识库
-- 管理知识库文档（文本录入 / 文件上传）
-- 发起手动同步与重试
-- 使用“召回测试”验证关键词命中效果
-- 在智能体中选择关联知识库
+- Tạo/sửa/xóa kho tri thức của mình
+- Quản lý tài liệu trong kho tri thức (nhập văn bản / tải file lên)
+- Chủ động đồng bộ và thử lại
+- Dùng “kiểm thử truy hồi” để xác minh hiệu quả khớp từ khóa
+- Chọn kho tri thức liên kết trong agent
 
-入口：
+Lối vào:
 
-- `普通用户 -> 我的知识库`
-- `普通用户 -> 智能体编辑（关联知识库）`
+- `Người dùng thường -> Kho tri thức của tôi`
+- `Người dùng thường -> Chỉnh sửa agent (liên kết kho tri thức)`
 
 ---
 
-## 3. 管理员：知识库检索配置（Provider 配置）
+## 3. Quản trị viên: cấu hình truy hồi kho tri thức (cấu hình Provider)
 
-管理端支持维护多个 provider 配置，并指定默认 provider。
+Trang quản trị hỗ trợ duy trì nhiều cấu hình provider và chỉ định provider mặc định.
 
-常见配置项（按 provider 不同有所差异）：
+Mục cấu hình thường gặp (khác nhau tùy provider):
 
 - `Base URL`
 - `API Key / Token`
-- 默认检索阈值
-- provider 特定参数（如 RAGFlow 相似度阈值、WeKnora 分块参数等）
+- Ngưỡng truy hồi mặc định
+- Tham số riêng của provider (như ngưỡng tương đồng RAGFlow, tham số phân đoạn WeKnora, v.v.)
 
 ### 3.1 Dify
 
-典型配置项：
+Mục cấu hình điển hình:
 
 - `base_url`
 - `api_key`
 - `score_threshold`
-- 其他 provider 参数
+- Tham số provider khác
 
 ### 3.2 RAGFlow
 
-典型配置项：
+Mục cấu hình điển hình:
 
 - `base_url`
 - `api_key`
@@ -86,170 +86,170 @@
 
 ### 3.3 WeKnora
 
-典型配置项：
+Mục cấu hình điển hình:
 
 - `base_url`
 - `api_key`
 - `score_threshold`
-- 分块参数（`chunk_size` / `chunk_overlap` / `separators`）
-- 解析轮询参数（`parse_poll_interval_ms` / `parse_timeout_ms`）
+- Tham số phân đoạn (`chunk_size` / `chunk_overlap` / `separators`)
+- Tham số polling parse (`parse_poll_interval_ms` / `parse_timeout_ms`)
 
-管理页还支持拉取 WeKnora 模型列表（embedding / llm / rerank）辅助填写配置。
+Trang quản trị còn hỗ trợ lấy danh sách model WeKnora (embedding / llm / rerank) để hỗ trợ điền cấu hình.
 
 ---
 
-## 4. 普通用户：我的知识库（KB 管理）
+## 4. Người dùng thường: kho tri thức của tôi (quản lý KB)
 
-入口：
+Lối vào:
 
-- `普通用户 -> 我的知识库`
+- `Người dùng thường -> Kho tri thức của tôi`
 
-支持操作：
+Thao tác hỗ trợ:
 
-- 新增/编辑知识库
-- 设置状态（`active` / `inactive`）
-- 设置检索阈值（可继承全局）
-- 文档管理
-- 手动重试同步
-- 召回测试
-- 删除知识库
+- Thêm/sửa kho tri thức
+- Đặt trạng thái (`active` / `inactive`)
+- Đặt ngưỡng truy hồi (có thể kế thừa toàn cục)
+- Quản lý tài liệu
+- Thử lại đồng bộ thủ công
+- Kiểm thử truy hồi
+- Xóa kho tri thức
 
-### 4.1 知识库字段（用户可见）
+### 4.1 Trường kho tri thức (người dùng thấy được)
 
-常见展示列：
+Các cột hiển thị thường gặp:
 
 - ID
-- 名称
-- 描述
-- 提供商
-- 状态
-- 同步状态
-- 最近同步时间
-- 操作
+- Tên
+- Mô tả
+- Provider
+- Trạng thái
+- Trạng thái đồng bộ
+- Thời gian đồng bộ gần nhất
+- Thao tác
 
-说明：
+Ghi chú:
 
-- 同步失败时，错误信息会以“提示（tooltip）”形式显示在“同步状态”列中，避免表格横向过宽
+- Khi đồng bộ thất bại, thông tin lỗi sẽ hiển thị dưới dạng tooltip trong cột “trạng thái đồng bộ” để tránh bảng quá rộng theo chiều ngang.
 
-### 4.2 同步状态（常见）
+### 4.2 Trạng thái đồng bộ (thường gặp)
 
-知识库与文档都可能出现类似状态：
+Kho tri thức và tài liệu đều có thể xuất hiện các trạng thái tương tự:
 
-- 待同步
-- 上传中 / 已上传 / 解析中
-- 已同步
-- 失败（含上传失败、解析失败等）
+- Chờ đồng bộ
+- Đang tải lên / đã tải lên / đang parse
+- Đã đồng bộ
+- Thất bại (bao gồm tải lên thất bại, parse thất bại, v.v.)
 
-如失败可点击 `重试同步` 重新入队异步任务。
-
----
-
-## 5. 文档管理（知识库下）
-
-每个知识库可包含多条文档，支持：
-
-- 文本型文档（在线编辑）
-- 文件上传创建文档（按 provider 限制格式）
-
-页面功能：
-
-- 新增文档
-- 编辑文档（文件型文档通常不支持在线编辑）
-- 删除文档
-- 重试同步
-- 文件上传
-
-### 5.1 文件上传格式
-
-前端会根据当前知识库 provider 展示不同的 `accept` 提示与上传说明：
-
-- Dify：支持常见文本/文档格式（如 txt/md/pdf/html/xlsx/docx/csv 等）
-- RAGFlow：支持更广文件类型（含图片、日志、配置文件等）
-- WeKnora：支持较广文件类型（含 Office、图片、邮件等）
-
-具体可上传格式请以页面提示为准。
+Nếu thất bại, có thể nhấp `thử lại đồng bộ` để đưa lại vào hàng đợi tác vụ bất đồng bộ.
 
 ---
 
-## 6. 召回测试（用户侧）
+## 5. Quản lý tài liệu (trong kho tri thức)
 
-知识库列表中可对单个知识库执行 `召回测试`，用于直接验证 provider 检索效果。
+Mỗi kho tri thức có thể chứa nhiều tài liệu, hỗ trợ:
 
-测试项：
+- Tài liệu dạng văn bản (chỉnh sửa online)
+- Tạo tài liệu bằng cách tải file lên (theo giới hạn định dạng của provider)
 
-- `query`：测试关键词或问题
+Chức năng trang:
+
+- Thêm tài liệu
+- Sửa tài liệu (tài liệu dạng file thường không hỗ trợ sửa online)
+- Xóa tài liệu
+- Thử lại đồng bộ
+- Tải file lên
+
+### 5.1 Định dạng file tải lên
+
+Frontend sẽ hiển thị gợi ý `accept` và mô tả tải lên khác nhau theo provider hiện tại của kho tri thức:
+
+- Dify: hỗ trợ các định dạng văn bản/tài liệu thường gặp (như txt/md/pdf/html/xlsx/docx/csv, v.v.)
+- RAGFlow: hỗ trợ phạm vi file rộng hơn (bao gồm ảnh, log, file cấu hình, v.v.)
+- WeKnora: hỗ trợ phạm vi file rộng (bao gồm Office, ảnh, email, v.v.)
+
+Định dạng tải lên cụ thể hãy lấy theo gợi ý trên trang.
+
+---
+
+## 6. Kiểm thử truy hồi (phía người dùng)
+
+Trong danh sách kho tri thức, có thể thực hiện `kiểm thử truy hồi` cho từng kho tri thức để trực tiếp xác minh hiệu quả truy hồi của provider.
+
+Mục kiểm thử:
+
+- `query`: từ khóa hoặc câu hỏi kiểm thử
 - `top_k`
-- `threshold`（仅本次测试生效，可为空）
+- `threshold` (chỉ có hiệu lực cho lần kiểm thử này, có thể để trống)
 
-返回内容：
+Nội dung trả về:
 
-- 命中条数
-- 命中来源（title）
+- Số lượng kết quả khớp
+- Nguồn kết quả khớp (title)
 - score
-- 命中文本片段
-- 响应耗时
+- Đoạn văn bản khớp
+- Thời gian phản hồi
 
-### 6.1 阈值优先级（逻辑说明）
+### 6.1 Ưu tiên ngưỡng (mô tả logic)
 
-通常按以下优先级取阈值：
+Thông thường lấy ngưỡng theo thứ tự ưu tiên sau:
 
-1. 本次测试请求阈值（若填写）
-2. 知识库自身阈值
-3. provider 全局默认阈值
+1. Ngưỡng trong request kiểm thử lần này (nếu có nhập)
+2. Ngưỡng riêng của kho tri thức
+3. Ngưỡng mặc định toàn cục của provider
 
-### 6.2 WeKnora 参数说明（重要）
+### 6.2 Mô tả tham số WeKnora (quan trọng)
 
-当前 WeKnora 召回测试已按知识库维度使用：
+Kiểm thử truy hồi WeKnora hiện đã sử dụng theo chiều kho tri thức:
 
-- `knowledge_base_ids`（知识库 ID 列表）
+- `knowledge_base_ids` (danh sách ID kho tri thức)
 
-用于精确限制检索范围到当前知识库。
-
----
-
-## 7. 智能体关联知识库
-
-在智能体编辑页可为智能体选择多个知识库（多选）。
-
-行为说明：
-
-- 支持多库关联
-- 对话时会根据模型判断是否触发知识库检索
-- 若可判断具体知识库，工具调用会传 `knowledge_base_ids`
-- 检索失败时会降级为普通 LLM 对话（前端有提示文案）
+Dùng để giới hạn chính xác phạm vi truy hồi trong kho tri thức hiện tại.
 
 ---
 
-## 8. 主程序对话链路中的知识库检索
+## 7. Agent liên kết kho tri thức
 
-主程序通过本地工具 `search_knowledge` 实现知识库检索。
+Trong trang chỉnh sửa agent, có thể chọn nhiều kho tri thức cho agent (multi-select).
 
-工具调用参数核心字段：
+Mô tả hành vi:
+
+- Hỗ trợ liên kết nhiều kho tri thức
+- Khi hội thoại, hệ thống sẽ dựa vào model để quyết định có kích hoạt truy hồi kho tri thức hay không
+- Nếu có thể xác định kho tri thức cụ thể, lệnh gọi công cụ sẽ truyền `knowledge_base_ids`
+- Khi truy hồi thất bại, hệ thống sẽ fallback về hội thoại LLM thông thường (frontend có nội dung gợi ý)
+
+---
+
+## 8. Truy hồi kho tri thức trong luồng hội thoại chương trình chính
+
+Chương trình chính dùng công cụ cục bộ `search_knowledge` để thực hiện truy hồi kho tri thức.
+
+Trường cốt lõi trong tham số gọi công cụ:
 
 - `query`
 - `top_k`
-- `knowledge_base_ids`（可选，知识库 ID 列表）
+- `knowledge_base_ids` (tùy chọn, danh sách ID kho tri thức)
 
-行为说明：
+Mô tả hành vi:
 
-- 不传 `knowledge_base_ids`：在当前智能体关联的所有可用知识库中检索
-- 传入 `knowledge_base_ids`：仅在指定知识库内检索
+- Không truyền `knowledge_base_ids`: truy hồi trong toàn bộ kho tri thức khả dụng đã liên kết với agent hiện tại
+- Có truyền `knowledge_base_ids`: chỉ truy hồi trong các kho tri thức được chỉ định
 
-这使得模型可以在已知问题归属时缩小检索范围，提升相关性并减少无关召回。
+Điều này giúp model thu hẹp phạm vi truy hồi khi đã biết câu hỏi thuộc về nguồn nào, cải thiện độ liên quan và giảm truy hồi nhiễu.
 
-### 8.1 WeKnora 主程序检索参数
+### 8.1 Tham số truy hồi WeKnora trong chương trình chính
 
-当前 WeKnora 主程序检索请求已使用：
+Request truy hồi WeKnora của chương trình chính hiện đã dùng:
 
 - `knowledge_base_ids`
 
-与控制台召回测试保持一致。
+Giữ nhất quán với kiểm thử truy hồi trong console.
 
 ---
 
-## 9. 接口清单（用户侧）
+## 9. Danh sách interface (phía người dùng)
 
-### 9.1 知识库 CRUD
+### 9.1 CRUD kho tri thức
 
 - `GET /user/knowledge-bases`
 - `POST /user/knowledge-bases`
@@ -258,11 +258,11 @@
 - `DELETE /user/knowledge-bases/:id`
 - `POST /user/knowledge-bases/:id/sync`
 
-### 9.2 召回测试
+### 9.2 Kiểm thử truy hồi
 
 - `POST /user/knowledge-bases/:id/test-search`
 
-### 9.3 文档管理
+### 9.3 Quản lý tài liệu
 
 - `GET /user/knowledge-bases/:id/documents`
 - `POST /user/knowledge-bases/:id/documents`
@@ -271,27 +271,27 @@
 - `DELETE /user/knowledge-bases/:id/documents/:doc_id`
 - `POST /user/knowledge-bases/:id/documents/:doc_id/sync`
 
-### 9.4 智能体关联知识库
+### 9.4 Agent liên kết kho tri thức
 
 - `GET /user/agents/:id/knowledge-bases`
 - `PUT /user/agents/:id/knowledge-bases`
 
 ---
 
-## 10. 接口清单（管理员侧）
+## 10. Danh sách interface (phía quản trị viên)
 
-### 10.1 provider 配置管理
+### 10.1 Quản lý cấu hình provider
 
 - `GET /admin/knowledge-search-configs`
 - `POST /admin/knowledge-search-configs`
 - `PUT /admin/knowledge-search-configs/:id`
 - `DELETE /admin/knowledge-search-configs/:id`
 
-### 10.2 WeKnora 模型拉取（配置辅助）
+### 10.2 Lấy model WeKnora (hỗ trợ cấu hình)
 
 - `POST /admin/knowledge-search-configs/weknora/models`
 
-### 10.3 管理员代用户管理知识库（按用户维度）
+### 10.3 Quản trị viên quản lý kho tri thức thay người dùng (theo chiều người dùng)
 
 - `GET /admin/users/:id/knowledge-bases`
 - `POST /admin/users/:id/knowledge-bases`
@@ -300,33 +300,32 @@
 
 ---
 
-## 11. 常见问题与排查
+## 11. Câu hỏi thường gặp và xử lý sự cố
 
-### 11.1 知识库创建后一直未命中
+### 11.1 Tạo kho tri thức xong nhưng luôn không có kết quả khớp
 
-优先排查：
+Ưu tiên kiểm tra:
 
-1. 知识库/文档是否已同步成功
-2. 外部 provider 是否已完成索引构建
-3. 检索阈值是否过高
-4. `query` 是否过于宽泛或偏离文档内容
+1. Kho tri thức/tài liệu đã đồng bộ thành công chưa
+2. Provider bên ngoài đã hoàn tất xây dựng chỉ mục chưa
+3. Ngưỡng truy hồi có quá cao không
+4. `query` có quá rộng hoặc lệch khỏi nội dung tài liệu không
 
-### 11.2 文件上传后文档不能编辑
+### 11.2 Không thể sửa tài liệu sau khi tải file lên
 
-文件上传创建的文档通常作为“文件型文档”处理，前端会限制在线编辑，建议删除后重新上传。
+Tài liệu được tạo bằng cách tải file lên thường được xử lý như “tài liệu dạng file”, frontend sẽ hạn chế chỉnh sửa online; khuyến nghị xóa rồi tải lại.
 
-### 11.3 WeKnora 检索范围不对
+### 11.3 Phạm vi truy hồi WeKnora không đúng
 
-确认：
+Xác nhận:
 
-- 控制台召回测试是否使用当前知识库发起测试
-- 智能体工具调用中是否正确传入 `knowledge_base_ids`
+- Kiểm thử truy hồi trong console có dùng kho tri thức hiện tại để phát động test không
+- Lệnh gọi công cụ của agent có truyền đúng `knowledge_base_ids` không
 
 ---
 
-## 12. 使用建议
+## 12. Gợi ý sử dụng
 
-- 为不同业务域拆分多个知识库（如售后、产品、合同）
-- 使用“召回测试”先调好阈值，再接入智能体
-- 在智能体说明中明确何时需要知识库回答，可提升触发质量
-
+- Tách nhiều kho tri thức theo từng miền nghiệp vụ khác nhau (như hậu mãi, sản phẩm, hợp đồng)
+- Dùng “kiểm thử truy hồi” để tinh chỉnh ngưỡng trước, sau đó mới gắn vào agent
+- Nêu rõ trong mô tả agent khi nào cần dùng kho tri thức để trả lời, giúp cải thiện chất lượng kích hoạt

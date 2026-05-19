@@ -2,6 +2,8 @@
 
 > **Xiaozhi AI Backend for ESP32 Devices**
 
+> Source gốc: <https://github.com/hackers365/xiaozhi-esp32-server-golang>. Bản fork này được phát triển và Việt hóa bởi **LeviaTech**.
+
 ---
 
 ## Giới thiệu dự án | Project Overview
@@ -16,8 +18,18 @@ Bản fork này giữ nguyên lõi backend AI cho ESP32 nhưng bổ sung tài li
 
 ### Chạy nhanh sau khi fork
 
-- Ưu tiên chạy bằng Docker Compose để lên nhanh MySQL, main server, backend và frontend.
-- Xem hướng dẫn tiếng Việt tại [docs/vi_quickstart.md](docs/vi_quickstart.md).
+- Ưu tiên chạy bằng Docker Compose local để lên nhanh MySQL, main-server, voice-server, backend và frontend.
+- Build và chạy stack local:
+
+```bash
+docker compose -f docker/docker-composer/docker-compose.local.yml build
+docker compose -f docker/docker-composer/docker-compose.local.yml up -d
+docker compose -f docker/docker-composer/docker-compose.local.yml ps
+```
+
+- Truy cập frontend tại `http://localhost:18080`, backend API tại `http://localhost:28080`, main-server WebSocket/OTA tại `localhost:18989`, TTS embedded tại `http://localhost:19001`.
+- Sau khi đăng nhập console, vào Dashboard để xem Health Check tổng hợp; kiểm tra thêm `http://localhost:19001/healthz` và `http://localhost:19001/piper/voices` nếu cần xác minh TTS/Piper.
+- Xem hướng dẫn tiếng Việt tại [doc/docker_compose.md](doc/docker_compose.md) và [doc/compile_deploy.md](doc/compile_deploy.md).
 - Sau khi hệ thống lên, kiểm tra lại các field quan trọng trong `config/config.yaml` như `manager.backend_url`, `udp.external_host`, `ota.test.websocket.url`, `ota.external.websocket.url` và provider ASR / LLM / TTS đang dùng.
 
 ### Cảnh báo production security

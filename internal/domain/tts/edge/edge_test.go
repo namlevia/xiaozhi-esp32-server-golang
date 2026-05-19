@@ -45,7 +45,7 @@ func TestNewEdgeTTSProviderDefaultsAndSetVoice(t *testing.T) {
 
 func TestEdgeTTSProvider(t *testing.T) {
 	if os.Getenv("RUN_EDGE_TEST") != "1" {
-		t.Skip("跳过 Edge 在线 TTS 测试，设置 RUN_EDGE_TEST=1 以启用")
+		t.Skip("Bỏ qua Edge noi_dung TTS test，noi_dung RUN_EDGE_TEST=1 để bật")
 	}
 
 	config := map[string]interface{}{
@@ -62,19 +62,19 @@ func TestEdgeTTSProvider(t *testing.T) {
 	defer cancel()
 
 	t.Run("TestTextToSpeech", func(t *testing.T) {
-		frames, err := provider.TextToSpeech(ctx, "你好，EdgeTTS测试", 16000, 1, 60)
+		frames, err := provider.TextToSpeech(ctx, "Xin chào，EdgeTTStest", 16000, 1, 60)
 		if err != nil {
-			t.Fatalf("TextToSpeech失败: %v", err)
+			t.Fatalf("TextToSpeechthất bại: %v", err)
 		}
 		if len(frames) == 0 {
-			t.Error("未返回任何音频帧")
+			t.Error("chưatrả vềbất kỳaudioframe")
 		}
 	})
 
 	t.Run("TestTextToSpeechStream", func(t *testing.T) {
-		outputChan, err := provider.TextToSpeechStream(ctx, "你好，EdgeTTS流式测试", 16000, 1, 60)
+		outputChan, err := provider.TextToSpeechStream(ctx, "Xin chào，EdgeTTSstreamingtest", 16000, 1, 60)
 		if err != nil {
-			t.Fatalf("TextToSpeechStream失败: %v", err)
+			t.Fatalf("TextToSpeechStreamthất bại: %v", err)
 		}
 		var receivedFrames [][]byte
 		timeout := time.After(20 * time.Second)
@@ -87,12 +87,12 @@ func TestEdgeTTSProvider(t *testing.T) {
 				}
 				receivedFrames = append(receivedFrames, frame)
 			case <-timeout:
-				t.Error("接收音频帧超时")
+				t.Error("nhậnaudioframetimeout")
 				break ReceiveLoop
 			}
 		}
 		if len(receivedFrames) == 0 {
-			t.Error("未接收到任何音频帧")
+			t.Error("chưanoi_dungNhậnbất kỳaudioframe")
 		}
 	})
 }

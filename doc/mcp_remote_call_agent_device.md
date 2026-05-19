@@ -1,235 +1,235 @@
-# 设备/智能体维度 MCP 远程调用说明
+# Hướng dẫn gọi từ xa MCP theo chiều thiết bị/agent
 
-本文档介绍管理控制台中的 **MCP 远程调用调试能力**，包括：
+Tài liệu này giới thiệu **năng lực debug gọi từ xa MCP** trong console quản trị, bao gồm:
 
-- 智能体维度 MCP 接入点（Endpoint）生成
-- 智能体维度工具列表获取与远程调用
-- 设备维度工具列表获取与远程调用
-- 管理员与普通用户的权限差异
+- Tạo MCP endpoint theo chiều agent
+- Lấy danh sách công cụ và gọi từ xa theo chiều agent
+- Lấy danh sách công cụ và gọi từ xa theo chiều thiết bị
+- Khác biệt quyền giữa quản trị viên và người dùng thường
 
-相关文档：
+Tài liệu liên quan:
 
-- [MCP 架构说明](./mcp.md)
-- [MCP 市场功能说明](./mcp_market.md)
-- [管理后台使用指南](./manager_console_guide.md)
-
----
-
-## 1. 功能定位
-
-该功能主要用于“调试与验证”：
-
-- 快速查看当前智能体/设备暴露了哪些 MCP 工具
-- 在控制台中直接构造参数并调用工具
-- 获取智能体维度 MCP endpoint，供外部 MCP 客户端接入测试
-
-适合场景：
-
-- 验证某个远程 MCP 服务是否已生效
-- 检查工具 schema / 参数样例
-- 排查智能体与设备的 MCP 行为差异
+- [Mô tả kiến trúc MCP](./mcp.md)
+- [Mô tả chức năng MCP Market](./mcp_market.md)
+- [Hướng dẫn sử dụng trang quản trị](./manager_console_guide.md)
 
 ---
 
-## 2. 两种调用维度的区别
+## 1. Định vị chức năng
 
-## 2.1 智能体维度（Agent）
+Chức năng này chủ yếu dùng để “debug và xác minh”:
 
-特点：
+- Xem nhanh agent/thiết bị hiện tại expose những MCP tool nào
+- Trực tiếp dựng tham số và gọi tool trong console
+- Lấy MCP endpoint theo chiều agent để client MCP bên ngoài kết nối test
 
-- 面向“智能体配置”视角
-- 支持获取该智能体的 MCP endpoint（带 token）
-- 支持拉取工具列表、直接发起工具调用
-- 受智能体配置（如 `mcp_service_names`）影响
+Kịch bản phù hợp:
 
-常见用途：
-
-- 验证智能体筛选后的可用 MCP 工具集合
-- 复制 endpoint 给外部调试客户端使用
-
-## 2.2 设备维度（Device）
-
-特点：
-
-- 面向“具体设备连接”视角
-- 直接通过设备当前连接上下文请求工具详情/调用工具
-- 通常依赖设备在线与 WebSocket 控制器可用
-
-常见用途：
-
-- 排查“同一个智能体在不同设备上工具表现不一致”
-- 验证设备当前在线会话侧的 MCP 能力
+- Xác minh một MCP service từ xa đã có hiệu lực hay chưa
+- Kiểm tra tool schema / tham số mẫu
+- Xử lý khác biệt hành vi MCP giữa agent và thiết bị
 
 ---
 
-## 3. 页面入口（管理员 / 普通用户）
+## 2. Khác biệt giữa hai chiều gọi
 
-### 3.1 管理员
+## 2.1 Chiều agent (Agent)
 
-- `管理员 -> 智能体管理`（智能体维度 endpoint / tools / call）
-- `管理员 -> 设备管理`（设备维度 tools / call）
+Đặc điểm:
 
-### 3.2 普通用户
+- Nhìn từ góc “cấu hình agent”
+- Hỗ trợ lấy MCP endpoint của agent đó (kèm token)
+- Hỗ trợ kéo danh sách tool và gọi tool trực tiếp
+- Chịu ảnh hưởng bởi cấu hình agent (như `mcp_service_names`)
 
-- `我的智能体`（智能体维度 tools / call）
-- `我的设备` / `智能体设备`（设备维度 tools / call）
-- `智能体编辑`（配置 `mcp_service_names`，影响智能体维度可见服务范围）
+Mục đích thường gặp:
+
+- Xác minh tập MCP tool khả dụng sau khi agent lọc
+- Copy endpoint cho client debug bên ngoài sử dụng
+
+## 2.2 Chiều thiết bị (Device)
+
+Đặc điểm:
+
+- Nhìn từ góc “kết nối thiết bị cụ thể”
+- Trực tiếp request chi tiết tool/gọi tool thông qua context kết nối hiện tại của thiết bị
+- Thường phụ thuộc vào thiết bị online và WebSocket controller khả dụng
+
+Mục đích thường gặp:
+
+- Xử lý tình huống “cùng một agent nhưng tool biểu hiện khác nhau trên các thiết bị khác nhau”
+- Xác minh năng lực MCP phía session online hiện tại của thiết bị
 
 ---
 
-## 4. 智能体维度：完整调试流程
+## 3. Lối vào trang (quản trị viên / người dùng thường)
 
-## 4.1 配置智能体可用 MCP 服务（可选但推荐）
+### 3.1 Quản trị viên
 
-在智能体编辑页可设置 `mcp_service_names`（服务名列表，逗号分隔）：
+- `Quản trị viên -> Quản lý agent` (endpoint / tools / call theo chiều agent)
+- `Quản trị viên -> Quản lý thiết bị` (tools / call theo chiều thiết bị)
 
-- 留空：使用全部已启用的全局 MCP 服务
-- 填写：仅使用指定服务名（必须是系统中已启用且存在的服务）
+### 3.2 Người dùng thường
 
-系统会对该字段做：
+- `Agent của tôi` (tools / call theo chiều agent)
+- `Thiết bị của tôi` / `Thiết bị agent` (tools / call theo chiều thiết bị)
+- `Chỉnh sửa agent` (cấu hình `mcp_service_names`, ảnh hưởng phạm vi service thấy được theo chiều agent)
 
-- 去重
-- 去空格
-- 合法性校验（服务名必须存在于已启用全局服务集合）
+---
 
-## 4.2 获取智能体 MCP Endpoint
+## 4. Chiều agent: luồng debug đầy đủ
 
-控制台可获取智能体专属 MCP 接入点 URL，格式类似：
+## 4.1 Cấu hình MCP service khả dụng cho agent (tùy chọn nhưng khuyến nghị)
+
+Trong trang chỉnh sửa agent, có thể đặt `mcp_service_names` (danh sách tên service, phân tách bằng dấu phẩy):
+
+- Để trống: dùng toàn bộ MCP service toàn cục đã bật
+- Có điền: chỉ dùng các service được chỉ định (phải là service tồn tại và đã bật trong hệ thống)
+
+Hệ thống sẽ xử lý trường này bằng cách:
+
+- Loại trùng
+- Bỏ khoảng trắng
+- Kiểm tra hợp lệ (tên service phải tồn tại trong tập service toàn cục đã bật)
+
+## 4.2 Lấy MCP Endpoint của agent
+
+Console có thể lấy URL MCP endpoint riêng cho agent, định dạng tương tự:
 
 ```text
 ws(s)://<host>/mcp?token=<jwt>
 ```
 
-说明：
+Mô tả:
 
-- endpoint 基于默认 OTA 配置中的 `external.websocket.url` 推导域名与协议
-- token 中包含当前用户与智能体上下文（用于权限校验/绑定用途）
-- 适合外部 MCP 客户端临时调试，不建议公开分享
+- Endpoint suy ra domain và protocol dựa trên `external.websocket.url` trong cấu hình OTA mặc định
+- Token chứa context người dùng hiện tại và agent (dùng cho kiểm tra quyền/gắn kết)
+- Phù hợp để client MCP bên ngoài debug tạm thời, không khuyến nghị chia sẻ công khai
 
-## 4.3 获取工具列表
+## 4.3 Lấy danh sách tool
 
-控制台会请求智能体维度 MCP 工具详情，返回内容通常包含：
+Console sẽ request chi tiết MCP tool theo chiều agent, nội dung trả về thường gồm:
 
 - `name`
-- 工具描述
-- 参数 schema
-- 参数样例（若设备端/服务端提供）
+- Mô tả tool
+- Tham số schema
+- Tham số mẫu (nếu phía thiết bị/server cung cấp)
 
-如果无法获取（例如控制器未初始化或客户端暂不可达），后端会返回空列表而不是报错，便于页面继续操作。
+Nếu không lấy được (ví dụ controller chưa khởi tạo hoặc client tạm thời không truy cập được), backend sẽ trả về danh sách rỗng thay vì báo lỗi, để trang tiếp tục thao tác được.
 
-## 4.4 直接调用工具
+## 4.4 Gọi tool trực tiếp
 
-在控制台中填写：
+Điền trong console:
 
 - `tool_name`
-- `arguments`（JSON）
+- `arguments` (JSON)
 
-发起调用后可在结果框查看完整返回体（JSON 格式）。
+Sau khi gọi, có thể xem body trả về đầy đủ trong khung kết quả (định dạng JSON).
 
 ---
 
-## 5. 设备维度：完整调试流程
+## 5. Chiều thiết bị: luồng debug đầy đủ
 
-## 5.1 获取设备工具列表
+## 5.1 Lấy danh sách tool của thiết bị
 
-选择设备后，控制台会使用设备标识（内部会映射到设备名）向 WebSocket 控制器请求 MCP 工具详情。
+Sau khi chọn thiết bị, console sẽ dùng định danh thiết bị (nội bộ sẽ map sang tên thiết bị) để request chi tiết MCP tool từ WebSocket controller.
 
-常见失败情况：
+Tình huống thất bại thường gặp:
 
-- 设备不在线
-- 设备不属于当前用户（用户视角）
-- WebSocket 控制器暂不可用
+- Thiết bị không online
+- Thiết bị không thuộc người dùng hiện tại (góc nhìn người dùng)
+- WebSocket controller tạm thời không khả dụng
 
-在这些情况下，接口通常返回空工具列表或权限错误。
+Trong các tình huống này, interface thường trả về danh sách tool rỗng hoặc lỗi quyền.
 
-## 5.2 调用设备 MCP 工具
+## 5.2 Gọi MCP tool của thiết bị
 
-与智能体维度类似，填写：
+Tương tự chiều agent, điền:
 
 - `tool_name`
-- `arguments`（JSON）
+- `arguments` (JSON)
 
-区别在于调用体使用的是 `device_id`（实际后端会传设备名）上下文，因此更接近“当前设备会话”的真实执行环境。
+Khác biệt là body gọi dùng context `device_id` (backend thực tế sẽ truyền tên thiết bị), nên gần với môi trường thực thi “session thiết bị hiện tại” hơn.
 
 ---
 
-## 6. 权限与接口差异（管理员 vs 普通用户）
+## 6. Khác biệt quyền và interface (quản trị viên vs người dùng thường)
 
-### 6.1 普通用户接口
+### 6.1 Interface người dùng thường
 
-智能体维度：
+Chiều agent:
 
 - `GET /user/agents/:id/mcp-endpoint`
 - `GET /user/agents/:id/mcp-tools`
 - `POST /user/agents/:id/mcp-call`
 
-设备维度：
+Chiều thiết bị:
 
 - `GET /user/devices/:id/mcp-tools`
 - `POST /user/devices/:id/mcp-call`
 
-智能体服务筛选辅助：
+Hỗ trợ lọc service của agent:
 
 - `GET /user/agents/:id/mcp-services/options`
 
-普通用户仅能操作属于自己的智能体/设备。
+Người dùng thường chỉ có thể thao tác agent/thiết bị thuộc về mình.
 
-### 6.2 管理员接口
+### 6.2 Interface quản trị viên
 
-智能体维度：
+Chiều agent:
 
 - `GET /admin/agents/:id/mcp-endpoint`
 - `GET /admin/agents/:id/mcp-tools`
 - `POST /admin/agents/:id/mcp-call`
 
-设备维度：
+Chiều thiết bị:
 
 - `GET /admin/devices/:id/mcp-tools`
 - `POST /admin/devices/:id/mcp-call`
 
-管理员可跨用户调试任意智能体/设备（前提是记录存在且连接链路正常）。
+Quản trị viên có thể debug agent/thiết bị xuyên người dùng (miễn là bản ghi tồn tại và đường kết nối bình thường).
 
 ---
 
-## 7. Endpoint 生成逻辑（智能体维度）
+## 7. Logic tạo Endpoint (chiều agent)
 
-智能体 endpoint 生成依赖：
+Endpoint agent phụ thuộc vào:
 
-1. 默认 OTA 配置（`type=ota` 且 `is_default=true`）
-2. OTA 配置中的 `external.websocket.url`
-3. 基于当前用户 ID + 智能体 ID 生成的稳定 token
+1. Cấu hình OTA mặc định (`type=ota` và `is_default=true`)
+2. `external.websocket.url` trong cấu hình OTA
+3. Token ổn định được tạo dựa trên ID người dùng hiện tại + ID agent
 
-生成结果会使用：
+Kết quả tạo sẽ dùng:
 
-- 同协议（`ws` / `wss`）
-- 同 host（域名/IP + 端口）
-- 固定路径 `/mcp`
+- Cùng protocol (`ws` / `wss`)
+- Cùng host (domain/IP + cổng)
+- Path cố định `/mcp`
 
-因此如果无法生成 endpoint，请优先检查 OTA 外网 WebSocket 配置。
+Vì vậy nếu không tạo được endpoint, hãy ưu tiên kiểm tra cấu hình WebSocket public của OTA.
 
 ---
 
-## 8. 常见问题与排查
+## 8. Câu hỏi thường gặp và xử lý sự cố
 
-### 8.1 工具列表为空
+### 8.1 Danh sách tool rỗng
 
-可能原因：
+Nguyên nhân có thể:
 
-- 设备不在线（设备维度）
-- WebSocket 控制器未初始化
-- 客户端未返回工具详情
-- 智能体维度被 `mcp_service_names` 过滤后无可用服务
+- Thiết bị không online (chiều thiết bị)
+- WebSocket controller chưa khởi tạo
+- Client chưa trả về chi tiết tool
+- Chiều agent không còn service khả dụng sau khi bị `mcp_service_names` lọc
 
-建议排查顺序：
+Thứ tự kiểm tra khuyến nghị:
 
-1. 确认设备在线状态
-2. 检查全局 MCP 服务是否启用
-3. 检查智能体 `mcp_service_names` 配置
-4. 在控制台重试获取工具
+1. Xác nhận trạng thái online của thiết bị
+2. Kiểm tra MCP service toàn cục đã bật chưa
+3. Kiểm tra cấu hình `mcp_service_names` của agent
+4. Thử lấy lại tool trong console
 
-### 8.2 调用时报参数 JSON 错误
+### 8.2 Khi gọi báo lỗi tham số JSON
 
-控制台参数区要求合法 JSON 对象，例如：
+Khu vực tham số trong console yêu cầu JSON object hợp lệ, ví dụ:
 
 ```json
 {
@@ -237,29 +237,28 @@ ws(s)://<host>/mcp?token=<jwt>
 }
 ```
 
-常见错误：
+Lỗi thường gặp:
 
-- 单引号
-- 尾逗号
-- 顶层不是对象
+- Dùng dấu nháy đơn
+- Có dấu phẩy thừa ở cuối
+- Tầng trên cùng không phải object
 
-### 8.3 获取智能体 endpoint 失败
+### 8.3 Lấy endpoint agent thất bại
 
-通常是 OTA 默认配置缺失或 `external.websocket.url` 未配置。
+Thường do thiếu cấu hình OTA mặc định hoặc chưa cấu hình `external.websocket.url`.
 
-### 8.4 明明导入了 MCP 服务，但智能体调用看不到
+### 8.4 Đã import MCP service nhưng agent gọi không thấy
 
-检查：
+Kiểm tra:
 
-1. 导入服务是否启用
-2. 全局 MCP 配置总开关与服务启用状态
-3. 智能体是否通过 `mcp_service_names` 排除了该服务
+1. Service import đã bật chưa
+2. Công tắc tổng cấu hình MCP toàn cục và trạng thái bật của service
+3. Agent có loại trừ service này qua `mcp_service_names` hay không
 
 ---
 
-## 9. 最佳实践
+## 9. Best practice
 
-- 先在管理员侧验证“设备维度”工具可用，再验证“智能体维度”工具筛选结果
-- 对生产智能体建议显式配置 `mcp_service_names`，避免无关工具暴露给模型
-- 将 endpoint 视为敏感调试入口，避免在公共渠道传播带 token 的 URL
-
+- Trước tiên xác minh tool “chiều thiết bị” dùng được ở phía quản trị viên, sau đó mới xác minh kết quả lọc tool “chiều agent”
+- Với agent production, khuyến nghị cấu hình rõ `mcp_service_names` để tránh expose tool không liên quan cho model
+- Xem endpoint là lối vào debug nhạy cảm, tránh phát tán URL có token trên kênh công khai

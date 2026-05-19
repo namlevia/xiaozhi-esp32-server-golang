@@ -77,17 +77,17 @@ var upgrader = websocket.Upgrader{
 
 func main() {
 	cfg := serverConfig{}
-	flag.StringVar(&cfg.addr, "addr", ":18080", "server listen address")
-	flag.StringVar(&cfg.asrText, "asr-text", "你好，这是mock asr结果", "ASR final text")
-	flag.IntVar(&cfg.asrDelayMs, "asr-delay-ms", 120, "ASR final response delay in milliseconds")
-	flag.StringVar(&cfg.llmReply, "llm-reply", "你好，我是mock llm，很高兴为你服务。", "LLM reply text")
-	flag.IntVar(&cfg.llmFirstDelay, "llm-first-delay-ms", 80, "LLM first token delay in milliseconds")
-	flag.IntVar(&cfg.llmChunkDelay, "llm-chunk-delay-ms", 40, "LLM chunk delay in milliseconds when stream=true")
-	flag.StringVar(&cfg.ttsMode, "tts-mode", "silence", "TTS audio mode: silence|beep")
-	flag.IntVar(&cfg.ttsDurationMs, "tts-duration-ms", 1200, "TTS audio duration in milliseconds")
-	flag.IntVar(&cfg.ttsSampleRate, "tts-sample-rate", 16000, "TTS output sample rate")
-	flag.IntVar(&cfg.ttsFirstDelay, "tts-first-delay-ms", 60, "TTS first frame delay in milliseconds")
-	flag.IntVar(&cfg.ttsFrameDelay, "tts-frame-delay-ms", 0, "reserved for future frame delay")
+	flag.StringVar(&cfg.addr, "addr", ":18080", "địa chỉ lắng nghe của server")
+	flag.StringVar(&cfg.asrText, "asr-text", "Xin chào, đây là kết quả ASR mock", "văn bản ASR cuối cùng")
+	flag.IntVar(&cfg.asrDelayMs, "asr-delay-ms", 120, "độ trễ phản hồi ASR cuối cùng, tính bằng mili giây")
+	flag.StringVar(&cfg.llmReply, "llm-reply", "Xin chào, tôi là LLM mock, rất vui được hỗ trợ bạn.", "văn bản phản hồi LLM")
+	flag.IntVar(&cfg.llmFirstDelay, "llm-first-delay-ms", 80, "độ trễ token đầu tiên của LLM, tính bằng mili giây")
+	flag.IntVar(&cfg.llmChunkDelay, "llm-chunk-delay-ms", 40, "độ trễ chunk LLM khi stream=true, tính bằng mili giây")
+	flag.StringVar(&cfg.ttsMode, "tts-mode", "silence", "chế độ audio TTS: silence|beep")
+	flag.IntVar(&cfg.ttsDurationMs, "tts-duration-ms", 1200, "thời lượng audio TTS, tính bằng mili giây")
+	flag.IntVar(&cfg.ttsSampleRate, "tts-sample-rate", 16000, "sample rate đầu ra TTS")
+	flag.IntVar(&cfg.ttsFirstDelay, "tts-first-delay-ms", 60, "độ trễ frame TTS đầu tiên, tính bằng mili giây")
+	flag.IntVar(&cfg.ttsFrameDelay, "tts-frame-delay-ms", 0, "dành sẵn cho độ trễ frame trong tương lai")
 	flag.Parse()
 
 	mux := http.NewServeMux()
@@ -100,7 +100,7 @@ func main() {
 	log.Printf("mock ai server start at %s", cfg.addr)
 	log.Printf("endpoints: /asr/ (ws), /v1/chat/completions (http), /v1/audio/speech (http), /healthz")
 	if err := http.ListenAndServe(cfg.addr, mux); err != nil {
-		log.Fatalf("server exited: %v", err)
+		log.Fatalf("server đã thoát: %v", err)
 	}
 }
 
@@ -120,7 +120,7 @@ func (c *serverConfig) handleHealth(w http.ResponseWriter, _ *http.Request) {
 func (c *serverConfig) handleFunASRWebSocket(w http.ResponseWriter, r *http.Request) {
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-		log.Printf("asr ws upgrade failed: %v", err)
+		log.Printf("upgrade ASR WebSocket thất bại: %v", err)
 		return
 	}
 	defer conn.Close()
@@ -155,7 +155,7 @@ func (c *serverConfig) handleFunASRWebSocket(w http.ResponseWriter, r *http.Requ
 					"confidence": 0.99,
 				}
 				if err := conn.WriteJSON(resp); err != nil {
-					log.Printf("[ASR-%d] write final failed: %v", asrID, err)
+					log.Printf("[ASR-%d] ghi kết quả cuối thất bại: %v", asrID, err)
 					return
 				}
 				log.Printf("[ASR-%d] sent final text (audio_packets=%d)", asrID, audioPackets)
@@ -166,7 +166,7 @@ func (c *serverConfig) handleFunASRWebSocket(w http.ResponseWriter, r *http.Requ
 
 func (c *serverConfig) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "phương thức không được phép", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -175,7 +175,7 @@ func (c *serverConfig) handleChatCompletions(w http.ResponseWriter, r *http.Requ
 
 	var req openAIChatRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		http.Error(w, "request không hợp lệ", http.StatusBadRequest)
 		return
 	}
 
@@ -234,7 +234,7 @@ func (c *serverConfig) handleChatStream(w http.ResponseWriter, model, reply stri
 
 	flusher, ok := w.(http.Flusher)
 	if !ok {
-		http.Error(w, "stream unsupported", http.StatusInternalServerError)
+		http.Error(w, "không hỗ trợ stream", http.StatusInternalServerError)
 		return
 	}
 
@@ -273,7 +273,7 @@ func (c *serverConfig) handleChatStream(w http.ResponseWriter, model, reply stri
 
 func (c *serverConfig) handleTTSSpeech(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		http.Error(w, "phương thức không được phép", http.StatusMethodNotAllowed)
 		return
 	}
 
@@ -282,14 +282,14 @@ func (c *serverConfig) handleTTSSpeech(w http.ResponseWriter, r *http.Request) {
 
 	var req openAITTSRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "bad request", http.StatusBadRequest)
+		http.Error(w, "request không hợp lệ", http.StatusBadRequest)
 		return
 	}
 
 	if c.ttsFirstDelay > 0 {
 		time.Sleep(time.Duration(c.ttsFirstDelay) * time.Millisecond)
 	}
-	_ = c.ttsFrameDelay // 预留字段，方便后续扩展成真实分帧流式返回
+	_ = c.ttsFrameDelay // Dành sẵn để sau này mở rộng thành trả stream theo frame thật.
 
 	responseFormat := strings.ToLower(strings.TrimSpace(req.ResponseFormat))
 	if responseFormat == "" {
@@ -300,7 +300,7 @@ func (c *serverConfig) handleTTSSpeech(w http.ResponseWriter, r *http.Request) {
 	case "opus":
 		opusBytes, err := synthOggOpus(c.ttsMode, c.ttsSampleRate, c.ttsDurationMs)
 		if err != nil {
-			http.Error(w, fmt.Sprintf("synth opus failed: %v", err), http.StatusInternalServerError)
+			http.Error(w, fmt.Sprintf("tổng hợp opus thất bại: %v", err), http.StatusInternalServerError)
 			return
 		}
 		w.Header().Set("Content-Type", "audio/ogg")

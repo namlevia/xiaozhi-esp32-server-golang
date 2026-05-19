@@ -246,7 +246,7 @@
           <div class="group-info">
             <h3>{{ currentGroup.name }}</h3>
             <div v-if="currentGroup.prompt" class="prompt-section">
-              <strong>Prompt:</strong>
+              <strong>Prompt vai trò:</strong>
               <p>{{ currentGroup.prompt }}</p>
             </div>
             <div v-if="currentGroup.description" class="description-section">
@@ -867,7 +867,7 @@ const filteredGroups = computed(() => {
   return result
 })
 
-// 加载Trợ lý列表
+// Tải danh sách trợ lý
 const loadAgents = async () => {
   try {
     const response = await api.get('/user/agents')
@@ -878,7 +878,7 @@ const loadAgents = async () => {
   }
 }
 
-// 加载Cấu hình TTS列表
+// Tải danh sách cấu hình TTS
 const loadTtsConfigs = async () => {
   try {
     const response = await api.get('/user/tts-configs')
@@ -937,7 +937,7 @@ const applyCloneGiọng = async (clone) => {
   groupForm.voice = clone.provider_voice_id
 }
 
-// Cấu hình TTS变化时，加载对应的Giọng选项
+// Khi cấu hình TTS thay đổi, tải các lựa chọn giọng tương ứng
 const handleTtsConfigChange = async (configId) => {
   if (!configId) {
     currentGiọngOptions.value = []
@@ -952,7 +952,7 @@ const handleTtsConfigChange = async (configId) => {
   }
 
   try {
-    // 从后端API获取该provider的完整Giọng列表
+    // Lấy đầy đủ danh sách giọng của provider này từ API backend
     const params = { provider: config.provider }
     // Luôn gửi kèm tham số config_id
     if (configId) {
@@ -967,13 +967,13 @@ const handleTtsConfigChange = async (configId) => {
   }
 }
 
-// 根据不同provider提取Giọng选项
+// Trích xuất các lựa chọn giọng theo từng provider
 const extractGiọngOptions = (provider, config) => {
   const options = []
   
   if (!config) return options
   
-  // 根据不同的Provider TTS提取Giọng
+  // Trích xuất giọng theo từng provider TTS
   switch (provider) {
     case 'edge':
     case 'microsoft':
@@ -981,7 +981,7 @@ const extractGiọngOptions = (provider, config) => {
       if (config.voice) {
         options.push({ label: config.voice, value: config.voice })
       }
-      // 添加常用的中文Giọng
+      // Thêm các giọng thường dùng
       const edgeGiọngs = [
         { label: 'vi-VN-XiaoxiaoNeural (nữ)', value: 'vi-VN-XiaoxiaoNeural' },
         { label: 'vi-VN-YunxiNeural (nam)', value: 'vi-VN-YunxiNeural' },
@@ -1000,7 +1000,7 @@ const extractGiọngOptions = (provider, config) => {
       
     case 'doubao':
     case 'doubao_ws':
-      // 豆包TTSGiọng
+      // Giọng Doubao TTS
       if (config.voice) {
         options.push({ label: config.voice, value: config.voice })
       }
@@ -1030,7 +1030,7 @@ const extractGiọngOptions = (provider, config) => {
         { label: 'Giọng nam tiếng Anh', value: '英文男' },
         { label: 'Giọng nam tiếng Nhật', value: '日语男' },
         { label: 'Giọng nữ tiếng Hàn', value: '韩语女' }
-      ]
+      ].map(item => ({ ...item, label: `${item.label} (${item.value})` }))
       cosyGiọngs.forEach(v => {
         if (!options.find(o => o.value === v.value)) {
           options.push(v)
@@ -1065,7 +1065,7 @@ const extractGiọngOptions = (provider, config) => {
       break
       
     default:
-      // Provider khác, thử trích xuất từ cấu hình
+      // Nhà cung cấp khác, thử trích xuất từ cấu hình
       if (config.voice) {
         options.push({ label: config.voice, value: config.voice })
       }
@@ -1077,19 +1077,19 @@ const extractGiọngOptions = (provider, config) => {
   return options
 }
 
-// 获取当前Cấu hình TTS名称
+// Lấy tên cấu hình TTS hiện tại
 const getCurrentTtsConfigName = () => {
   if (!groupForm.tts_config_id) return ''
   const config = ttsConfigs.value.find(c => c.config_id === groupForm.tts_config_id)
   return config ? config.name : ''
 }
 
-// 获取当前Cấu hình TTS信息
+// Lấy thông tin cấu hình TTS hiện tại
 const getCurrentTtsConfigInfo = () => {
   if (!groupForm.tts_config_id) return ''
   const config = ttsConfigs.value.find(c => c.config_id === groupForm.tts_config_id)
   if (!config) return ''
-  return `Provider TTS: ${config.provider || 'Không xác định'}`
+  return `Nhà cung cấp TTS: ${config.provider || 'Không xác định'}`
 }
 
 // Tải danh sách nhóm người nói
@@ -1123,7 +1123,7 @@ const handleAddGroup = async () => {
   showGroupDialog.value = true
 }
 
-// Sửa声纹组
+// Sửa nhóm người nói
 const handleEditGroup = async (group) => {
   groupDialogMode.value = 'edit'
   currentGroup.value = group
@@ -1135,7 +1135,7 @@ const handleEditGroup = async (group) => {
   groupForm.voice = group.voice || null
   await loadCloneGiọngPresets()
   
-  // 如果有Cấu hình TTS，加载对应的Giọng选项
+  // Nếu có cấu hình TTS thì tải các lựa chọn giọng tương ứng
   if (groupForm.tts_config_id) {
     await handleTtsConfigChange(groupForm.tts_config_id)
   }
@@ -1164,7 +1164,7 @@ const handleSubmitGroup = async () => {
     }
   } catch (error) {
     if (error.fields) {
-      // 表单Xác minh错误
+      // Lỗi xác minh biểu mẫu
       return
     }
     console.error('Gửi thất bại:', error)
@@ -1174,7 +1174,7 @@ const handleSubmitGroup = async () => {
   }
 }
 
-// Xác minh người nói组
+// Xác minh nhóm người nói
 const handleVerifyGroup = async (group) => {
   // Dọn dữ liệu trước đó trước
   resetVerifyForm()
@@ -1207,7 +1207,7 @@ const handleVerifyGroup = async (group) => {
   }
 }
 
-// 关闭Xác minh对话框
+// Đóng hộp thoại xác minh
 const handleCloseVerifyDialog = () => {
   if (isVerifyRecording.value) {
     stopVerifyRecording()
@@ -1228,7 +1228,7 @@ const handleVerifyFileChange = async (file, fileList) => {
     verifyForm.audio = null
   }
   
-  // 清理Liên quan ghi âm
+  // Dọn dữ liệu liên quan đến ghi âm
   if (verifyRecordedBlob.value) {
     if (verifyRecordedBlobUrl.value) {
       URL.revokeObjectURL(verifyRecordedBlobUrl.value)
@@ -1238,7 +1238,7 @@ const handleVerifyFileChange = async (file, fileList) => {
     verifyRecordTime.value = 0
   }
   
-  // 清理Xác minh结果
+  // Dọn kết quả xác minh
   verifyResult.value = null
   
   const fileObj = file.raw || file
@@ -1250,7 +1250,7 @@ const handleVerifyFileChange = async (file, fileList) => {
     return
   }
 
-  // Xác minh文件类型
+  // Kiểm tra loại file
   const fileName = fileObj.name || file.name || ''
   const fileType = fileObj.type || file.type || ''
   if (!fileType.includes('wav') && !fileName.toLowerCase().endsWith('.wav')) {
@@ -1261,7 +1261,7 @@ const handleVerifyFileChange = async (file, fileList) => {
     return
   }
 
-  // Xác minhDung lượng file（10MB）
+  // Kiểm tra dung lượng file (10MB)
   const fileSize = fileObj.size || file.size || 0
   if (fileSize > 10 * 1024 * 1024) {
     ElMessage.warning('Dung lượng file không được vượt quá 10MB')
@@ -1290,13 +1290,13 @@ const handleVerifyFileRemove = () => {
   verifyForm.audioFile = null
   verifyForm.audio = null
   verifyFileList.value = []
-  verifyResult.value = null // 清理Xác minh结果
+  verifyResult.value = null // Dọn kết quả xác minh
   if (verifyFormRef.value) {
     verifyFormRef.value.validateField('audio')
   }
 }
 
-// 开始Xác minh录音
+// Bắt đầu ghi âm để xác minh
 const startVerifyRecording = async () => {
   try {
     // Dừng ghi âm trước đó (nếu có)
@@ -1389,7 +1389,7 @@ const startVerifyRecording = async () => {
   }
 }
 
-// 停止Xác minh录音
+// Dừng ghi âm xác minh
 const stopVerifyRecording = () => {
   if (verifyMediaRecorder.value && verifyMediaRecorder.value.state !== 'inactive') {
     verifyMediaRecorder.value.stop()
@@ -1404,7 +1404,7 @@ const stopVerifyRecording = () => {
   ElMessage.success('Ghi âm hoàn tất')
 }
 
-// 提交Xác minh
+// Gửi yêu cầu xác minh
 const handleSubmitVerify = async () => {
   if (!verifyFormRef.value) return
 
@@ -1464,7 +1464,7 @@ const handleSubmitVerify = async () => {
   }
 }
 
-// 重置Xác minh表单
+// Đặt lại biểu mẫu xác minh
 const resetVerifyForm = () => {
   if (verifyFormRef.value) {
     verifyFormRef.value.resetFields()
@@ -1475,7 +1475,7 @@ const resetVerifyForm = () => {
   verifyForm.audioFile = null
   verifyForm.audio = null
   
-  // 清理Xác minhLiên quan ghi âm
+  // Dọn dữ liệu ghi âm dùng cho xác minh
   if (isVerifyRecording.value) {
     stopVerifyRecording()
   }
@@ -1489,12 +1489,12 @@ const resetVerifyForm = () => {
   verifyResult.value = null
 }
 
-// 计算是否有Xác minh音频文件
+// Kiểm tra có file audio để xác minh hay không
 const hasVerifyAudioFile = computed(() => {
   return verifyForm.audioFile !== null || verifyRecordedBlob.value !== null
 })
 
-// Xóa声纹组
+// Xóa nhóm người nói
 const handleDeleteGroup = async (group) => {
   try {
     await ElMessageBox.confirm(
@@ -1528,7 +1528,7 @@ const handleViewSamples = async (group) => {
   await loadSamples(group.id)
 }
 
-// 从Quản lý mẫu弹层中Xác minh người nói组
+// Xác minh nhóm người nói từ ngăn quản lý mẫu
 const handleVerifyFromSamples = () => {
   if (currentGroup.value) {
     showSampleDrawer.value = false
@@ -1536,7 +1536,7 @@ const handleVerifyFromSamples = () => {
   }
 }
 
-// 加载Danh sách mẫu
+// Tải danh sách mẫu
 const loadSamples = async (groupId) => {
   try {
     const response = await api.get(`/user/speaker-groups/${groupId}/samples`)
@@ -1565,7 +1565,7 @@ const handleAddSample = async () => {
   historyForm.selected_message_id = null
   historyMessages.value = []
   
-  // 如果声纹组有关联的Trợ lý，自动加载历史记录
+  // Nếu nhóm người nói có trợ lý liên kết thì tự tải lịch sử
   if (currentGroup.value?.agent_id) {
     historyForm.agent_id = currentGroup.value.agent_id
     await loadHistoryMessages()
@@ -1605,7 +1605,7 @@ const handleFileChange = (file) => {
       return
     }
 
-  // Xác minh文件类型
+  // Kiểm tra loại file
   const fileName = fileObj.name || file.name || ''
   const fileType = fileObj.type || file.type || ''
   if (!fileType.includes('wav') && !fileName.toLowerCase().endsWith('.wav')) {
@@ -1615,7 +1615,7 @@ const handleFileChange = (file) => {
     return
   }
 
-  // Xác minhDung lượng file（10MB）
+  // Kiểm tra dung lượng file (10MB)
   const fileSize = fileObj.size || file.size || 0
   if (fileSize > 10 * 1024 * 1024) {
     ElMessage.warning('Dung lượng file không được vượt quá 10MB')
@@ -1667,7 +1667,7 @@ const startRecording = async () => {
       }
     })
 
-    // Tạo MediaRecorder (dùng định dạng WAV)
+    // Tạo MediaRecorder
     const chunks = []
     const options = {
       mimeType: 'audio/webm;codecs=opus' // ghi dạng webm trước, sau đó chuyển sang WAV
@@ -1675,7 +1675,7 @@ const startRecording = async () => {
 
     // Kiểm tra hỗ trợ trình duyệt
     if (!MediaRecorder.isTypeSupported(options.mimeType)) {
-      // 如果不支持，使用Mặc định格式
+      // Nếu trình duyệt không hỗ trợ thì dùng định dạng mặc định
       mediaRecorder.value = new MediaRecorder(stream)
       } else {
       mediaRecorder.value = new MediaRecorder(stream, options)
@@ -1761,7 +1761,7 @@ const convertToWav = async (blob) => {
         const arrayBuffer = e.target.result
         const audioBuffer = await audioContext.decodeAudioData(arrayBuffer)
         
-        // Chuyển sang WAV
+        // Chuyển sang dữ liệu WAV
         const wav = audioBufferToWav(audioBuffer)
         const wavBlob = new Blob([wav], { type: 'audio/wav' })
         resolve(wavBlob)
@@ -1776,7 +1776,7 @@ const convertToWav = async (blob) => {
   })
 }
 
-// 将 AudioBuffer Chuyển sang WAV 格式
+// Chuyển AudioBuffer sang định dạng WAV
 const audioBufferToWav = (buffer) => {
   const length = buffer.length
   const numberOfChannels = buffer.numberOfChannels
@@ -1790,7 +1790,7 @@ const audioBufferToWav = (buffer) => {
   const arrayBuffer = new ArrayBuffer(bufferSize)
   const view = new DataView(arrayBuffer)
 
-  // Header file WAV
+  // Header của file WAV
   const writeString = (offset, string) => {
     for (let i = 0; i < string.length; i++) {
       view.setUint8(offset + i, string.charCodeAt(i))
@@ -1824,7 +1824,7 @@ const audioBufferToWav = (buffer) => {
   return arrayBuffer
 }
 
-// 格式化录音Thời lượng
+// Định dạng thời lượng ghi âm
 const formatRecordTime = (seconds) => {
   const mins = Math.floor(seconds / 60)
   const secs = Math.floor(seconds % 60)
@@ -1861,12 +1861,12 @@ const loadHistoryMessages = async () => {
   }
 }
 
-// Chọn历史消息
+// Chọn tin nhắn lịch sử
 const handleSelectHistoryMessage = (row) => {
   historyForm.selected_message_id = row.message_id
 }
 
-// Nghe thử历史音频
+// Nghe thử audio lịch sử
 const handlePreviewHistoryAudio = async (message) => {
   try {
     const response = await api.get(`/user/history/messages/${message.id}/audio`, {
@@ -1891,10 +1891,10 @@ const handlePreviewHistoryAudio = async (message) => {
   }
 }
 
-// 提交样本
+// Gửi mẫu
 const handleSubmitSample = async () => {
   if (uploadMode.value === 'history') {
-    // 从历史记录中Chọn
+    // Chọn từ lịch sử
     if (!historyForm.selected_message_id) {
       ElMessage.warning('Vui lòng chọn một bản ghi lịch sử trò chuyện')
       return
@@ -1909,7 +1909,7 @@ const handleSubmitSample = async () => {
       ElMessage.success('Thêm thành công')
       handleCloseUploadDialog()
       await loadSamples(currentGroup.value.id)
-      await loadSpeakerGroups() // 刷新列表以更新Số mẫu
+      await loadSpeakerGroups() // Làm mới danh sách để cập nhật số mẫu
     } catch (error) {
       console.error('Thêm thất bại:', error)
       ElMessage.error('Thêm thất bại: ' + (error.response?.data?.error || error.message))
@@ -1952,7 +1952,7 @@ const handleSubmitSample = async () => {
     ElMessage.success('Tải lên thành công')
     handleCloseUploadDialog()
     await loadSamples(currentGroup.value.id)
-    await loadSpeakerGroups() // 刷新列表以更新Số mẫu
+    await loadSpeakerGroups() // Làm mới danh sách để cập nhật số mẫu
   } catch (error) {
     if (error.fields) {
       return
@@ -1964,7 +1964,7 @@ const handleSubmitSample = async () => {
   }
 }
 
-// Phát样本
+// Phát mẫu
 const handlePlaySample = async (sample) => {
   try {
     // Tạo URL file audio (cần backend cung cấp endpoint truy cập file)
@@ -1986,7 +1986,7 @@ const handlePlaySample = async (sample) => {
       ElMessage.warning('Phát thất bại, vui lòng kiểm tra file audio')
     })
     
-    // Phát结束后Dọn blob URL
+    // Sau khi phát xong thì dọn blob URL
     audioPlayer.value.onended = () => {
       URL.revokeObjectURL(blobUrl)
     }
@@ -1996,10 +1996,10 @@ const handlePlaySample = async (sample) => {
   }
 }
 
-// Tải xuống样本
+// Tải xuống mẫu
 const handleDownloadSample = async (sample) => {
   try {
-    // 使用 api.get 获取文件，然后创建Tải xuống链接
+    // Dùng api.get để lấy file rồi tạo liên kết tải xuống
     const response = await api.get(
       `/user/speaker-groups/${currentGroup.value.id}/samples/${sample.id}/file`,
       {
@@ -2007,7 +2007,7 @@ const handleDownloadSample = async (sample) => {
       }
     )
     
-    // Tạo blob URL 并Tải xuống
+    // Tạo blob URL rồi tải xuống
     const blob = new Blob([response.data], { type: 'audio/wav' })
     const blobUrl = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -2027,7 +2027,7 @@ const handleDownloadSample = async (sample) => {
   }
 }
 
-// Xóa样本
+// Xóa mẫu
 const handleDeleteSample = async (sample) => {
   try {
     await ElMessageBox.confirm(
@@ -2043,7 +2043,7 @@ const handleDeleteSample = async (sample) => {
     await api.delete(`/user/speaker-groups/${currentGroup.value.id}/samples/${sample.id}`)
     ElMessage.success('Xóa thành công')
     await loadSamples(currentGroup.value.id)
-    await loadSpeakerGroups() // 刷新列表以更新Số mẫu
+    await loadSpeakerGroups() // Làm mới danh sách để cập nhật số mẫu
   } catch (error) {
     if (error !== 'cancel') {
       console.error('Xóa thất bại:', error)
@@ -2090,7 +2090,7 @@ const resetUploadForm = () => {
   uploadForm.audioFile = null
   uploadForm.audio = null
   
-  // 清理Liên quan ghi âm
+  // Dọn dữ liệu liên quan đến ghi âm
   if (isRecording.value) {
     stopRecording()
   }
@@ -2102,7 +2102,7 @@ const resetUploadForm = () => {
   recordTime.value = 0
   uploadMode.value = 'history'
   
-  // 清理Liên quan lịch sử
+  // Dọn dữ liệu liên quan đến lịch sử
   historyForm.agent_id = null
   historyForm.selected_message_id = null
   historyMessages.value = []
@@ -2130,7 +2130,7 @@ const truncateText = (text, maxLength) => {
   return text.substring(0, maxLength) + '...'
 }
 
-// 格式化Dung lượng file
+// Định dạng dung lượng file
 const formatFileSize = (bytes) => {
   if (!bytes) return '0 B'
   if (bytes < 1024) return bytes + ' B'
@@ -2346,7 +2346,7 @@ onBeforeUnmount(() => {
   white-space: nowrap;
 }
 
-/* 上传对话框样式 */
+/* Kiểu hộp thoại tải lên */
 .upload-tabs {
   margin-top: 10px;
 }
@@ -2382,7 +2382,7 @@ onBeforeUnmount(() => {
   color: #909399;
 }
 
-/* 录音区域样式 */
+/* Kiểu vùng ghi âm */
 .record-section {
   padding: 20px 0;
 }
@@ -2478,7 +2478,7 @@ onBeforeUnmount(() => {
   min-width: 120px;
 }
 
-/* 历史记录区域样式 */
+/* Kiểu vùng lịch sử */
 .history-section {
   padding: 20px 0;
 }

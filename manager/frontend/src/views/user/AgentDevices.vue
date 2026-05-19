@@ -298,7 +298,7 @@
                   <p><strong>{{ t('device.name') }}</strong> {{ selectedRole.name }}</p>
                   <p v-if="selectedRole.description"><strong>{{ t('device.description') }}</strong> {{ selectedRole.description }}</p>
                   <el-divider />
-                  <p><strong>Prompt:</strong></p>
+                  <p><strong>Prompt hệ thống:</strong></p>
                   <p class="prompt-preview">{{ selectedRole.prompt.substring(0, 200) }}{{ selectedRole.prompt.length > 200 ? '...' : '' }}</p>
                   <div class="role-configs-preview">
                     <el-tag size="small">LLM: {{ selectedRole.llm_config_id || t('device.default') }}</el-tag>

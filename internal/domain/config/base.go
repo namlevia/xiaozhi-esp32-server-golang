@@ -8,16 +8,16 @@ import (
 	"xiaozhi-esp32-server-golang/internal/util"
 )
 
-// Config 用户配置提供者配置结构
+// Config là cấu trúc config provider cấu hình người dùng.
 type Config struct {
-	Type       string                 `json:"type"`       // 存储类型: "redis", "memory", "file"
-	Parameters map[string]interface{} `json:"parameters"` // 存储相关配置参数
+	Type       string                 `json:"type"`       // Loại lưu trữ: "redis", "memory", "file"
+	Parameters map[string]interface{} `json:"parameters"` // Tham số config liên quan lưu trữ
 }
 
 func GetProvider(sType string) (UserConfigProvider, error) {
 	config := make(map[string]interface{})
 	if sType == "manager" {
-		// 优先从环境变量获取backend地址，如果环境变量不存在则从配置获取
+		// Ưu tiên lấy địa chỉ backend từ biến môi trường; nếu không có thì lấy từ config.
 		backendUrl := util.GetBackendURL()
 		config = map[string]interface{}{
 			"backend_url": backendUrl,
@@ -32,11 +32,11 @@ func GetProvider(sType string) (UserConfigProvider, error) {
 	return provider, nil
 }
 
-// GetUserConfigProvider 创建用户配置提供者
-// 根据传入的存储类型和配置参数创建对应的提供者实例
-// providerType: 提供者类型，支持 "redis", "memory", "file"
-// config: 提供者配置参数
-// 返回UserConfigProvider接口，支持完整的CRUD操作
+// GetUserConfigProvider tạo provider cấu hình người dùng.
+// Tạo instance provider tương ứng theo loại lưu trữ và tham số config truyền vào.
+// providerType: loại provider, hỗ trợ "redis", "memory", "file".
+// config: tham số config provider.
+// Trả về interface UserConfigProvider, hỗ trợ đầy đủ thao tác CRUD.
 func GetUserConfigProvider(providerType string, config map[string]interface{}) (UserConfigProvider, error) {
 	if config == nil {
 		config = make(map[string]interface{})
@@ -44,20 +44,20 @@ func GetUserConfigProvider(providerType string, config map[string]interface{}) (
 
 	switch providerType {
 	case "redis":
-		// 创建Redis用户配置提供者
+		// Tạo provider cấu hình người dùng Redis
 		provider, err := userconfig_redis.NewRedisUserConfigProvider(config)
 		if err != nil {
-			return nil, fmt.Errorf("创建Redis用户配置提供者失败: %v", err)
+			return nil, fmt.Errorf("Tạo provider cấu hình người dùng Redis thất bại: %v", err)
 		}
 		return provider, nil
 	case "manager":
-		// 创建后端管理系统用户配置提供者
+		// Tạo provider cấu hình người dùng backend manager
 		provider, err := manager.NewManagerUserConfigProvider(config)
 		if err != nil {
-			return nil, fmt.Errorf("创建后端管理系统用户配置提供者失败: %v", err)
+			return nil, fmt.Errorf("Tạo provider cấu hình người dùng backend manager thất bại: %v", err)
 		}
 		return provider, nil
 	default:
-		return nil, fmt.Errorf("不支持的用户配置提供者: %s", providerType)
+		return nil, fmt.Errorf("Provider cấu hình người dùng không được hỗ trợ: %s", providerType)
 	}
 }

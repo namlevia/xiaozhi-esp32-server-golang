@@ -1,151 +1,194 @@
-﻿# Docker Compose 部署指南
+# Hướng dẫn triển khai Docker Compose
 
-## 概述
+## Tổng quan
 
-本项目使用 Docker Compose 进行容器化部署，包含以下核心服务：
+Dự án này dùng Docker Compose để triển khai container hóa, bao gồm các service cốt lõi sau:
 
-- **MySQL 数据库服务**：数据存储
-- **主程序服务**：核心业务逻辑
-- **后端管理服务**：API 接口服务
-- **前端管理服务**：Web 管理界面
+- **Service database MySQL**: lưu trữ dữ liệu
+- **Service chương trình chính**: logic nghiệp vụ cốt lõi
+- **Service backend quản trị**: service API interface
+- **Service frontend quản trị**: giao diện Web quản trị
 
-## 快速指引（补充）
+## Chỉ dẫn nhanh (bổ sung)
 
-本节为 `doc/docker.md` 的补充说明，帮助快速选择与落地部署方式。
+Phần này bổ sung cho `doc/docker.md`, giúp chọn nhanh và triển khai đúng cách.
 
-### 1. 选择部署方式
+### Local Docker stack khuyến nghị
 
-- 推荐：Docker Compose（包含管理后台与完整服务）
-- 简化：单容器 Docker（无控制台或精简模式）
+Từ root repo:
 
-### 2. Docker Compose 快速路径
+```bash
+docker compose -f docker/docker-composer/docker-compose.local.yml build
+docker compose -f docker/docker-composer/docker-compose.local.yml up -d
+docker compose -f docker/docker-composer/docker-compose.local.yml ps
+```
 
-1) 拉取代码或准备 `docker-compose.yml`
-2) 参考本文后续“配置文件准备”与“启动服务”完成配置
-3) 启动：
+URL và port host mặc định của stack local:
+
+| Thành phần | URL/cổng host | Hostname nội bộ trong Docker |
+| --- | --- | --- |
+| Frontend console | `http://localhost:18080` | `frontend:80` |
+| Backend API | `http://localhost:28080` | `backend:8080` |
+| Main-server WebSocket/OTA | `localhost:18989` | `main-server:8989` |
+| Embedded TTS / Piper | `http://localhost:19001` | `main-server:9001` |
+| Voice/ASR service | `localhost:18082` | `voice-server:9000` |
+| MQTT | `localhost:12883` | `main-server:2883` |
+| MySQL | `localhost:23306` | `mysql:3306` |
+
+Sau khi vào frontend, Dashboard của admin có thẻ Health Check để kiểm tra nhanh backend, database, main-server/TTS, Piper voices, ASR và readiness cấu hình. Có thể smoke check trực tiếp:
+
+```bash
+curl http://localhost:19001/healthz
+curl http://localhost:19001/piper/voices
+```
+
+Lưu ý phân biệt hostname: cấu hình chạy trong container nên dùng `main-server`, `backend`, `voice-server`, `mysql`; URL trình duyệt/người dùng mới dùng `localhost` kèm port host.
+
+### 1. Chọn cách triển khai
+
+- Khuyến nghị: Docker Compose (bao gồm backend quản trị và service đầy đủ)
+- Đơn giản: Docker một container (không có console hoặc chế độ rút gọn)
+
+### 2. Đường dẫn nhanh Docker Compose
+
+1. Kéo code hoặc chuẩn bị `docker-compose.yml`
+2. Tham khảo các phần “chuẩn bị file cấu hình” và “khởi động service” bên dưới để hoàn tất cấu hình
+3. Khởi động:
 
 ```bash
 docker compose up -d
 ```
 
-4) 管理后台默认地址：`http://<服务器IP或域名>:8080/`
+4. Địa chỉ backend quản trị mặc định: `http://<IP hoặc domain server>:8080/`
 
-### 3. 单容器 Docker（补充）
+### 3. Docker một container (bổ sung)
 
-按 `doc/docker.md` 构建或拉取镜像后运行。常见建议：
+Sau khi build hoặc pull image theo `doc/docker.md`, chạy container. Khuyến nghị thường gặp:
 
-- 映射 `config/`、`logs/`、`storage/` 目录为数据卷
-- 对外暴露 WebSocket / MQTT / UDP 端口
-- 需要管理后台时启用对应参数或使用 Compose
+- Map các thư mục `config/`, `logs/`, `storage/` thành volume dữ liệu
+- Expose các cổng WebSocket / MQTT / UDP ra ngoài
+- Khi cần backend quản trị, hãy bật tham số tương ứng hoặc dùng Compose
 
-### 4. 配置向导与测试
+### 4. Wizard cấu hình và kiểm thử
 
-启动后可在管理后台使用配置向导完成引擎配置，并在测试工具中进行 VAD/ASR/LLM/TTS 可用性与延迟测试，以及 OTA 全流程验证。
+Sau khi khởi động, có thể dùng wizard cấu hình trong backend quản trị để hoàn tất cấu hình engine, rồi dùng công cụ test để kiểm tra tính khả dụng và độ trễ của VAD/ASR/LLM/TTS, cũng như xác minh toàn bộ luồng OTA.
 
-### 5. 常见问题
+### 5. Câu hỏi thường gặp
 
-- 端口冲突：检查 8080/8989/2883/8990 占用情况
-- 配置未生效：确认数据卷挂载路径正确，重启容器生效
-- 权限问题：Linux 下注意挂载目录权限与 SELinux 限制
+- Xung đột cổng: kiểm tra tình trạng chiếm dụng 8080/8989/2883/8990
+- Cấu hình chưa có hiệu lực: xác nhận đường dẫn volume mount đúng, khởi động lại container để có hiệu lực
+- Vấn đề quyền: trên Linux chú ý quyền thư mục mount và giới hạn SELinux
 
-## 服务架构
+## Kiến trúc service
 
-### 1. MySQL 数据库服务 (xiaozhi-mysql)
+### 1. Service database MySQL (xiaozhi-mysql)
 
-**配置信息：**
-- 镜像：`docker.jsdelivr.fyi/mysql:8.0`
-- 端口映射：`23306:3306`
-- 数据库名：`xiaozhi_admin`
-- 用户名：`root`
-- 密码：`password`
+**Thông tin cấu hình:**
 
-**特性：**
-- 使用 MySQL 8.0
-- 配置健康检查
-- 数据持久化
+- Image: `docker.jsdelivr.fyi/mysql:8.0`
+- Ánh xạ cổng: `23306:3306`
+- Tên database: `xiaozhi_admin`
+- Tên người dùng: `root`
+- Mật khẩu: `password`
 
-### 2. 主程序服务 (xiaozhi-main-server)
+**Đặc điểm:**
 
-**配置信息：**
-- 镜像：`docker.jsdelivr.fyi/hackers365/xiaozhi_server:0.5`
-- 端口映射：
-  - `8989:8989` - WebSocket 服务
-  - `2882:2883` - MQTT 服务
-  - `8888:8888/udp` - UDP 服务
+- Dùng MySQL 8.0
+- Có cấu hình health check
+- Dữ liệu được persist
 
-**依赖关系：**
-- 依赖 MySQL 服务健康状态
-- 依赖后端服务启动完成
+### 2. Service chương trình chính (xiaozhi-main-server)
 
-**配置文件支持：**
-- 通过卷挂载导入自定义配置文件
-- 配置文件路径：`../../config:/workspace/config`
+**Thông tin cấu hình:**
 
-**ten_vad 支持：**
-- Docker 镜像已包含 ten_vad 库（`/workspace/lib/ten-vad/`）
-- 运行时库路径已通过 `LD_LIBRARY_PATH` 自动配置
+- Image: `docker.jsdelivr.fyi/hackers365/xiaozhi_server:0.5`
+- Ánh xạ cổng:
+  - `8989:8989` - WebSocket service
+  - `2882:2883` - MQTT service
+  - `8888:8888/udp` - UDP service
 
-### 3. 后端管理服务 (xiaozhi-backend)
+**Quan hệ dependency:**
 
-**配置信息：**
-- 镜像：`docker.jsdelivr.fyi/hackers365/xiaozhi_manager_backend:0.5`
-- 端口映射：`8081:8080`
+- Phụ thuộc trạng thái healthy của MySQL service
+- Phụ thuộc backend service đã khởi động xong
 
-**功能：**
-- 提供 RESTful API
-- 设备与用户管理
+**Hỗ trợ file cấu hình:**
 
-**配置文件支持：**
-- 通过卷挂载导入自定义配置文件
-- 配置文件路径：`../../manager/backend/config:/root/config`
+- Import file cấu hình tùy chỉnh bằng volume mount
+- Đường dẫn file cấu hình: `../../config:/workspace/config`
 
-### 4. 前端管理服务 (xiaozhi-frontend)
+**Hỗ trợ ten_vad:**
 
-**配置信息：**
-- 镜像：`docker.jsdelivr.fyi/hackers365/xiaozhi_manager_frontend:0.5`
-- 端口映射：`8080:80`
+- Docker image đã bao gồm thư viện ten_vad (`/workspace/lib/ten-vad/`)
+- Đường dẫn runtime library đã tự cấu hình qua `LD_LIBRARY_PATH`
 
-**功能：**
-- Web 管理界面（内控入口）
-- 设备状态与系统配置管理
+### 3. Service backend quản trị (xiaozhi-backend)
 
-## 部署流程
+**Thông tin cấu hình:**
 
-### 1. 环境准备
+- Image: `docker.jsdelivr.fyi/hackers365/xiaozhi_manager_backend:0.5`
+- Ánh xạ cổng: `8081:8080`
 
-确保系统已安装 Docker 和 Docker Compose：
+**Chức năng:**
+
+- Cung cấp RESTful API
+- Quản lý thiết bị và người dùng
+
+**Hỗ trợ file cấu hình:**
+
+- Import file cấu hình tùy chỉnh bằng volume mount
+- Đường dẫn file cấu hình: `../../manager/backend/config:/root/config`
+
+### 4. Service frontend quản trị (xiaozhi-frontend)
+
+**Thông tin cấu hình:**
+
+- Image: `docker.jsdelivr.fyi/hackers365/xiaozhi_manager_frontend:0.5`
+- Ánh xạ cổng: `8080:80`
+
+**Chức năng:**
+
+- Giao diện Web quản trị (lối vào nội bộ)
+- Quản lý trạng thái thiết bị và cấu hình hệ thống
+
+## Quy trình triển khai
+
+### 1. Chuẩn bị môi trường
+
+Đảm bảo hệ thống đã cài Docker và Docker Compose:
 
 ```bash
 docker --version
 docker compose version
 ```
 
-### 2. 配置文件准备
+### 2. Chuẩn bị file cấu hình
 
-确保以下目录与文件存在：
+Đảm bảo các thư mục và file sau tồn tại:
 
-```
+```text
 xiaozhi-esp32-server-golang/
 ├─ docker/docker-composer/
 │  └─ docker-compose.yml
 ├─ config/
 │  ├─ config.yaml
 │  ├─ config.json
-│  └─ (其他配置文件)
+│  └─ (file cấu hình khác)
 ├─ logs/
-│  └─ (日志目录)
+│  └─ (thư mục log)
 └─ manager/backend/config/
    ├─ config.yaml
-   └─ (其他配置文件)
+   └─ (file cấu hình khác)
 ```
 
-**配置文件导入说明：**
-- 主程序配置文件通过卷挂载 `../../config:/workspace/config` 导入
-- 后端配置文件通过卷挂载 `../../manager/backend/config:/root/config` 导入
+**Mô tả import file cấu hình:**
 
-### 3. 启动服务
+- File cấu hình chương trình chính được import qua volume mount `../../config:/workspace/config`
+- File cấu hình backend được import qua volume mount `../../manager/backend/config:/root/config`
 
-**必须先进入 `docker/docker-composer/` 目录执行命令：**
+### 3. Khởi động service
+
+**Bắt buộc vào thư mục `docker/docker-composer/` trước khi chạy lệnh:**
 
 ```bash
 cd docker/docker-composer/
@@ -155,16 +198,16 @@ docker compose ps
 docker compose logs -f
 ```
 
-### 4. 服务访问
+### 4. Truy cập service
 
-- 前端管理界面：`http://<服务器IP或域名>:8080`
-- 后端 API：`http://localhost:8081`
-- WebSocket：`ws://localhost:8989`
-- MQTT：`localhost:2882`
-- UDP：`localhost:8888`
-- MySQL：`localhost:23306`
+- Giao diện frontend quản trị: `http://<IP hoặc domain server>:8080`
+- Backend API: `http://localhost:8081`
+- WebSocket: `ws://localhost:8989`
+- MQTT: `localhost:2882`
+- UDP: `localhost:8888`
+- MySQL: `localhost:23306`
 
-## 常用操作
+## Thao tác thường dùng
 
 ```bash
 cd docker/docker-composer/
@@ -186,35 +229,46 @@ docker compose pull
 docker compose up -d
 ```
 
-## 网络配置
+## Piper TTS offline
 
-项目使用自定义网络 `xiaozhi-network`：
+Stack local mount thư mục `tts_server/tts-model` vào `main-server` để dùng Piper/VITS offline. Các endpoint kiểm tra nhanh:
 
-- MySQL：`mysql:3306`
-- 后端：`backend:8080`
-- 前端：`frontend:80`
-- 主程序：`main-server:8989`（WebSocket）/ `main-server:2883`（MQTT）/ `main-server:8888`（UDP）
+- `GET http://localhost:19001/healthz` - health của embedded TTS server.
+- `GET http://localhost:19001/piper/voices` - danh sách giọng đọc phát hiện được từ model `.onnx` kèm `.onnx.json`.
+- `POST http://localhost:19001/piper/tts` - tổng hợp giọng Piper ra WAV/PCM.
 
-**端口映射汇总：**
-- 8080 → 前端管理界面
-- 8081 → 后端 API
+Trong UI TTS, provider `Piper TTS offline` sẽ tự tải danh sách giọng từ `/piper/voices`; khi chọn giọng, `model_path`, `model_config_path`, sample rate và tham số giọng được tự điền. Nếu danh sách trống, kiểm tra file `.onnx.json`, quyền ghi thư mục model và volume mount `tts_server/tts-model`.
+
+## Cấu hình mạng
+
+Dự án dùng network tùy chỉnh `xiaozhi-network`:
+
+- MySQL: `mysql:3306`
+- Backend: `backend:8080`
+- Frontend: `frontend:80`
+- Chương trình chính: `main-server:8989` (WebSocket) / `main-server:2883` (MQTT) / `main-server:8888` (UDP)
+
+**Tổng hợp ánh xạ cổng:**
+
+- 8080 → giao diện frontend quản trị
+- 8081 → Backend API
 - 8989 → WebSocket
 - 2882 → MQTT
 - 8888 → UDP
 - 23306 → MySQL
 
-## 数据持久化
+## Persist dữ liệu
 
-### MySQL 数据
+### Dữ liệu MySQL
 
-通过 Docker 卷 `mysql_data` 持久化，容器重启不丢失数据。
+Persist qua Docker volume `mysql_data`, dữ liệu không mất khi container restart.
 
-### 配置文件
+### File cấu hình
 
-- 主程序配置：`../../config:/workspace/config`
-- 后端配置：`../../manager/backend/config:/root/config`
+- Cấu hình chương trình chính: `../../config:/workspace/config`
+- Cấu hình backend: `../../manager/backend/config:/root/config`
 
-修改配置后重启对应服务生效：
+Sau khi sửa cấu hình, restart service tương ứng để có hiệu lực:
 
 ```bash
 cd docker/docker-composer/
@@ -223,62 +277,67 @@ docker compose restart main-server
 docker compose restart backend
 ```
 
-### 日志文件
+### File log
 
-- 主程序日志：`../../logs:/workspace/logs`
+- Log chương trình chính: `../../logs:/workspace/logs`
 
-## 配置文件导入方法
+## Cách import file cấu hình
 
-### 1. 主程序配置
+### 1. Cấu hình chương trình chính
 
-**位置：**
-```
+**Vị trí:**
+
+```text
 xiaozhi-esp32-server-golang/config/
 ├─ config.yaml
 ├─ config.json
 ├─ mqtt_config.json
-└─ (其他配置文件)
+└─ (file cấu hình khác)
 ```
 
-**导入：**
-1) 将配置文件放入 `config/`
-2) 启动后自动挂载到容器 `/workspace/config/`
-3) 修改后重启主程序服务：
+**Import:**
+
+1. Đặt file cấu hình vào `config/`
+2. Sau khi khởi động, file tự động được mount vào container `/workspace/config/`
+3. Sau khi sửa, restart service chương trình chính:
 
 ```bash
 cd docker/docker-composer/
 docker compose restart main-server
 ```
 
-### 2. 后端管理配置
+### 2. Cấu hình backend quản trị
 
-**位置：**
-```
+**Vị trí:**
+
+```text
 xiaozhi-esp32-server-golang/manager/backend/config/
 ├─ config.yaml
-└─ (其他配置文件)
+└─ (file cấu hình khác)
 ```
 
-**导入：**
-1) 将配置文件放入 `manager/backend/config/`
-2) 启动后自动挂载到容器 `/root/config/`
-3) 修改后重启后端服务：
+**Import:**
+
+1. Đặt file cấu hình vào `manager/backend/config/`
+2. Sau khi khởi động, file tự động được mount vào container `/root/config/`
+3. Sau khi sửa, restart backend service:
 
 ```bash
 cd docker/docker-composer/
 docker compose restart backend
 ```
 
-### 3. ten_vad 库文件
+### 3. File thư viện ten_vad
 
-**说明：**
-- Docker 镜像已包含 ten_vad 库（`/workspace/lib/ten-vad/`）
-- 运行时库路径已通过 `LD_LIBRARY_PATH` 自动配置
-- 使用 ten_vad 无需额外挂载
+**Mô tả:**
 
-## 健康检查
+- Docker image đã bao gồm thư viện ten_vad (`/workspace/lib/ten-vad/`)
+- Đường dẫn runtime library đã tự cấu hình qua `LD_LIBRARY_PATH`
+- Dùng ten_vad không cần mount thêm
 
-MySQL 服务配置了健康检查：
+## Health check
+
+MySQL service đã cấu hình health check:
 
 ```yaml
 healthcheck:
@@ -289,20 +348,20 @@ healthcheck:
   start_period: 30s
 ```
 
-## 故障排除
+## Xử lý sự cố
 
-### 1. 服务启动失败
+### 1. Service khởi động thất bại
 
 ```bash
 cd docker/docker-composer/
 
-docker compose logs [服务名]
+docker compose logs [tên_service]
 
-# 端口占用检查（Linux）
-netstat -tulpn | grep [端口]
+# Kiểm tra chiếm dụng cổng (Linux)
+netstat -tulpn | grep [cổng]
 ```
 
-### 2. 数据库连接失败
+### 2. Kết nối database thất bại
 
 ```bash
 cd docker/docker-composer/
@@ -314,7 +373,7 @@ docker compose logs mysql
 docker compose exec mysql mysql -u root -ppassword
 ```
 
-### 3. 网络连接问题
+### 3. Vấn đề kết nối mạng
 
 ```bash
 cd docker/docker-composer/
@@ -325,30 +384,30 @@ docker network inspect xiaozhi-network
 docker compose exec main-server ping mysql
 ```
 
-## 性能优化建议
+## Gợi ý tối ưu hiệu năng
 
-1) 生产环境为各服务设置资源限制
-2) 配置日志轮转，避免日志过大
-3) 定期备份 MySQL 数据
-4) 集成监控系统
+1. Thiết lập giới hạn tài nguyên cho từng service trong môi trường production
+2. Cấu hình log rotation để tránh log quá lớn
+3. Backup dữ liệu MySQL định kỳ
+4. Tích hợp hệ thống giám sát
 
-## 安全注意事项
+## Lưu ý bảo mật
 
-1) 生产环境修改默认数据库密码
-2) 按需暴露端口
-3) 配置防火墙与访问控制
-4) 使用可信镜像源
+1. Đổi mật khẩu database mặc định trong môi trường production
+2. Chỉ expose cổng theo nhu cầu
+3. Cấu hình firewall và kiểm soát truy cập
+4. Dùng nguồn image đáng tin cậy
 
 ---
 
-## 下一步
+## Bước tiếp theo
 
-### 访问管理后台
+### Truy cập backend quản trị
 
-服务启动后，访问 http://<服务器IP或域名>:8080 进入管理后台。
+Sau khi service khởi động, truy cập http://<IP hoặc domain server>:8080 để vào backend quản trị.
 
-**[管理后台使用指南 →](manager_console_guide.md)**
+**[Hướng dẫn sử dụng trang quản trị →](manager_console_guide.md)**
 
-### 配置 ESP32 设备
+### Cấu hình thiết bị ESP32
 
-参考 [ESP32端接入指南](esp32_xiaozhi_backend_guide.md) 完成设备接入。
+Tham khảo [hướng dẫn tích hợp phía ESP32](esp32_xiaozhi_backend_guide.md) để hoàn tất kết nối thiết bị.

@@ -43,7 +43,7 @@
             <el-option :value="4" label="4 - ngắt khi ASR có kết quả" />
           </el-select>
         </el-form-item>
-        <el-form-item label="Mô tả System Prompt toàn cục" prop="chat.global_system_prompt">
+        <el-form-item label="Mô tả prompt hệ thống toàn cục" prop="chat.global_system_prompt">
           <el-input
             v-model="form.chat.global_system_prompt"
             type="textarea"
@@ -53,7 +53,7 @@
             placeholder="Nội dung này sẽ được ghép vào đầu system prompt; nên nhập ràng buộc cấp nền tảng và thiết lập danh tính."
           />
           <div class="form-help">
-            Thứ tự hiệu lực: mô tả System Prompt toàn cục → prompt vai trò/thiết bị → thông tin runtime như thời gian/bộ nhớ.
+            Thứ tự hiệu lực: mô tả prompt hệ thống toàn cục → prompt vai trò/thiết bị → thông tin thời gian chạy như thời gian/bộ nhớ.
           </div>
         </el-form-item>
       </el-form>
@@ -94,7 +94,7 @@ const rules = {
     { required: true, message: 'Vui lòng chọn chế độ ngắt thời gian thực', trigger: 'change' }
   ],
   'chat.global_system_prompt': [
-    { max: 8000, message: 'Mô tả System Prompt toàn cục không được vượt quá 8000 ký tự', trigger: 'blur' }
+    { max: 8000, message: 'Mô tả prompt hệ thống toàn cục không được vượt quá 8000 ký tự', trigger: 'blur' }
   ]
 }
 

@@ -237,14 +237,14 @@ const handleSave = async () => {
     if (valid) {
       saving.value = true
       try {
-        // 如果是新增配置且当前没有任何配置，则Tự động设为Cấu hình mặc định
+        // Nếu đang thêm cấu hình mới và hiện chưa có cấu hình nào thì tự đặt làm mặc định
         const isFirstConfig = !editingConfig.value && configs.value.length === 0
         
         const configData = {
           name: form.name,
           config_id: form.config_id,
           provider: form.provider,
-          is_default: isFirstConfig || form.is_default, // 首次添加时Tự động设为Mặc định
+          is_default: isFirstConfig || form.is_default, // Khi thêm bản ghi đầu tiên thì tự đặt làm mặc định
           enabled: form.enabled !== undefined ? form.enabled : true,
           json_data: formRef.value.getJsonData()
         }
@@ -299,7 +299,7 @@ const toggleDefault = async (config) => {
     await api.put(`/admin/vad-configs/${config.id}`, configData)
     ElMessage.success(config.is_default ? 'Đặt làm mặc định thành công' : 'HủyMặc địnhthành công')
     
-    // Làm mới列表以更新其他配置的Mặc định状态
+    // Làm mới danh sách để cập nhật trạng thái mặc định của các cấu hình khác
     loadConfigs()
   } catch (error) {
     // Khôi phục trạng thái switch
@@ -318,7 +318,7 @@ function formatTestResultLabel(r) {
 }
 function formatTestResultTip(r) {
   if (!r?.ok) return ''
-  return r.first_packet_ms != null ? `Đạt，Thời gian ${r.first_packet_ms}ms` : 'Đạt'
+  return r.first_packet_ms != null ? `Đạt, thời gian ${r.first_packet_ms}ms` : 'Đạt'
 }
 function formatTestMessage(result) {
   const base = result.message || ''

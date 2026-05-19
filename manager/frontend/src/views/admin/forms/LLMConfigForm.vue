@@ -11,6 +11,14 @@
         <el-option label="Doubao" value="doubao" />
         <el-option label="SiliconFlow" value="siliconflow" />
         <el-option label="DeepSeek" value="deepseek" />
+        <el-option label="Gemini" value="gemini" />
+        <el-option label="OpenRouter" value="openrouter" />
+        <el-option label="9Router" value="9router" />
+        <el-option label="Groq" value="groq" />
+        <el-option label="Together AI" value="together" />
+        <el-option label="Mistral AI" value="mistral" />
+        <el-option label="xAI" value="xai" />
+        <el-option label="Perplexity" value="perplexity" />
         <el-option label="Dify" value="dify" />
         <el-option label="Coze" value="coze" />
       </el-select>
@@ -208,7 +216,7 @@ const requestCapabilityHint = computed(() => {
   if (!blockedFields.length) {
     return ''
   }
-  return `Model hiện tại không khuyến nghị đặt riêng theo tài liệu ${blockedFields.join('、')}，khi lưu sẽ không truyền các field này。`
+  return `Model hiện tại không khuyến nghị đặt riêng theo tài liệu ${blockedFields.join(', ')}, khi lưu sẽ không truyền các field này.`
 })
 
 const thinkingConfig = computed(() => {

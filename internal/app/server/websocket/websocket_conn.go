@@ -12,7 +12,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-// WebSocketConn 实现 types.IConn 接口，适配 WebSocket 连接
+// WebSocketConn triển khai interface types.IConn, adapter cho kết nối WebSocket
 type WebSocketConn struct {
 	ctx    context.Context
 	cancel context.CancelFunc
@@ -30,7 +30,7 @@ type WebSocketConn struct {
 	sync.RWMutex
 }
 
-// NewWebSocketConn 创建一个新的 WebSocketConn 实例
+// NewWebSocketConn tạo instance WebSocketConn mới
 func NewWebSocketConn(conn *websocket.Conn, deviceID string, isMqttUdpBridge bool) *WebSocketConn {
 	ctx, cancel := context.WithCancel(context.Background())
 	instance := &WebSocketConn{
@@ -43,29 +43,29 @@ func NewWebSocketConn(conn *websocket.Conn, deviceID string, isMqttUdpBridge boo
 		recvAudioChan:   make(chan []byte, 100),
 	}
 
-	// 设置pong处理器
+	// Thiết lập pong handler
 	conn.SetPongHandler(func(appData string) error {
-		log.Debugf("收到pong消息，设备ID: %s", deviceID)
+		log.Debugf("Nhận pong message, deviceID: %s", deviceID)
 		return nil
 	})
 
-	// 启动心跳检测goroutine
+	// Khởi động goroutine kiểm tra heartbeat
 	go func() {
-		ticker := time.NewTicker(30 * time.Second) // 每30秒发送一次ping
+		ticker := time.NewTicker(30 * time.Second) // gửi ping mỗi 30 giây
 		defer ticker.Stop()
 
 		for {
 			select {
 			case <-ticker.C:
 				if err := instance.conn.WriteControl(websocket.PingMessage, []byte{}, time.Now().Add(5*time.Second)); err != nil {
-					log.Errorf("发送ping消息失败，设备ID: %s, 错误: %v", deviceID, err)
-					// 心跳失败，关闭连接
+					log.Errorf("Gửi ping message thất bại, deviceID: %s, lỗi: %v", deviceID, err)
+					// Heartbeat thất bại, đóng kết nối
 					for _, cb := range instance.onCloseCbList {
 						cb(instance.deviceID)
 					}
 					return
 				}
-				log.Debugf("发送ping消息成功，设备ID: %s", deviceID)
+				log.Debugf("Gửi ping message thành công, deviceID: %s", deviceID)
 			case <-instance.ctx.Done():
 				return
 			}
@@ -82,7 +82,7 @@ func NewWebSocketConn(conn *websocket.Conn, deviceID string, isMqttUdpBridge boo
 				if err != nil {
 					log.Errorf("read message error: %v", err)
 					for _, cb := range instance.onCloseCbList {
-						cb(instance.deviceID) //通知注册方退出
+						cb(instance.deviceID) // thông báo bên đăng ký thoát
 					}
 					return
 				}
@@ -110,13 +110,13 @@ func NewWebSocketConn(conn *websocket.Conn, deviceID string, isMqttUdpBridge boo
 	return instance
 }
 
-// 适配mqtt udp bridge的数据格式
-// 前8个字节为0, 12-16字节为音频数据长度, 16字节后为音频数据
+// Adapter định dạng dữ liệu mqtt udp bridge
+// 8 byte đầu là 0, byte 12-16 là độ dài dữ liệu audio, sau 16 byte là dữ liệu audio
 func (c *WebSocketConn) tryUnpackUdpBridgeAudioPacket(buffer []byte) []byte {
 	if len(buffer) < 16 {
 		return buffer
 	}
-	// 检查前8字节是否全为0
+	// Kiểm tra 8 byte đầu có toàn là 0 không
 	for i := 0; i < 8; i++ {
 		if buffer[i] != 0 {
 			return buffer
@@ -132,13 +132,13 @@ func (c *WebSocketConn) tryUnpackUdpBridgeAudioPacket(buffer []byte) []byte {
 
 func (c *WebSocketConn) packUdpBridgeAudioPacket(buffer []byte) []byte {
 	header := make([]byte, 16)
-	// 前8字节全为0，已初始化
-	// 9~12字节写入当前时间戳（秒）
+	// 8 byte đầu toàn là 0, đã được khởi tạo
+	// Ghi timestamp hiện tại (giây) vào byte 9~12
 	timestamp := uint32(time.Now().Unix())
 	binary.BigEndian.PutUint32(header[8:12], timestamp)
-	// 13~16字节写入音频长度
+	// Ghi độ dài audio vào byte 13~16
 	binary.BigEndian.PutUint32(header[12:16], uint32(len(buffer)))
-	// 拼接header和音频数据
+	// Ghép header và dữ liệu audio
 	return append(header, buffer...)
 }
 

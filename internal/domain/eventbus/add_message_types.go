@@ -7,36 +7,36 @@ import (
 	"github.com/cloudwego/eino/schema"
 )
 
-// AddMessageEvent 统一的消息添加事件
+// AddMessageEvent là sự kiện thêm message thống nhất.
 type AddMessageEvent struct {
-	// 客户端状态
+	// Trạng thái client
 	ClientState *ClientState
 
-	// 消息内容（统一使用 schema.Message）
-	// schema.Message 是标准的 LLM 消息格式，包含：
-	// - Role: 消息角色（User/Assistant/System/Tool）
-	// - Content: 消息文本内容
-	// - ToolCalls: 工具调用列表（可选）
-	// - ToolCallID: 工具调用ID（Tool 角色使用）
+	// Nội dung message, thống nhất dùng schema.Message
+	// schema.Message là định dạng message LLM chuẩn, gồm:
+	// - Role: role message (User/Assistant/System/Tool)
+	// - Content: nội dung text message
+	// - ToolCalls: danh sách tool call, tùy chọn
+	// - ToolCallID: ID tool call, dùng cho role Tool
 	Msg schema.Message
 
-	// 消息ID（用于关联两阶段保存）
+	// Message ID, dùng để liên kết lưu hai giai đoạn
 	MessageID string
 
-	// 音频数据（可选，不属于 schema.Message 标准格式）
-	// 第一阶段：AudioData = nil（仅保存文本）
-	// 第二阶段：AudioData != nil（更新音频）
-	AudioData [][]byte // TTS/ASR 音频帧数组（Opus格式或PCM格式）
-	AudioSize int      // 音频大小（字节）
+	// Dữ liệu audio, tùy chọn, không thuộc định dạng chuẩn schema.Message
+	// Giai đoạn 1: AudioData = nil, chỉ lưu text
+	// Giai đoạn 2: AudioData != nil, update audio
+	AudioData [][]byte // Mảng frame audio TTS/ASR, định dạng Opus hoặc PCM
+	AudioSize int      // Kích thước audio (byte)
 
-	// 音频格式信息（不属于 schema.Message 标准格式）
-	SampleRate int // 采样率
-	Channels   int // 通道数
+	// Thông tin định dạng audio, không thuộc định dạng chuẩn schema.Message
+	SampleRate int // Sample rate
+	Channels   int // Số kênh
 
-	// 元数据（不属于 schema.Message 标准格式）
+	// Metadata, không thuộc định dạng chuẩn schema.Message
 	Timestamp   time.Time
-	TTSDuration int // TTS 耗时（毫秒）
+	TTSDuration int // Thời gian TTS (ms)
 
-	// 阶段标识
-	IsUpdate bool // true=更新音频，false=新增消息
+	// Dấu hiệu giai đoạn
+	IsUpdate bool // true=update audio, false=thêm message mới
 }

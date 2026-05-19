@@ -132,14 +132,14 @@ const showDialog = ref(false)
 const editingConfig = ref(null)
 const formRef = ref()
 
-// Giọng列表相关
+// Phần liên quan đến danh sách giọng
 const voiceOptions = ref([])
 const voiceLoading = ref(false)
 
 const form = reactive({
   name: '',
   config_id: '',
-  provider: 'doubao_ws',
+  provider: 'edge_offline',
   is_default: false,
   enabled: true,
   double_stream: false,
@@ -149,7 +149,7 @@ const form = reactive({
     frame_duration: 60,
     target_sr: 24000,
     audio_format: 'mp3',
-    instruct_text: '你好'
+    instruct_text: 'Xin chào'
   },
   qwen_tts: {
     api_key: '',
@@ -185,11 +185,24 @@ const form = reactive({
     receive_timeout: 60
   },
   edge_offline: {
-    server_url: 'ws://localhost:8080/tts',
+    server_url: 'ws://main-server:9001/tts',
     timeout: 30,
     sample_rate: 16000,
     channels: 1,
     frame_duration: 20
+  },
+  piper: {
+    api_url: 'http://main-server:9001/piper/tts',
+    voice: 'banmai',
+    model_path: '/workspace/tts-model/banmai.onnx',
+    model_config_path: '/workspace/tts-model/banmai.onnx.json',
+    response_format: 'wav',
+    sample_rate: 22050,
+    frame_duration: 20,
+    timeout: 60,
+    length_scale: 1.0,
+    noise_scale: 0.667,
+    noise_w: 0.8
   },
   openai: {
     api_key: '',
@@ -279,30 +292,35 @@ const rules = {
   name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
   config_id: [{ required: true, message: 'Vui lòng nhập ID cấu hình', trigger: 'blur' }],
   provider: [{ required: true, message: 'Vui lòng chọn nhà cung cấp', trigger: 'change' }],
-  // CosyVoice 验证规则
+  // Rule kiểm tra cho CosyVoice
   'cosyvoice.api_url': [{ required: true, message: 'Vui lòng nhập API URL', trigger: 'blur' }],
   'cosyvoice.spk_id': [{ required: true, message: 'Vui lòng nhập speaker ID', trigger: 'blur' }],
-  // 豆包 TTS 验证规则
+  // Rule kiểm tra cho Doubao TTS
   'doubao.appid': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
   'doubao.access_token': [{ required: true, message: 'Vui lòng nhập access token', trigger: 'blur' }],
   'doubao.model': [{ required: true, message: 'Vui lòng chọn model', trigger: 'change' }],
   'doubao.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
   'doubao.api_url': [{ required: true, message: 'Vui lòng nhập API URL', trigger: 'blur' }],
-  // 豆包 WebSocket 验证规则
+  // Rule kiểm tra cho Doubao WebSocket
   'doubao_ws.appid': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
   'doubao_ws.access_token': [{ required: true, message: 'Vui lòng nhập access token', trigger: 'blur' }],
   'doubao_ws.model': [{ required: true, message: 'Vui lòng chọn model', trigger: 'change' }],
   'doubao_ws.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
   'doubao_ws.ws_url': [{ required: true, message: 'Vui lòng nhập WebSocket URL', trigger: 'blur' }],
-  // Edge TTS 验证规则
+  // Rule kiểm tra cho Edge TTS
   'edge.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
   'edge.rate': [{ required: true, message: 'Vui lòng nhập tốc độ nói', trigger: 'blur' }],
   'edge.volume': [{ required: true, message: 'Vui lòng nhập âm lượng', trigger: 'blur' }],
-  // Edge 离线验证规则
+  // Rule kiểm tra cho Edge offline
   'edge_offline.server_url': [{ required: true, message: 'Vui lòng nhập Server URL', trigger: 'blur' }],
-  // OpenAI TTS 验证规则
+  // Rule kiểm tra cho Piper TTS
+  'piper.api_url': [{ required: true, message: 'Vui lòng nhập API URL', trigger: 'blur' }],
+  'piper.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
+  'piper.model_path': [{ required: true, message: 'Vui lòng nhập đường dẫn model ONNX', trigger: 'blur' }],
+  'piper.model_config_path': [{ required: true, message: 'Vui lòng nhập đường dẫn metadata JSON', trigger: 'blur' }],
+  // Rule kiểm tra cho OpenAI TTS
   'openai.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
-  // 讯飞 TTS 验证规则
+  // Rule kiểm tra cho Xunfei TTS
   'xunfei.app_id': [{ required: true, message: 'Vui lòng nhập App ID', trigger: 'blur' }],
   'xunfei.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
   'xunfei.api_secret': [{ required: true, message: 'Vui lòng nhập API Secret', trigger: 'blur' }],
@@ -313,11 +331,11 @@ const rules = {
   'xunfei_super_tts.api_secret': [{ required: true, message: 'Vui lòng nhập API Secret', trigger: 'blur' }],
   'xunfei_super_tts.ws_url': [{ required: true, message: 'Vui lòng nhập WebSocket URL', trigger: 'blur' }],
   'xunfei_super_tts.voice': [{ required: true, message: 'Vui lòng nhập giọng', trigger: 'blur' }],
-  // 智谱 TTS 验证规则
+  // Rule kiểm tra cho Zhipu TTS
   'zhipu.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
-  // Minimax TTS 验证规则
+  // Rule kiểm tra cho Minimax TTS
   'minimax.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
-  // 千问 TTS 验证规则
+  // Rule kiểm tra cho Qwen TTS
   'qwen_tts.api_key': [{ required: true, message: 'Vui lòng nhập API Key', trigger: 'blur' }],
   'indextts_vllm.api_url': [{ required: true, message: 'Vui lòng nhập API URL', trigger: 'blur' }]
 }
@@ -352,10 +370,10 @@ const editConfig = (config) => {
   form.enabled = config.enabled
   form.double_stream = false
 
-  // IndexTTS 改为点击Giọng下拉时再请求
+  // Với IndexTTS, chỉ gửi request khi người dùng mở dropdown chọn giọng
   loadVoiceOptions(config.provider)
 
-  // 解析配置JSON并填充 đến 对应的表单字段
+  // Phân tích JSON cấu hình và điền vào đúng các trường của form
   try {
     const configData = JSON.parse(config.json_data || '{}')
     form.double_stream = configData.double_stream === true
@@ -393,11 +411,24 @@ const editConfig = (config) => {
         form.edge.receive_timeout = configData.receive_timeout || 60
         break
       case 'edge_offline':
-        form.edge_offline.server_url = configData.server_url || ''
+        form.edge_offline.server_url = configData.server_url || 'ws://main-server:9001/tts'
         form.edge_offline.timeout = configData.timeout || 30
         form.edge_offline.sample_rate = configData.sample_rate || 16000
         form.edge_offline.channels = configData.channels || 1
         form.edge_offline.frame_duration = configData.frame_duration || 20
+        break
+      case 'piper':
+        form.piper.api_url = configData.api_url || 'http://main-server:9001/piper/tts'
+        form.piper.voice = configData.voice || 'banmai'
+        form.piper.model_path = configData.model_path || '/workspace/tts-model/banmai.onnx'
+        form.piper.model_config_path = configData.model_config_path || '/workspace/tts-model/banmai.onnx.json'
+        form.piper.response_format = configData.response_format || 'wav'
+        form.piper.sample_rate = configData.sample_rate || 22050
+        form.piper.frame_duration = configData.frame_duration || 20
+        form.piper.timeout = configData.timeout || 60
+        form.piper.length_scale = configData.length_scale ?? 1.0
+        form.piper.noise_scale = configData.noise_scale ?? 0.667
+        form.piper.noise_w = configData.noise_w ?? 0.8
         break
       case 'aliyun_qwen':
         form.qwen_tts.api_key = configData.api_key || ''
@@ -468,7 +499,7 @@ const editConfig = (config) => {
         form.indextts_vllm.frame_duration = configData.frame_duration || 60
         break
       case 'zhipu':
-        // 智谱配置从 json_data Trung bình读取
+        // Cấu hình Zhipu được đọc trực tiếp từ json_data
         form.zhipu.api_key = configData.api_key || ''
         form.zhipu.api_url = configData.api_url || 'https://open.bigmodel.cn/api/paas/v4/audio/speech'
         form.zhipu.model = configData.model || 'glm-tts'
@@ -507,14 +538,14 @@ const handleSave = async () => {
     if (valid) {
       saving.value = true
       try {
-        // 如果是新增配置且当前没有任何配置，则Tự động设为Cấu hình mặc định
+        // Nếu đang thêm cấu hình mới và hiện chưa có cấu hình nào thì tự đặt làm mặc định
         const isFirstConfig = !editingConfig.value && configs.value.length === 0
         
         const configData = {
           name: form.name,
           config_id: form.config_id,
           provider: form.provider,
-          is_default: isFirstConfig || form.is_default, // 首次添加时Tự động设为Mặc định
+          is_default: isFirstConfig || form.is_default, // Khi thêm bản ghi đầu tiên thì tự đặt làm mặc định
           enabled: form.enabled !== undefined ? form.enabled : true,
           json_data: formRef.value.getJsonData()
         }
@@ -541,7 +572,7 @@ const handleSave = async () => {
 const toggleEnable = async (config) => {
   try {
     await api.post(`/admin/configs/${config.id}/toggle`)
-    ElMessage.success(`${config.enabled ? 'Bật' : 'Tắt'}thành công`)
+    ElMessage.success(`${config.enabled ? 'Bật' : 'Tắt'} thành công`)
   } catch (error) {
     // Khôi phục trạng thái switch
     config.enabled = !config.enabled
@@ -567,9 +598,9 @@ const toggleDefault = async (config) => {
     }
     
     await api.put(`/admin/tts-configs/${config.id}`, configData)
-    ElMessage.success(config.is_default ? 'Đặt làm mặc định thành công' : 'HủyMặc địnhthành công')
+    ElMessage.success(config.is_default ? 'Đặt làm mặc định thành công' : 'Hủy mặc định thành công')
     
-    // Làm mới列表以更新其他配置的Mặc định状态
+    // Làm mới danh sách để cập nhật trạng thái mặc định của các cấu hình khác
     loadConfigs()
   } catch (error) {
     // Khôi phục trạng thái switch
@@ -588,7 +619,7 @@ function formatTestResultLabel(r) {
 }
 function formatTestResultTip(r) {
   if (!r?.ok) return ''
-  return r.first_packet_ms != null ? `Đạt，Thời gian ${r.first_packet_ms}ms` : 'Đạt'
+  return r.first_packet_ms != null ? `Đạt, thời gian ${r.first_packet_ms}ms` : 'Đạt'
 }
 function formatTestMessage(result) {
   const base = result.message || ''
@@ -606,7 +637,7 @@ const testConfig = async (row, type) => {
       ElMessage.warning(`${row.name || row.config_id}：${result.message}`)
     }
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
+    ElMessage.error(err.response?.data?.error || 'Kiểm tra yêu cầu thất bại')
   } finally {
     testingId.value = null
   }
@@ -633,7 +664,7 @@ const testAllConfigs = async () => {
     }
     ElMessage.success(`Đã hoàn tất kiểm tra tất cả: ${okCount}/${list.length} Đạt`)
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
+    ElMessage.error(err.response?.data?.error || 'Kiểm tra yêu cầu thất bại')
   } finally {
     testingAll.value = false
   }
@@ -662,12 +693,12 @@ const testCurrentConfig = async () => {
   try {
     const result = await testWithData('tts', { [configId]: payload })
     if (result.ok) {
-      ElMessage.success(formatTestMessage(result) || 'Kiểm traĐạt')
+      ElMessage.success(formatTestMessage(result) || 'Kiểm tra đạt')
     } else {
       ElMessage.warning(result.message || 'Kiểm tra chưa đạt')
     }
   } catch (err) {
-    ElMessage.error(err.response?.data?.error || 'Kiểm traYêu cầu thất bại')
+    ElMessage.error(err.response?.data?.error || 'Kiểm tra yêu cầu thất bại')
   } finally {
     testingCurrent.value = false
   }
@@ -682,7 +713,7 @@ const deleteConfig = async (id) => {
     })
     
     await api.delete(`/admin/tts-configs/${id}`)
-    ElMessage.success('Xóathành công')
+    ElMessage.success('Xóa thành công')
     loadConfigs()
   } catch (error) {
     if (error !== 'cancel') {
@@ -696,7 +727,7 @@ const resetForm = () => {
   Object.assign(form, {
     name: '',
     config_id: '',
-    provider: 'doubao_ws',
+    provider: 'edge_offline',
     is_default: false,
     enabled: true,
     cosyvoice: {
@@ -705,7 +736,7 @@ const resetForm = () => {
       frame_duration: 60,
       target_sr: 24000,
       audio_format: 'mp3',
-      instruct_text: '你好'
+      instruct_text: 'Xin chào'
     },
     qwen_tts: {
       api_key: '',
@@ -741,11 +772,24 @@ const resetForm = () => {
       receive_timeout: 60
     },
     edge_offline: {
-      server_url: 'ws://localhost:8080/tts',
+      server_url: 'ws://main-server:9001/tts',
       timeout: 30,
       sample_rate: 16000,
       channels: 1,
       frame_duration: 20
+    },
+    piper: {
+      api_url: 'http://main-server:9001/piper/tts',
+      voice: 'banmai',
+      model_path: '/workspace/tts-model/banmai.onnx',
+      model_config_path: '/workspace/tts-model/banmai.onnx.json',
+      response_format: 'wav',
+      sample_rate: 22050,
+      frame_duration: 20,
+      timeout: 60,
+      length_scale: 1.0,
+      noise_scale: 0.667,
+      noise_w: 0.8
     },
     openai: {
       api_key: '',
@@ -843,7 +887,7 @@ const formatDate = (dateString) => {
   return new Date(dateString).toLocaleString('zh-CN')
 }
 
-// 加载Giọng列表
+// Tải danh sách giọng
 const loadVoiceOptions = async (provider, options = {}) => {
   const trigger = options?.trigger || 'auto'
   if (!provider) {
@@ -851,13 +895,13 @@ const loadVoiceOptions = async (provider, options = {}) => {
     return
   }
 
-  // IndexTTS 仅在下拉展开时请求
+  // Với IndexTTS, chỉ request khi dropdown được mở
   if (provider === 'indextts_vllm' && trigger !== 'dropdown') {
     voiceOptions.value = []
     return
   }
   
-  // 只有这些 provider 需要从后端获取Giọng列表
+  // Chỉ các provider này mới cần lấy danh sách giọng từ backend
   if (!TTS_PROVIDERS_WITH_VOICES.includes(provider)) {
     voiceOptions.value = []
     return
@@ -893,14 +937,14 @@ const handleVoiceOptionsRequest = (provider) => {
   loadVoiceOptions(provider || form.provider, { trigger: 'dropdown' })
 }
 
-// 监听 provider 变化，Tự động加载对应的Giọng列表
+// Theo dõi thay đổi provider để tự tải danh sách giọng tương ứng
 watch(() => form.provider, (newProvider) => {
   if (showDialog.value) {
     loadVoiceOptions(newProvider)
   }
 }, { immediate: false })
 
-// 监听对话框打开，加载当前 provider 的Giọng列表（nextTick 确保弹窗已渲染后再请求）
+// Khi hộp thoại mở, tải danh sách giọng của provider hiện tại; nextTick đảm bảo popup đã render xong trước khi request
 watch(showDialog, (isOpen) => {
   if (isOpen && form.provider) {
     nextTick(() => loadVoiceOptions(form.provider))

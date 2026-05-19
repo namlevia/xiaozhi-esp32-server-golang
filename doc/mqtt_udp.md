@@ -1,46 +1,46 @@
-# mqtt udp服务器配置流程
+# Quy trình cấu hình MQTT UDP server
 
-本项目实现了**自有的 MQTT+UDP 服务端**，用于高效处理设备与服务器之间的音频等数据传输。架构灵活，支持多种部署和替换方式，适应不同业务场景。
+Dự án này triển khai **MQTT+UDP server riêng**, dùng để xử lý hiệu quả việc truyền dữ liệu như audio giữa thiết bị và server. Kiến trúc linh hoạt, hỗ trợ nhiều cách triển khai và thay thế, phù hợp với nhiều kịch bản nghiệp vụ.
 
-## 1. 架构特点与灵活性
+## 1. Đặc điểm kiến trúc và tính linh hoạt
 
-- **自研 MQTT+UDP 服务端**：项目内置了完整的 MQTT 协议服务端和 UDP 音频通道，支持设备通过 MQTT 建立会话，后续数据走 UDP，兼顾可靠性与实时性。
-- **MQTT 服务端可选部署方式**：
-  - 可作为主程序（server）的一部分随主进程启动，适合一体化部署。
-  - 也可单独部署为独立进程，便于横向扩展和资源隔离。
-- **支持第三方 MQTT 服务端**：
-  - 项目架构支持将内置 MQTT 服务端替换为如 EMQX、或自研MQTT Server等第三方 MQTT Broker。
-  - 只需在配置文件中调整 `mqtt` 相关参数，主程序即可作为纯客户端对接外部 Broker，适合大规模集群和高可用场景。
-- **支持 虾哥官方 xiaozhi-mqtt-gateway 项目接入**
-  - 适配了虾哥 xiaozhi-mqtt-gateway 开源项目，可以接入使用
-  - [详见 mqtt_bridge.md](./mqtt_bridge.md)
+- **MQTT+UDP server tự phát triển**: dự án tích hợp đầy đủ MQTT protocol server và kênh audio UDP, hỗ trợ thiết bị thiết lập session qua MQTT, dữ liệu tiếp theo đi qua UDP, cân bằng giữa độ tin cậy và realtime.
+- **Cách triển khai MQTT server tùy chọn**:
+  - Có thể khởi động cùng process chính như một phần của chương trình chính (server), phù hợp triển khai tích hợp.
+  - Cũng có thể triển khai riêng thành process độc lập, tiện mở rộng ngang và cô lập tài nguyên.
+- **Hỗ trợ MQTT server bên thứ ba**:
+  - Kiến trúc dự án hỗ trợ thay thế MQTT server tích hợp bằng Broker bên thứ ba như EMQX hoặc MQTT Server tự phát triển.
+  - Chỉ cần điều chỉnh tham số liên quan đến `mqtt` trong file cấu hình, chương trình chính có thể kết nối external Broker như một client thuần, phù hợp với cluster quy mô lớn và kịch bản high availability.
+- **Hỗ trợ tích hợp dự án chính thức xiaozhi-mqtt-gateway**
+  - Đã thích ứng với dự án open source xiaozhi-mqtt-gateway, có thể kết nối sử dụng
+  - [Xem chi tiết mqtt_bridge.md](./mqtt_bridge.md)
 
-### 部署架构图
+### Sơ đồ kiến trúc triển khai
 
-下图展示了两种典型部署方式，帮助理解项目的灵活架构：
+Sơ đồ dưới đây thể hiện hai cách triển khai điển hình, giúp hiểu kiến trúc linh hoạt của dự án:
 
 ```mermaid
 flowchart TD
-    subgraph A[内置MQTT服务端模式]
+    subgraph A[Chế độ MQTT server tích hợp]
         direction LR
-        D1["<b>设备/客户端</b>"]
-        D2["<b>设备/客户端</b>"]
-        MQTTUDPServer["<b>主程序</b><br/>MQTT+UDP服务端<br/>- MQTT服务端（可选）<br/>- MQTT客户端<br/>- UDP服务端"]
-        D1 -- "MQTT/UDP通信" --> MQTTUDPServer
-        D2 -- "MQTT/UDP通信" --> MQTTUDPServer
+        D1["<b>Thiết bị/client</b>"]
+        D2["<b>Thiết bị/client</b>"]
+        MQTTUDPServer["<b>Chương trình chính</b><br/>MQTT+UDP server<br/>- MQTT server (tùy chọn)<br/>- MQTT client<br/>- UDP server"]
+        D1 -- "Giao tiếp MQTT/UDP" --> MQTTUDPServer
+        D2 -- "Giao tiếp MQTT/UDP" --> MQTTUDPServer
     end
     
-    subgraph B[外部Broker模式]
+    subgraph B[Chế độ Broker bên ngoài]
         direction LR
-        D3["<b>设备/客户端</b>"]
-        D4["<b>设备/客户端</b>"]
-        Broker["<b>EMQX/自研MQTT Server<br/>等第三方MQTT Broker</b>"]
-        MainServer["<b>主程序</b><br/>MQTT客户端+UDP服务端"]
-        D3 -- "MQTT通信" --> Broker
-        D4 -- "MQTT通信" --> Broker
-        Broker -- "MQTT通信" --> MainServer
-        D3 -- "UDP通信" --> MainServer
-        D4 -- "UDP通信" --> MainServer
+        D3["<b>Thiết bị/client</b>"]
+        D4["<b>Thiết bị/client</b>"]
+        Broker["<b>EMQX/MQTT Server tự phát triển<br/>hoặc Broker bên thứ ba khác</b>"]
+        MainServer["<b>Chương trình chính</b><br/>MQTT client + UDP server"]
+        D3 -- "Giao tiếp MQTT" --> Broker
+        D4 -- "Giao tiếp MQTT" --> Broker
+        Broker -- "Giao tiếp MQTT" --> MainServer
+        D3 -- "Giao tiếp UDP" --> MainServer
+        D4 -- "Giao tiếp UDP" --> MainServer
     end
     
     style A fill:#e0f7fa,stroke:#26c6da,stroke-width:2px
@@ -49,25 +49,27 @@ flowchart TD
     class D1,D2,D3,D4 device;
 ```
 
-**说明：**
-- <b>内置MQTT服务端模式</b>：主程序集成MQTT服务端和UDP服务端，设备直接与主程序通信。
-- <b>外部Broker模式</b>：主程序仅作为MQTT客户端连接EMQX、或自研MQTT Server等外部Broker，设备通过Broker转发MQTT消息，UDP数据仍直连主程序。
+**Mô tả:**
+- <b>Chế độ MQTT server tích hợp</b>: chương trình chính tích hợp MQTT server và UDP server, thiết bị giao tiếp trực tiếp với chương trình chính.
+- <b>Chế độ Broker bên ngoài</b>: chương trình chính chỉ đóng vai trò MQTT client kết nối EMQX hoặc MQTT Server tự phát triển bên ngoài; thiết bị chuyển tiếp message MQTT qua Broker, còn dữ liệu UDP vẫn kết nối trực tiếp tới chương trình chính.
 
-## 2. 配置文件设置
-在 `config/config.yaml` 中，需关注以下参数：
-- `mqtt`：**客户端角色**，用于配置本服务作为 MQTT 客户端连接到 Broker（无论是内置还是外部 Broker）。
-  - `broker`、`type`、`port`、`client_id`、`username`、`password`
-- `mqtt_server`：内置 MQTT 服务端参数（仅主程序内置时需启用）
-  - `enable`、`listen_host`、`listen_port`、`tls` 等
-- `udp`：UDP 通道参数
-  - `external_host`、`external_port`、`listen_host`、`listen_port`
+## 2. Thiết lập file cấu hình
 
-## 3. OTA相关配置
+Trong `config/config.yaml`, cần chú ý các tham số sau:
 
-OTA（Over-the-Air）配置用于设备远程获取服务器、MQTT、WebSocket等连接信息，以及固件升级、激活等参数。根据设备网络环境（如内网/公网），可自动返回不同的OTA配置信息。
+- `mqtt`: **vai trò client**, dùng để cấu hình service này kết nối tới Broker như MQTT client (dù Broker là tích hợp hay bên ngoài).
+  - `broker`, `type`, `port`, `client_id`, `username`, `password`
+- `mqtt_server`: tham số MQTT server tích hợp (chỉ cần bật khi MQTT server nằm trong chương trình chính)
+  - `enable`, `listen_host`, `listen_port`, `tls`, v.v.
+- `udp`: tham số kênh UDP
+  - `external_host`, `external_port`, `listen_host`, `listen_port`
 
-- 配置位置：`config/config.yaml` 的 `ota` 字段。
-- 典型结构：
+## 3. Cấu hình liên quan đến OTA
+
+Cấu hình OTA (Over-the-Air) dùng để thiết bị lấy từ xa thông tin kết nối server, MQTT, WebSocket, cũng như tham số nâng cấp firmware, kích hoạt, v.v. Dựa trên môi trường mạng của thiết bị (như nội bộ/public), hệ thống có thể tự động trả về cấu hình OTA khác nhau.
+
+- Vị trí cấu hình: trường `ota` trong `config/config.yaml`.
+- Cấu trúc điển hình:
   ```yaml
   ota:
     test:
@@ -83,36 +85,36 @@ OTA（Over-the-Air）配置用于设备远程获取服务器、MQTT、WebSocket�
         enable: false
         endpoint: "www.youdomain.cn"
   ```
-- 主要参数说明：
-  - `test`：内网/测试环境下的OTA返回信息。
-  - `external`：公网/生产环境下的OTA返回信息。
-  - `websocket.url`：设备通过OTA获取的WebSocket服务地址。
-  - `mqtt.endpoint`：设备通过OTA获取的MQTT服务器地址。
-  - `mqtt.enable`：是否启用MQTT（如需动态切换可用）。
-- 典型用途：
-  - 设备首次启动或升级时，通过OTA接口获取最新的服务器连接信息和固件信息。
-  - 支持根据设备IP自动区分内外网，返回不同的连接参数，便于测试和生产环境隔离。
+- Mô tả tham số chính:
+  - `test`: thông tin OTA trả về trong môi trường nội bộ/test.
+  - `external`: thông tin OTA trả về trong môi trường public/production.
+  - `websocket.url`: địa chỉ WebSocket service thiết bị lấy qua OTA.
+  - `mqtt.endpoint`: địa chỉ MQTT server thiết bị lấy qua OTA.
+  - `mqtt.enable`: có bật MQTT hay không (có thể dùng khi cần chuyển đổi động).
+- Mục đích điển hình:
+  - Khi thiết bị khởi động lần đầu hoặc nâng cấp, thiết bị lấy thông tin kết nối server và firmware mới nhất qua interface OTA.
+  - Hỗ trợ phân biệt mạng nội bộ/bên ngoài theo IP thiết bị, trả về tham số kết nối khác nhau để tách môi trường test và production.
 
-**注意事项：**
-- OTA接口通常为 `/xiaozhi/ota/`，需在WebSocket服务端开放对应路由。
-- 设备需在请求头中带上 `Device-Id` 和 `Client-Id`。
-- 可结合激活机制，返回激活码、挑战码等信息，提升设备安全性。
+**Lưu ý:**
+- Interface OTA thường là `/xiaozhi/ota/`, cần mở route tương ứng trên WebSocket server.
+- Thiết bị cần mang `Device-Id` và `Client-Id` trong request header.
+- Có thể kết hợp cơ chế kích hoạt để trả về activation code, challenge code và thông tin khác nhằm tăng bảo mật thiết bị.
 
-## 4. 启动与运行流程
+## 4. Luồng khởi động và chạy
 
-1. **服务初始化**  
-   启动主程序时，自动按配置初始化 WebSocket、MQTT Server（可选）、以及 mqtt udp 服务。
-2. **MQTT+UDP 服务启动流程**  
-   - 读取配置文件中的 mqtt、udp 参数。
-   - 若 `mqtt_server.enable=true`，则启动内置 MQTT 服务端，否则仅作为客户端连接外部 Broker。
-   - 启动 UDP 服务器，监听 `udp.listen_port`，对外暴露 `udp.external_host:external_port`。
-   - 创建 MQTT 客户端（**客户端角色**），连接到配置的 Broker。
-   - 当设备连上内置 `mqtt_server` 后，服务端会通过生命周期消息提前创建或复用 MQTT transport，并最佳努力预热设备侧 MCP。
-   - 客户端通过 MQTT 发送 `hello` 消息后，服务器返回 `audio_params`、UDP 信息等聊天级参数，并建立 UDP 会话，后续音频等数据通过 UDP 通道传输。
+1. **Khởi tạo service**  
+   Khi khởi động chương trình chính, hệ thống tự động khởi tạo WebSocket, MQTT Server (tùy chọn) và mqtt udp service theo cấu hình.
+2. **Luồng khởi động MQTT+UDP service**  
+   - Đọc tham số `mqtt`, `udp` trong file cấu hình.
+   - Nếu `mqtt_server.enable=true`, khởi động MQTT server tích hợp; nếu không, chỉ kết nối external Broker như client.
+   - Khởi động UDP server, lắng nghe `udp.listen_port`, expose ra ngoài qua `udp.external_host:external_port`.
+   - Tạo MQTT client (**vai trò client**) và kết nối tới Broker đã cấu hình.
+   - Sau khi thiết bị kết nối vào `mqtt_server` tích hợp, server sẽ tạo hoặc tái sử dụng MQTT transport trước thông qua message vòng đời, đồng thời preheat MCP phía thiết bị theo best-effort.
+   - Sau khi client gửi message `hello` qua MQTT, server trả về `audio_params`, thông tin UDP và tham số cấp chat khác, đồng thời thiết lập UDP session; dữ liệu audio tiếp theo sẽ truyền qua kênh UDP.
 
-## 5. 配置示例
+## 5. Ví dụ cấu hình
 
-**内置 MQTT 服务端模式**（一体化部署）
+**Chế độ MQTT server tích hợp** (triển khai tích hợp)
 ```yaml
 mqtt:
   broker: "127.0.0.1"
@@ -145,7 +147,7 @@ ota:
       endpoint: "www.youdomain.cn"
 ```
 
-**对接外部 MQTT Broker（如 EMQX/自研MQTT Server）**
+**Kết nối external MQTT Broker (như EMQX/MQTT Server tự phát triển)**
 ```yaml
 mqtt:
   broker: "emqx.example.com"
@@ -157,7 +159,7 @@ mqtt:
 mqtt_server:
   enable: false
 udp:
-  external_host: "公网IP"
+  external_host: "IP public"
   external_port: 8990
   listen_host: "0.0.0.0"
   listen_port: 8990
@@ -176,46 +178,51 @@ ota:
       endpoint: "emqx.example.com"
 ```
 
-## 6. 推荐场景
-- **一体化部署**：适合中小规模、单机或容器化场景，配置简单，维护方便。
-- **分布式/集群部署**：推荐关闭内置 MQTT 服务端，采用 EMQX 等高可用 Broker，主程序仅作为客户端对接，便于弹性扩展和负载均衡。
+## 6. Kịch bản khuyến nghị
+
+- **Triển khai tích hợp**: phù hợp quy mô nhỏ và vừa, đơn máy hoặc container hóa; cấu hình đơn giản, bảo trì thuận tiện.
+- **Triển khai phân tán/cluster**: khuyến nghị tắt MQTT server tích hợp, dùng Broker high availability như EMQX; chương trình chính chỉ kết nối như client để dễ mở rộng đàn hồi và cân bằng tải.
 
 ---
 
-**简要流程**：配置文件设置 → 服务启动自动加载配置 → 启动UDP监听和MQTT连接 → 设备 MQTT 上线时创建或复用 transport 并预热 MCP → 客户端通过 MQTT `hello` 建立聊天级 UDP 会话。
+**Luồng ngắn gọn**: thiết lập file cấu hình → service khởi động tự load cấu hình → bật lắng nghe UDP và kết nối MQTT → khi thiết bị online qua MQTT, tạo hoặc tái sử dụng transport và preheat MCP → client dùng MQTT `hello` để thiết lập UDP session cấp chat.
 
-## 7. 对接EMQX等第三方MQTT服务器的Topic定义与映射
+## 7. Định nghĩa và ánh xạ Topic khi kết nối EMQX hoặc MQTT server bên thứ ba
 
-在对接EMQX等第三方MQTT Broker时，需遵循如下Topic定义和映射规则，以确保设备与服务端的数据通信顺畅：
+Khi kết nối EMQX hoặc MQTT Broker bên thứ ba, cần tuân theo định nghĩa Topic và quy tắc ánh xạ dưới đây để đảm bảo dữ liệu giữa thiết bị và server thông suốt:
 
-### 设备端Topic定义
+### Định nghĩa Topic phía thiết bị
+
 - **public**: `device-server`  
-  > 设备端发布消息时，实际服务端会自动将其映射为 `/p2p/device_public/{mac_addr}`，其中 `{mac_addr}` 为设备的MAC地址。
+  > Khi thiết bị publish message, server thực tế sẽ tự động ánh xạ thành `/p2p/device_public/{mac_addr}`, trong đó `{mac_addr}` là địa chỉ MAC của thiết bị.
 - **sub**: `null`  
-  > 设备端无需主动订阅，服务端会自动为其订阅 `/p2p/device_sub/{mac_addr}`。
+  > Thiết bị không cần chủ động subscribe; server sẽ tự động subscribe `/p2p/device_sub/{mac_addr}` cho thiết bị.
 
-### 服务端Topic定义
+### Định nghĩa Topic phía server
+
 - **public**: `/p2p/device_sub/{mac_addr}`  
-  > 服务端向指定设备下发消息时，需发布到该Topic。
+  > Khi server gửi message xuống thiết bị chỉ định, cần publish tới Topic này.
 - **sub**: `/p2p/device_public/#`  
-  > 服务端需订阅该通配符Topic，以接收所有设备上报的消息。
+  > Server cần subscribe wildcard Topic này để nhận message do tất cả thiết bị báo lên.
 - **lifecycle**: `/p2p/device_public/_server/lifecycle`
-  > 内置 `mqtt_server` 在设备连上或断开时，会通过该保留 Topic 发布生命周期事件，供主程序维护 transport、在线状态和 MCP 预热。
+  > `mqtt_server` tích hợp sẽ publish sự kiện vòng đời qua Topic giữ riêng này khi thiết bị kết nối hoặc ngắt kết nối, để chương trình chính duy trì transport, trạng thái online và preheat MCP.
 
-#### Topic映射说明
-- 设备端与服务端的Topic采用自动映射机制，设备只需关注`device-server`，无需关心实际的P2P路径，服务端会根据设备MAC地址自动完成Topic转换。
-- 该机制便于大规模设备管理和消息隔离，提升系统安全性和可维护性。
+#### Mô tả ánh xạ Topic
 
-#### 示例
-- 设备A（MAC: 11:22:33:44:55:66）
-  - 设备端发布：`device-server` → 实际服务端收到：`/p2p/device_public/11:22:33:44:55:66`
-  - 服务端下发：`/p2p/device_sub/11:22:33:44:55:66`
+- Topic giữa thiết bị và server dùng cơ chế ánh xạ tự động. Thiết bị chỉ cần quan tâm `device-server`, không cần biết đường dẫn P2P thực tế; server sẽ tự động chuyển đổi Topic theo địa chỉ MAC của thiết bị.
+- Cơ chế này thuận tiện cho quản lý thiết bị quy mô lớn và cô lập message, cải thiện bảo mật và khả năng bảo trì của hệ thống.
 
-- 服务端订阅：`/p2p/device_public/#`，可接收所有设备的上报消息。
+#### Ví dụ
 
-- 生命周期消息示例：
-  - Topic：`/p2p/device_public/_server/lifecycle`
-  - Payload：
+- Thiết bị A (MAC: 11:22:33:44:55:66)
+  - Thiết bị publish: `device-server` → server thực tế nhận: `/p2p/device_public/11:22:33:44:55:66`
+  - Server gửi xuống: `/p2p/device_sub/11:22:33:44:55:66`
+
+- Server subscribe: `/p2p/device_public/#`, có thể nhận message báo lên từ toàn bộ thiết bị.
+
+- Ví dụ message vòng đời:
+  - Topic: `/p2p/device_public/_server/lifecycle`
+  - Payload:
     ```json
     {
       "type": "mqtt_lifecycle",
@@ -226,48 +233,52 @@ ota:
     }
     ```
 
-> **注意：**
-> - 以上Topic映射规则仅在对接EMQX等第三方MQTT Broker时生效。
-> - 若使用内置 MQTT 服务端，主程序仍监听 `/p2p/device_public/#`，其中 `/p2p/device_public/_server/lifecycle` 为服务端保留 Topic，请勿给设备业务消息复用。
+> **Lưu ý:**
+> - Quy tắc ánh xạ Topic trên chỉ có hiệu lực khi kết nối EMQX hoặc MQTT Broker bên thứ ba.
+> - Nếu dùng MQTT server tích hợp, chương trình chính vẫn lắng nghe `/p2p/device_public/#`; trong đó `/p2p/device_public/_server/lifecycle` là Topic giữ riêng phía server, không dùng lại cho message nghiệp vụ của thiết bị.
 
-### EMQX消息重定向配置
+### Cấu hình chuyển hướng message EMQX
 
-为了实现设备消息的自动路由和转发，需要在EMQX中配置以下规则：
+Để tự động định tuyến và chuyển tiếp message thiết bị, cần cấu hình các rule sau trong EMQX:
 
-#### 1. 自动订阅新增配置
+#### 1. Cấu hình auto-subscribe mới
+
 - **topic**: `/p2p/device_sub/${clientid}`
 
-#### 2. 消息重转发
-在规则中新增一项，配置如下：
+#### 2. Chuyển tiếp lại message
 
-**SQL规则**：
+Thêm một mục trong rule với cấu hình sau:
+
+**SQL rule**:
 ```sql
 SELECT clientid, payload FROM "device-server"
 ```
 
-**配置参数**：
-- **数据输入**: `"device-server"`
-- **动作输出类型**: `"消息重发布"`
+**Tham số cấu hình**:
+- **Dữ liệu đầu vào**: `"device-server"`
+- **Kiểu output action**: `"message republish"`
 - **topic**: `/p2p/device_public/${clientid}`
 - **payload**: `${payload}`
 
-## 8. MQTT UDP 数据流程
+## 8. Luồng dữ liệu MQTT UDP
 
-本节简要介绍设备与服务器之间通过 MQTT+UDP 进行数据交互的整体流程，包括会话建立、数据上报与下发等关键步骤。
+Phần này giới thiệu ngắn gọn luồng tương tác dữ liệu tổng thể giữa thiết bị và server thông qua MQTT+UDP, bao gồm các bước chính như thiết lập session, báo dữ liệu lên và gửi dữ liệu xuống.
 
-详细协议与数据包格式请参考：[MQTT UDP 协议与数据流程文档](./mqtt_udp_protocol.md)
+Chi tiết protocol và định dạng packet xem: [Tài liệu protocol và luồng dữ liệu MQTT UDP](./mqtt_udp_protocol.md)
 
-### 流程概述
-1. **设备启动**，通过 MQTT 连接服务器。
-2. **生命周期预热**：内置 `mqtt_server` 在设备上线时发布 `/p2p/device_public/_server/lifecycle`，主程序据此创建或复用 transport、映射设备在线状态，并最佳努力预热设备侧 MCP。
-3. **设备发送 `hello`**：服务器响应并下发 `audio_params`、UDP 地址、密钥和 nonce 等聊天级参数。
-4. **音频/数据上报**：设备通过 UDP 通道高效上传音频等数据。
-5. **服务器下发指令**：如需下发控制指令，可通过 MQTT 或 UDP 通道完成。
-6. **断线与保留**：设备下线时会发布生命周期离线事件，主程序会立即映射离线状态，但会在一段保留时间内复用已有 transport，避免短时重连造成频繁创建和销毁。
+### Tổng quan luồng
 
-### 生命周期事件与 `hello` 的边界
-- MQTT 生命周期事件负责连接级资源维护，包括 transport 预创建、在线状态映射、MCP 预热和离线延迟回收。
-- `hello` 仍然只负责聊天级初始化，包括 `audio_params`、UDP 协商、采样参数和会话级状态准备。
-- `listen`、`abort`、`goodbye` 等现有信令语义不变，仍然以 `hello` 完成为前提。
+1. **Thiết bị khởi động**, kết nối server qua MQTT.
+2. **Preheat vòng đời**: `mqtt_server` tích hợp publish `/p2p/device_public/_server/lifecycle` khi thiết bị online; chương trình chính dựa vào đó để tạo hoặc tái sử dụng transport, ánh xạ trạng thái online của thiết bị và preheat MCP phía thiết bị theo best-effort.
+3. **Thiết bị gửi `hello`**: server phản hồi và cấp xuống `audio_params`, địa chỉ UDP, khóa và nonce cùng các tham số cấp chat khác.
+4. **Báo audio/dữ liệu lên**: thiết bị tải audio và dữ liệu khác lên hiệu quả qua kênh UDP.
+5. **Server gửi lệnh xuống**: nếu cần gửi lệnh điều khiển xuống, có thể thực hiện qua kênh MQTT hoặc UDP.
+6. **Ngắt kết nối và giữ lại**: khi thiết bị offline, sự kiện vòng đời offline sẽ được publish; chương trình chính lập tức ánh xạ trạng thái offline nhưng vẫn tái sử dụng transport hiện có trong một khoảng thời gian giữ lại, tránh tạo và hủy liên tục do reconnect ngắn hạn.
 
-> 详细的 Topic 设计、数据包结构、状态流转等请查阅 [mqtt_udp_protocol.md](./mqtt_udp_protocol.md)。
+### Ranh giới giữa sự kiện vòng đời và `hello`
+
+- Sự kiện vòng đời MQTT phụ trách duy trì tài nguyên cấp kết nối, bao gồm tạo trước transport, ánh xạ trạng thái online, preheat MCP và thu hồi offline trễ.
+- `hello` vẫn chỉ phụ trách khởi tạo cấp chat, bao gồm `audio_params`, thương lượng UDP, tham số sample và chuẩn bị trạng thái cấp session.
+- Ngữ nghĩa của các tín hiệu hiện có như `listen`, `abort`, `goodbye` giữ nguyên, vẫn lấy việc hoàn tất `hello` làm tiền đề.
+
+> Thiết kế Topic, cấu trúc packet và chuyển trạng thái chi tiết xem [mqtt_udp_protocol.md](./mqtt_udp_protocol.md).

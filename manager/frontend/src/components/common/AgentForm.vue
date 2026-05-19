@@ -60,7 +60,7 @@
         <el-option
           v-for="kb in knowledgeBases"
           :key="kb.id"
-          :label="kb.name || `Knowledge Base #${kb.id}`"
+          :label="kb.name || `Kho tri thức #${kb.id}`"
           :value="kb.id"
         />
       </el-select>

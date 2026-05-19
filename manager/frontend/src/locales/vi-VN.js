@@ -1,8 +1,8 @@
 export default {
   app: {
     name: 'Hệ thống quản lý Xiaozhi',
-    platform: 'Nền tảng quản lý dịch vụ AI và thiết bị',
-    controlCenter: 'XIAOZHI CONTROL CENTER'
+    platform: 'Nền tảng quản lý AI & thiết bị từ LeviaTech',
+    controlCenter: 'LEVIATECH AI CONTROL CENTER'
   },
   common: {
     add: 'Thêm',
@@ -36,10 +36,10 @@ export default {
     configWizard: 'Trình hướng dẫn cấu hình',
     otaConfig: 'Cấu hình OTA',
     logout: 'Đăng xuất',
-    apiToken: 'API Token'
+    apiToken: 'Mã API'
   },
   auth: {
-    welcomeBack: 'WELCOME BACK',
+    welcomeBack: 'CHÀO MỪNG TRỞ LẠI',
     loginOrCreate: 'Đăng nhập hoặc tạo tài khoản',
     login: 'Đăng nhập',
     register: 'Đăng ký',
@@ -52,13 +52,14 @@ export default {
     captchaLoading: 'Đang tạo câu hỏi...',
     captchaHintLogin: 'Bài toán đơn giản giúp ngăn đăng nhập hàng loạt bằng script.',
     captchaHintRegister: 'Hoàn thành phép tính đơn giản trước khi đăng ký.',
+    brandCredit: 'Triển khai và Việt hóa bởi LeviaTech',
     changeCaptcha: 'Đổi câu hỏi',
     loginSuccess: 'Đăng nhập thành công',
     loginFailed: 'Đăng nhập thất bại',
     registerSuccess: 'Đăng ký thành công, vui lòng đăng nhập',
     registerFailed: 'Đăng ký thất bại',
     captchaLoadFailed: 'Không tải được xác minh người dùng, vui lòng đổi câu hỏi rồi thử lại',
-    heroTitle: 'Xiaozhi AI Go sẵn sàng cất cánh.',
+    heroTitle: 'Xiaozhi AI Go, tối ưu bởi LeviaTech.',
     heroDescription: 'Quản lý tập trung trợ lý, nhận diện người nói, kho tri thức và kết nối dịch vụ để thiết bị, mô hình và năng lực giọng nói phối hợp trong cùng một workspace.',
     chips: {
       agent: 'Điều phối trợ lý',
@@ -81,10 +82,10 @@ export default {
     captchaAnswerRequired: 'Vui lòng nhập kết quả tính toán'
   },
   setup: {
-    eyebrow: 'FIRST RUN EXPERIENCE',
+    eyebrow: 'THIẾT LẬP LẦN ĐẦU',
     title: 'Hoàn tất khởi tạo hệ thống theo cách nhẹ nhàng hơn.',
     description: 'Tạo tài khoản quản trị viên trước, sau đó vào bảng điều khiển và trình hướng dẫn cấu hình tập trung.',
-    cardEyebrow: 'SYSTEM SETUP',
+    cardEyebrow: 'THIẾT LẬP HỆ THỐNG',
     heading: 'Khởi tạo hệ thống',
     welcome: 'Chào mừng đến với Hệ thống quản lý Xiaozhi, vui lòng hoàn tất thiết lập ban đầu',
     checking: 'Đang kiểm tra trạng thái hệ thống...',
@@ -117,8 +118,8 @@ export default {
     adminMode: 'Chế độ quản trị',
     userMode: 'Chế độ người dùng',
     online: 'Đang online',
-    adminConsole: 'Admin Console',
-    userWorkspaceEyebrow: 'User Workspace',
+    adminConsole: 'Bảng quản trị',
+    userWorkspaceEyebrow: 'Không gian người dùng',
     admin: 'Quản trị viên',
     user: 'Người dùng thường',
     logoutConfirmTitle: 'Xác nhận',
@@ -151,7 +152,7 @@ export default {
     esp32Device: 'Thiết bị ESP32',
     activated: 'Đã kích hoạt',
     notActivated: 'Chưa kích hoạt',
-    online: 'Online',
+    online: 'Trực tuyến',
     offline: 'Offline',
     neverActive: 'Chưa từng hoạt động',
     never: 'Chưa từng',
@@ -235,7 +236,7 @@ export default {
     mcpCallFailed: 'Gọi công cụ MCP thất bại',
     roleConfig: 'Cấu hình vai trò thiết bị',
     configHelp: 'Hướng dẫn cấu hình',
-    roleConfigHelp: 'Sau khi liên kết vai trò, thiết bị sẽ dùng cấu hình của vai trò (Prompt, LLM, TTS) để ghi đè cấu hình trợ lý. Nếu muốn dùng cấu hình trợ lý, hãy hủy liên kết vai trò.',
+    roleConfigHelp: 'Sau khi liên kết vai trò, thiết bị sẽ dùng cấu hình của vai trò (prompt, LLM, TTS) để ghi đè cấu hình trợ lý. Nếu muốn dùng cấu hình trợ lý, hãy hủy liên kết vai trò.',
     currentRole: 'Vai trò hiện tại',
     linkedRole: 'Đã liên kết vai trò',
     noLinkedRole: 'Chưa liên kết vai trò (dùng cấu hình trợ lý)',
@@ -257,10 +258,10 @@ export default {
   },
 
   agent: {
-    agent: 'Trợ lý', agents: 'Trợ lý', add: 'Thêm trợ lý', create: 'Tạo trợ lý', edit: 'Chỉnh sửa trợ lý', update: 'Cập nhật', config: 'Cấu hình', chat: 'Đối thoại', delete: 'Xóa', name: 'Tên trợ lý', nickname: 'Biệt danh trợ lý', ownerUser: 'Người dùng sở hữu', roleIntro: 'Giới thiệu vai trò', systemPrompt: 'System prompt', knowledgeBases: 'Kho tri thức liên kết', llm: 'Mô hình ngôn ngữ', ttsConfig: 'Cấu hình TTS', ttsVoice: 'Giọng TTS', asrSpeed: 'Tốc độ nhận diện giọng nói', memoryMode: 'Chế độ ghi nhớ', speakerChatMode: 'Giới hạn chat theo người nói', mcpServices: 'Dịch vụ MCP', openClawAllowed: 'Cho phép vào chế độ OpenClaw', openClawEnterKeywords: 'Từ khóa vào OpenClaw', openClawExitKeywords: 'Từ khóa thoát OpenClaw', namePlaceholder: 'Nhập tên trợ lý hiển thị trong trang quản lý', nicknamePlaceholder: 'Tên dùng cho mô hình, ví dụ: Xiaozhi', promptPlaceholder: 'Nhập giới thiệu vai trò / system prompt', selectKnowledgeBases: 'Chọn kho tri thức cần liên kết', selectLlm: 'Chọn mô hình ngôn ngữ', selectTts: 'Chọn cấu hình TTS', selectVoice: 'Chọn hoặc nhập chính xác giá trị giọng', mcpServicesPlaceholder: 'Để trống để dùng tất cả dịch vụ đã bật', keywordPlaceholder: 'Nhập rồi Enter để thêm nhiều từ khóa', noAgents: 'Chưa có trợ lý', createFirst: 'Tạo trợ lý đầu tiên', welcomeTitle: 'Hãy tạo trợ lý đầu tiên', welcomeDescription: 'Sau khi tạo, bạn có thể liên kết thiết bị, cấu hình kho tri thức và năng lực giọng nói.', loading: 'Đang tải trợ lý', creating: 'Đang tạo...', binding: 'Đang liên kết...', saveConfig: 'Lưu cấu hình', editTitle: 'Chỉnh sửa trợ lý', notSet: 'Chưa thiết lập', default: 'Mặc định', defaultVoice: 'Giọng mặc định', normal: 'Bình thường', patient: 'Kiên nhẫn', fast: 'Nhanh', noMemory: 'Không ghi nhớ', shortMemory: 'Ghi nhớ ngắn hạn', longMemory: 'Ghi nhớ dài hạn', off: 'Tắt', identifiedOnly: 'Chỉ cho phép chat khi nhận diện đúng người nói', identifiedOnlyShort: 'Chỉ khi khớp người nói', count: 'Trợ lý {count}', deviceCount: 'Thiết bị {count}', onlineCount: 'Online {count}', voiceModel: 'Mô hình giọng', languageModel: 'Mô hình ngôn ngữ', deviceQuantity: 'Số thiết bị', memoryType: 'Kiểu ghi nhớ', linkedKnowledgeBase: 'Kho tri thức liên kết', notLinked: 'Chưa liên kết', checking: 'Đang kiểm tra', connected: 'Đã kết nối', disconnected: 'Chưa kết nối', unknownConnection: 'Không rõ kết nối', checkFailed: 'Kiểm tra thất bại', globalMcpServices: 'Dịch vụ MCP toàn cục', serviceScope: 'Phạm vi dịch vụ', selectedServices: 'Đã chọn {count} dịch vụ', followGlobal: 'Theo cấu hình toàn cục', openClawStatus: 'Trạng thái OpenClaw', enabled: 'Đã bật', disabled: 'Chưa bật', loadAgentsFailed: 'Tải danh sách trợ lý thất bại', loadConfigFailed: 'Tải cấu hình trợ lý thất bại', addSuccess: 'Thêm trợ lý thành công', addFailed: 'Thêm trợ lý thất bại', updateSuccess: 'Cập nhật trợ lý thành công', updateFailed: 'Cập nhật trợ lý thất bại', deleteSuccess: 'Xóa trợ lý thành công', deleteFailed: 'Xóa trợ lý thất bại', confirmDelete: 'Bạn có chắc muốn xóa trợ lý "{name}"?', cannotDeleteWithDevices: 'Trợ lý này vẫn đang liên kết thiết bị, vui lòng gỡ tất cả thiết bị trước khi xóa', createAgentFirst: 'Vui lòng tạo trợ lý trước khi liên kết thiết bị', bindDeviceFirst: 'Vui lòng liên kết thiết bị trước khi đẩy giọng nói', saved: 'Đã lưu thành công', saveFailed: 'Lưu thất bại', roleFilled: 'Đã điền cấu hình vai trò, vui lòng bấm “Lưu cấu hình” để gửi', fillingRole: 'Đang điền cấu hình vai trò, vui lòng lưu sau', loadGlobalMcpCountFailed: 'Tải số lượng dịch vụ MCP toàn cục thất bại', nameRequired: 'Vui lòng nhập tên trợ lý', promptRequired: 'Vui lòng nhập system prompt'
+    agent: 'Trợ lý', agents: 'Trợ lý', add: 'Thêm trợ lý', create: 'Tạo trợ lý', edit: 'Chỉnh sửa trợ lý', update: 'Cập nhật', config: 'Cấu hình', chat: 'Đối thoại', delete: 'Xóa', name: 'Tên trợ lý', nickname: 'Biệt danh trợ lý', ownerUser: 'Người dùng sở hữu', roleIntro: 'Giới thiệu vai trò', systemPrompt: 'Prompt hệ thống', knowledgeBases: 'Kho tri thức liên kết', llm: 'Mô hình ngôn ngữ', ttsConfig: 'Cấu hình TTS', ttsVoice: 'Giọng TTS', asrSpeed: 'Tốc độ nhận diện giọng nói', memoryMode: 'Chế độ ghi nhớ', speakerChatMode: 'Giới hạn chat theo người nói', mcpServices: 'Dịch vụ MCP', openClawAllowed: 'Cho phép vào chế độ OpenClaw', openClawEnterKeywords: 'Từ khóa vào OpenClaw', openClawExitKeywords: 'Từ khóa thoát OpenClaw', namePlaceholder: 'Nhập tên trợ lý hiển thị trong trang quản lý', nicknamePlaceholder: 'Tên dùng cho mô hình, ví dụ: Xiaozhi', promptPlaceholder: 'Nhập giới thiệu vai trò / prompt hệ thống', selectKnowledgeBases: 'Chọn kho tri thức cần liên kết', selectLlm: 'Chọn mô hình ngôn ngữ', selectTts: 'Chọn cấu hình TTS', selectVoice: 'Chọn hoặc nhập chính xác giá trị giọng', mcpServicesPlaceholder: 'Để trống để dùng tất cả dịch vụ đã bật', keywordPlaceholder: 'Nhập rồi Enter để thêm nhiều từ khóa', noAgents: 'Chưa có trợ lý', createFirst: 'Tạo trợ lý đầu tiên', welcomeTitle: 'Hãy tạo trợ lý đầu tiên', welcomeDescription: 'Sau khi tạo, bạn có thể liên kết thiết bị, cấu hình kho tri thức và năng lực giọng nói.', loading: 'Đang tải trợ lý', creating: 'Đang tạo...', binding: 'Đang liên kết...', saveConfig: 'Lưu cấu hình', editTitle: 'Chỉnh sửa trợ lý', notSet: 'Chưa thiết lập', default: 'Mặc định', defaultVoice: 'Giọng mặc định', normal: 'Bình thường', patient: 'Kiên nhẫn', fast: 'Nhanh', noMemory: 'Không ghi nhớ', shortMemory: 'Ghi nhớ ngắn hạn', longMemory: 'Ghi nhớ dài hạn', off: 'Tắt', identifiedOnly: 'Chỉ cho phép chat khi nhận diện đúng người nói', identifiedOnlyShort: 'Chỉ khi khớp người nói', count: 'Trợ lý {count}', deviceCount: 'Thiết bị {count}', onlineCount: 'Trực tuyến {count}', voiceModel: 'Mô hình giọng', languageModel: 'Mô hình ngôn ngữ', deviceQuantity: 'Số thiết bị', memoryType: 'Kiểu ghi nhớ', linkedKnowledgeBase: 'Kho tri thức liên kết', notLinked: 'Chưa liên kết', checking: 'Đang kiểm tra', connected: 'Đã kết nối', disconnected: 'Chưa kết nối', unknownConnection: 'Không rõ kết nối', checkFailed: 'Kiểm tra thất bại', globalMcpServices: 'Dịch vụ MCP toàn cục', serviceScope: 'Phạm vi dịch vụ', selectedServices: 'Đã chọn {count} dịch vụ', followGlobal: 'Theo cấu hình toàn cục', openClawStatus: 'Trạng thái OpenClaw', enabled: 'Đã bật', disabled: 'Chưa bật', loadAgentsFailed: 'Tải danh sách trợ lý thất bại', loadConfigFailed: 'Tải cấu hình trợ lý thất bại', addSuccess: 'Thêm trợ lý thành công', addFailed: 'Thêm trợ lý thất bại', updateSuccess: 'Cập nhật trợ lý thành công', updateFailed: 'Cập nhật trợ lý thất bại', deleteSuccess: 'Xóa trợ lý thành công', deleteFailed: 'Xóa trợ lý thất bại', confirmDelete: 'Bạn có chắc muốn xóa trợ lý "{name}"?', cannotDeleteWithDevices: 'Trợ lý này vẫn đang liên kết thiết bị, vui lòng gỡ tất cả thiết bị trước khi xóa', createAgentFirst: 'Vui lòng tạo trợ lý trước khi liên kết thiết bị', bindDeviceFirst: 'Vui lòng liên kết thiết bị trước khi đẩy giọng nói', saved: 'Đã lưu thành công', saveFailed: 'Lưu thất bại', roleFilled: 'Đã điền cấu hình vai trò, vui lòng bấm “Lưu cấu hình” để gửi', fillingRole: 'Đang điền cấu hình vai trò, vui lòng lưu sau', loadGlobalMcpCountFailed: 'Tải số lượng dịch vụ MCP toàn cục thất bại', nameRequired: 'Vui lòng nhập tên trợ lý', promptRequired: 'Vui lòng nhập prompt hệ thống'
   },
   role: {
-    role: 'Vai trò', globalRole: 'Vai trò toàn cục', create: 'Tạo vai trò', createGlobal: 'Tạo vai trò toàn cục', createFirst: 'Tạo vai trò đầu tiên', createFirstGlobal: 'Tạo vai trò toàn cục đầu tiên', edit: 'Chỉnh sửa vai trò', editGlobal: 'Chỉnh sửa vai trò toàn cục', duplicate: 'Sao chép', enabled: 'Bật', disabled: 'Tắt', setDefault: 'Đặt làm mặc định', defaultSet: 'Đã là mặc định', defaultRole: 'Vai trò mặc định', noDescription: 'Chưa có mô tả', noPrompt: 'Chưa thiết lập prompt', empty: 'Chưa có vai trò, bấm góc phải để tạo', emptyGlobal: 'Chưa có vai trò toàn cục, bấm góc phải để tạo', basicInfo: 'Thông tin cơ bản', name: 'Tên vai trò', description: 'Mô tả', sortOrder: 'Thứ tự sắp xếp', defaultRoleField: 'Vai trò mặc định', promptConfig: 'Cấu hình Prompt', systemPrompt: 'System prompt', modelConfig: 'Cấu hình mô hình', llmConfig: 'Cấu hình LLM', ttsConfig: 'Cấu hình TTS', voice: 'Giọng', namePlaceholder: 'Nhập tên vai trò', descriptionPlaceholder: 'Nhập mô tả vai trò', sortOrderPlaceholder: 'Số càng nhỏ càng đứng trước', promptPlaceholder: 'Nhập system prompt để định nghĩa hành vi và tính cách của vai trò', promptTip: 'Gợi ý: có thể dùng {{assistant_name}} làm placeholder cho tên trợ lý', selectLlm: 'Chọn cấu hình LLM (không bắt buộc)', selectTts: 'Chọn cấu hình TTS (không bắt buộc)', defaultConfigTip: 'Để trống để dùng cấu hình mặc định', selectVoice: 'Chọn hoặc nhập giọng (hỗ trợ tìm kiếm và nhập tùy chỉnh)', voiceTip: 'Tự động tải danh sách giọng theo cấu hình TTS hiện tại; có thể tìm kiếm hoặc nhập giá trị tùy chỉnh', loadFailed: 'Tải vai trò thất bại', saveSuccess: 'Lưu vai trò thành công', saveFailed: 'Lưu vai trò thất bại', deleteSuccess: 'Xóa vai trò thành công', deleteFailed: 'Xóa vai trò thất bại', duplicateSuccess: 'Sao chép vai trò thành công', duplicateFailed: 'Sao chép vai trò thất bại', statusUpdated: 'Đã cập nhật trạng thái vai trò', statusUpdateFailed: 'Cập nhật trạng thái vai trò thất bại', defaultUpdated: 'Đã đặt vai trò mặc định', defaultUpdateFailed: 'Đặt vai trò mặc định thất bại', confirmDelete: 'Bạn có chắc muốn xóa vai trò "{name}"?', nameRequired: 'Vui lòng nhập tên vai trò', promptRequired: 'Vui lòng nhập system prompt'
+    role: 'Vai trò', globalRole: 'Vai trò toàn cục', create: 'Tạo vai trò', createGlobal: 'Tạo vai trò toàn cục', createFirst: 'Tạo vai trò đầu tiên', createFirstGlobal: 'Tạo vai trò toàn cục đầu tiên', edit: 'Chỉnh sửa vai trò', editGlobal: 'Chỉnh sửa vai trò toàn cục', duplicate: 'Sao chép', enabled: 'Bật', disabled: 'Tắt', setDefault: 'Đặt làm mặc định', defaultSet: 'Đã là mặc định', defaultRole: 'Vai trò mặc định', noDescription: 'Chưa có mô tả', noPrompt: 'Chưa thiết lập prompt hệ thống', empty: 'Chưa có vai trò, bấm góc phải để tạo', emptyGlobal: 'Chưa có vai trò toàn cục, bấm góc phải để tạo', basicInfo: 'Thông tin cơ bản', name: 'Tên vai trò', description: 'Mô tả', sortOrder: 'Thứ tự sắp xếp', defaultRoleField: 'Vai trò mặc định', promptConfig: 'Cấu hình prompt', systemPrompt: 'Prompt hệ thống', modelConfig: 'Cấu hình mô hình', llmConfig: 'Cấu hình LLM', ttsConfig: 'Cấu hình TTS', voice: 'Giọng', namePlaceholder: 'Nhập tên vai trò', descriptionPlaceholder: 'Nhập mô tả vai trò', sortOrderPlaceholder: 'Số càng nhỏ càng đứng trước', promptPlaceholder: 'Nhập prompt hệ thống để định nghĩa hành vi và tính cách của vai trò', promptTip: 'Gợi ý: có thể dùng {{assistant_name}} làm placeholder cho tên trợ lý', selectLlm: 'Chọn cấu hình LLM (không bắt buộc)', selectTts: 'Chọn cấu hình TTS (không bắt buộc)', defaultConfigTip: 'Để trống để dùng cấu hình mặc định', selectVoice: 'Chọn hoặc nhập giọng (hỗ trợ tìm kiếm và nhập tùy chỉnh)', voiceTip: 'Tự động tải danh sách giọng theo cấu hình TTS hiện tại; có thể tìm kiếm hoặc nhập giá trị tùy chỉnh', loadFailed: 'Tải vai trò thất bại', saveSuccess: 'Lưu vai trò thành công', saveFailed: 'Lưu vai trò thất bại', deleteSuccess: 'Xóa vai trò thành công', deleteFailed: 'Xóa vai trò thất bại', duplicateSuccess: 'Sao chép vai trò thành công', duplicateFailed: 'Sao chép vai trò thất bại', statusUpdated: 'Đã cập nhật trạng thái vai trò', statusUpdateFailed: 'Cập nhật trạng thái vai trò thất bại', defaultUpdated: 'Đã đặt vai trò mặc định', defaultUpdateFailed: 'Đặt vai trò mặc định thất bại', confirmDelete: 'Bạn có chắc muốn xóa vai trò "{name}"?', nameRequired: 'Vui lòng nhập tên vai trò', promptRequired: 'Vui lòng nhập prompt hệ thống'
   },
   diagnostics: {
     mcpTitle: 'MCP endpoint và debug công cụ', agentWebSocket: 'WebSocket của trợ lý', refreshData: 'Làm mới dữ liệu', copyUrl: 'Sao chép URL', endpointUrl: 'URL MCP endpoint', noEndpoint: 'Chưa có endpoint, vui lòng lưu trợ lý rồi làm mới.', toolList: 'Danh sách công cụ MCP', refreshTools: 'Làm mới danh sách công cụ', noTools: 'Chưa có dữ liệu công cụ', tool: 'Công cụ', selectTool: 'Vui lòng chọn công cụ', argumentsJson: 'Tham số JSON', callTool: 'Gọi công cụ', noCallResult: 'Chưa có kết quả gọi', connected: 'Đã kết nối', disconnected: 'Chưa kết nối', unknown: 'Không rõ trạng thái', onlineClients: 'Hiện có {count} client online', noOnlineClients: 'Chưa có client online', loadEndpointTools: 'Mở ra để tải endpoint và công cụ', loadToolsAfterOpen: '{status}, mở ra để tải công cụ', toolCount: '{status}, {count} công cụ', getEndpointFailed: 'Lấy MCP endpoint thất bại', getToolsFailed: 'Lấy danh sách công cụ thất bại', invalidJson: 'Định dạng tham số JSON không hợp lệ', mcpCallSuccess: 'Gọi công cụ MCP thành công', mcpCallFailed: 'Gọi công cụ MCP thất bại', copied: 'Đã sao chép', copyFailed: 'Sao chép thất bại', openClawStatus: 'Trạng thái kết nối', openClawStatusHint: 'Lệnh cấu hình vai trò sẽ hiển thị theo thời gian thực bên dưới.', docs: 'Xem tài liệu', refreshStatus: 'Làm mới trạng thái', copyCommands: 'Sao chép lệnh', openClawCommands: 'Lệnh cấu hình vai trò OpenClaw', commandHint: 'Chạy lần lượt các lệnh sau trong phần cấu hình vai trò của OpenClaw console:', commandLine: 'Dòng {index}: {title}', chatTest: 'Kiểm tra hội thoại OpenClaw', testMessage: 'Tin nhắn kiểm tra', testMessagePlaceholder: 'Nhập văn bản cần gửi tới OpenClaw', sendTest: 'Gửi kiểm tra', noTestResult: 'Chưa có kết quả kiểm tra', noInstallCommandSave: 'Chưa có lệnh cài đặt, vui lòng lưu trợ lý trước.', noInstallCommandRetry: 'Chưa có lệnh cài đặt, vui lòng làm mới rồi thử lại.', loadOpenClaw: 'Mở ra để tải trạng thái và lệnh', getOpenClawFailed: 'Lấy trạng thái OpenClaw thất bại', copyCommandSuccess: 'Đã sao chép lệnh OpenClaw', copyCommandFailed: 'Sao chép lệnh OpenClaw thất bại', testSuccess: 'Kiểm tra OpenClaw thành công', testFailed: 'Kiểm tra OpenClaw thất bại'
@@ -283,12 +284,12 @@ export default {
     knowledgeSearchConfig: 'Cấu hình truy xuất kho tri thức',
     chatSettings: 'Cài đặt trò chuyện',
     visionConfig: 'Quản lý cấu hình Vision',
-    poolStats: 'Thống kê resource pool',
+    poolStats: 'Thống kê nhóm tài nguyên',
     globalRoles: 'Quản lý vai trò toàn cục',
     users: 'Quản lý người dùng',
     devices: 'Quản lý thiết bị',
     agents: 'Quản lý trợ lý',
-    agentWorkspace: 'Workspace trợ lý',
+    agentWorkspace: 'Không gian trợ lý',
     myAgents: 'Trợ lý của tôi',
     editAgent: 'Chỉnh sửa trợ lý',
     agentDevices: 'Quản lý thiết bị của trợ lý',
@@ -297,12 +298,12 @@ export default {
     voiceClones: 'Nhân bản giọng nói',
     more: 'Thêm chức năng',
     chatHistory: 'Lịch sử trò chuyện',
-    apiTokens: 'Quản lý API Token',
+    apiTokens: 'Quản lý mã API',
     knowledgeBases: 'Kho tri thức của tôi',
     myRoles: 'Vai trò của tôi'
   },
   menu: {
-    dashboard: 'Dashboard',
+    dashboard: 'Bảng điều khiển',
     agents: 'Quản lý trợ lý',
     devices: 'Danh sách thiết bị',
     myRoles: 'Vai trò của tôi',
@@ -316,7 +317,7 @@ export default {
     speakerConfig: 'Cấu hình nhận diện người nói',
     chatSettings: 'Cài đặt trò chuyện',
     knowledgeSearchConfig: 'Cấu hình truy xuất kho tri thức',
-    poolStats: 'Thống kê resource pool',
+    poolStats: 'Thống kê nhóm tài nguyên',
     globalRoles: 'Vai trò toàn cục',
     users: 'Quản lý người dùng',
     deviceManagement: 'Quản lý thiết bị',
@@ -329,14 +330,14 @@ export default {
     linkedAccount: 'Tài khoản liên kết',
     totalUsers: 'Tổng số người dùng',
     currentAccount: 'Tài khoản đang đăng nhập',
-    online: 'Online {count}',
+    online: 'Trực tuyến {count}',
     totalDevices: 'Tổng số thiết bị',
     myDevices: 'Thiết bị của tôi',
     active: 'Đang hoạt động',
     totalAgents: 'Số lượng trợ lý',
     myAgents: 'Trợ lý của tôi',
     realtimeMonitoring: 'Giám sát thời gian thực',
-    onlineDevices: 'Thiết bị online',
+    onlineDevices: 'Thiết bị trực tuyến',
     serviceAddress: 'Địa chỉ dịch vụ',
     otaTest: 'Kiểm tra OTA',
     otaResponse: 'Phản hồi OTA',

@@ -1,52 +1,59 @@
-### 压测
+### Kiểm thử tải
 
 ```
-root@hackers365-System-Product-Name:~# docker run -itd --name websocket_meter docker.jsdelivr.fyi/hackers365/xiaozhi_websocket_client                      
+root@hackers365-System-Product-Name:~# docker run -itd --name websocket_meter docker.jsdelivr.fyi/hackers365/xiaozhi_websocket_client
 87311584e5fef592f32e0b7d7062d9053e956d5e0d50edb220370ff37d2293ac
-root@hackers365-System-Product-Name:~# 
-root@hackers365-System-Product-Name:~# docker exec -it websocket_meter /bin/bash                                                      
-root@87311584e5fe:/workspace# 
-root@87311584e5fe:/workspace# ./ws_multi  -h
+root@hackers365-System-Product-Name:~#
+root@hackers365-System-Product-Name:~# docker exec -it websocket_meter /bin/bash
+root@87311584e5fe:/workspace#
+root@87311584e5fe:/workspace# ./ws_multi -h
 Usage of ./ws_multi:
   -count int
-        客户端数量 (default 10)
+        Số lượng client (default 10)
   -device string
-        设备ID
+        ID thiết bị
   -server string
-        服务器地址 (default "ws://localhost:8989/xiaozhi/v1/")
+        Địa chỉ server (default "ws://localhost:8989/xiaozhi/v1/")
   -text string
-        聊天内容, 多句以逗号分隔会依次发送 (default "你好")
-root@87311584e5fe:/workspace# ./ws_multi -count 1 -server wss://joeyzhou.chat/ws/xiaozhi/v1/ -text "你好,在干什么,一起出去玩吧" 
-运行小智客户端
-服务器: wss://joeyzhou.chat/ws/xiaozhi/v1/
-客户端数量: 1
-发送内容: 你好,在干什么,一起出去玩吧
-2025-05-27 09:54:51.095 [info] [audio_utils.go:199] tts云端首帧耗时: 532 ms
-2025-05-27 09:54:51.098 [info] [audio_utils.go:269] tts云端->首帧解码完成耗时: 535 ms
-2025-05-27 09:54:51.401 [info] [cosyvoice.go:306] tts耗时: 从输入至获取MP3数据结束耗时: 838 ms
-2025-05-27 09:54:51.748 [info] [audio_utils.go:199] tts云端首帧耗时: 344 ms
-2025-05-27 09:54:51.752 [info] [audio_utils.go:269] tts云端->首帧解码完成耗时: 347 ms
-2025-05-27 09:54:51.901 [info] [cosyvoice.go:306] tts耗时: 从输入至获取MP3数据结束耗时: 497 ms
-2025-05-27 09:54:52.292 [info] [audio_utils.go:199] tts云端首帧耗时: 387 ms
-2025-05-27 09:54:52.296 [info] [audio_utils.go:269] tts云端->首帧解码完成耗时: 391 ms
-2025-05-27 09:54:52.628 [info] [cosyvoice.go:306] tts耗时: 从输入至获取MP3数据结束耗时: 723 ms
-0 客户端开始运行
-0 客户端已连接到服务器: wss://joeyzhou.chat/ws/xiaozhi/v1/
-收到消息: {Type:hello Text: State: SessionID:cafd2800-1979-06d5-19cf-b8bf53bb55dc Transport:websocket AudioFormat:<nil>}
-发送Opus帧: 20
-发送Opus帧: 50
-发送Opus帧: 59
+        Nội dung trò chuyện, nhiều câu cách nhau bằng dấu phẩy sẽ được gửi lần lượt (default "Xin chào")
+root@87311584e5fe:/workspace# ./ws_multi -count 1 -server wss://joeyzhou.chat/ws/xiaozhi/v1/ -text "Xin chào, đang làm gì vậy, cùng ra ngoài chơi nhé"
+Chạy client Xiaozhi
+Server: wss://joeyzhou.chat/ws/xiaozhi/v1/
+Số lượng client: 1
+Nội dung gửi: Xin chào, đang làm gì vậy, cùng ra ngoài chơi nhé
+2025-05-27 09:54:51.095 [info] [audio_utils.go:199] TTS cloud tới frame đầu tiên: 532 ms
+2025-05-27 09:54:51.098 [info] [audio_utils.go:269] TTS cloud tới khi decode xong frame đầu tiên: 535 ms
+2025-05-27 09:54:51.401 [info] [cosyvoice.go:306] TTS từ input tới khi lấy xong dữ liệu MP3: 838 ms
+2025-05-27 09:54:51.748 [info] [audio_utils.go:199] TTS cloud tới frame đầu tiên: 344 ms
+2025-05-27 09:54:51.752 [info] [audio_utils.go:269] TTS cloud tới khi decode xong frame đầu tiên: 347 ms
+2025-05-27 09:54:51.901 [info] [cosyvoice.go:306] TTS từ input tới khi lấy xong dữ liệu MP3: 497 ms
+2025-05-27 09:54:52.292 [info] [audio_utils.go:199] TTS cloud tới frame đầu tiên: 387 ms
+2025-05-27 09:54:52.296 [info] [audio_utils.go:269] TTS cloud tới khi decode xong frame đầu tiên: 391 ms
+2025-05-27 09:54:52.628 [info] [cosyvoice.go:306] TTS từ input tới khi lấy xong dữ liệu MP3: 723 ms
+Client 0 bắt đầu chạy
+Client 0 đã kết nối tới server: wss://joeyzhou.chat/ws/xiaozhi/v1/
+Nhận message: {Type:hello Text: State: SessionID:cafd2800-1979-06d5-19cf-b8bf53bb55dc Transport:websocket AudioFormat:<nil>}
+Gửi frame Opus: 20
+Gửi frame Opus: 50
+Gửi frame Opus: 59
 ```
 
-#### 整体说明
-    1. 程序会根据用户输入的文本, 调用tts接口生成音频数据，依次发送给服务器
-    2. 耗时统计从 type: listen, state: stop开始进行计时，直到收到服务器第一帧音频数据停止
+#### Mô tả tổng quan
 
-#### 参数说明：
-    -count: 并发数量
-    -device: 默认会随机生成deviceId，如果使用此参数来指定设备，-count必须为1
-    -server: websocket服务器地址
-    -text: 要发送的内容, 以“,”号分隔，循环发送
+1. Chương trình sẽ dựa trên text người dùng nhập, gọi interface TTS để sinh dữ liệu audio rồi lần lượt gửi tới server.
+2. Thống kê thời gian bắt đầu từ `type: listen, state: stop` và dừng khi nhận được frame audio đầu tiên từ server.
 
-#### 输出说明
-    可以将输出重定向至日志文件, 然后tail -f xx.log | grep '平均响应时间'
+#### Mô tả tham số
+
+- `-count`: số lượng kết nối đồng thời.
+- `-device`: mặc định tự sinh `deviceId`; nếu chỉ định tham số này thì `-count` phải bằng 1.
+- `-server`: địa chỉ WebSocket server.
+- `-text`: nội dung cần gửi, phân tách bằng dấu `,` và gửi lặp.
+
+#### Mô tả output
+
+Có thể redirect output vào file log, rồi dùng lệnh như sau để theo dõi:
+
+```bash
+tail -f xx.log | grep 'thời gian phản hồi trung bình'
+```

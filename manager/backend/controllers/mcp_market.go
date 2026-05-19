@@ -21,7 +21,7 @@ import (
 )
 
 const (
-	defaultMCPConfigName = "MCP全局配置"
+	defaultMCPConfigName = "Cấu hình MCP toàn cục"
 	defaultMCPConfigID   = "mcp_global_config"
 )
 
@@ -485,7 +485,7 @@ func (ac *AdminController) loadEnabledMarketsWithAuth() ([]marketWithAuth, error
 		}
 		authCfg, err := decodeMarketAuthConfig(marketCfg)
 		if err != nil {
-			return nil, fmt.Errorf("市场 %s 解密认证信息失败: %w", cfg.Name, err)
+			return nil, fmt.Errorf("Giải mã thông tin xác thực của market %s thất bại: %w", cfg.Name, err)
 		}
 		ret = append(ret, marketWithAuth{ConfigModel: cfg, MarketConfig: marketCfg, AuthConfig: authCfg})
 	}
@@ -502,7 +502,7 @@ func (ac *AdminController) getMarketConfigByID(id uint, requireEnabled bool) (mo
 		return models.Config{}, mcpmarket.MarketConnection{}, mcpmarket.AuthConfig{}, err
 	}
 	if requireEnabled && (!cfg.Enabled || !marketCfg.Enabled) {
-		return models.Config{}, mcpmarket.MarketConnection{}, mcpmarket.AuthConfig{}, fmt.Errorf("市场连接已禁用")
+		return models.Config{}, mcpmarket.MarketConnection{}, mcpmarket.AuthConfig{}, fmt.Errorf("Kết nối market đã bị tắt")
 	}
 	authCfg, err := decodeMarketAuthConfig(marketCfg)
 	if err != nil {
@@ -556,7 +556,7 @@ func fetchAllMarketServices(ctx context.Context, markets []marketWithAuth) ([]mc
 
 func fetchServiceDetail(ctx context.Context, marketModel models.Config, marketCfg mcpmarket.MarketConnection, authCfg mcpmarket.AuthConfig, serviceID string) (*mcpmarket.MarketServiceDetail, error) {
 	if mcpmarket.NormalizeProviderID(marketCfg.ProviderID) == mcpmarket.ProviderModelScope && strings.TrimSpace(authCfg.Token) == "" {
-		return nil, fmt.Errorf("魔搭服务详情需要 Token，请在该市场连接中填写 Token")
+		return nil, fmt.Errorf("Chi tiết dịch vụ ModelScope yêu cầu Token, vui lòng nhập Token trong kết nối market này")
 	}
 
 	detailURL, err := mcpmarket.BuildDetailURL(marketCfg.CatalogURL, marketCfg.DetailURLTemplate, serviceID)
@@ -569,17 +569,17 @@ func fetchServiceDetail(ctx context.Context, marketModel models.Config, marketCf
 		if mcpmarket.NormalizeProviderID(marketCfg.ProviderID) == mcpmarket.ProviderModelScope {
 			errMsg := strings.ToLower(err.Error())
 			if strings.Contains(errMsg, "invalidauthentication") || strings.Contains(errMsg, "authentication failed") || strings.Contains(errMsg, "401") {
-				return nil, fmt.Errorf("魔搭服务详情鉴权失败，请检查市场连接中的 Token 是否有效")
+				return nil, fmt.Errorf("Xác thực chi tiết dịch vụ ModelScope thất bại, vui lòng kiểm tra Token trong kết nối market")
 			}
 		}
-		return nil, fmt.Errorf("拉取服务详情失败: %w", err)
+		return nil, fmt.Errorf("Lấy chi tiết dịch vụ thất bại: %w", err)
 	}
 	detail, err := mcpmarket.ParseServiceDetail(raw, marketModel.ID, marketModel.Name, serviceID, mcpmarket.BuildHeaders(authCfg))
 	if err != nil {
 		return nil, err
 	}
 	if mcpmarket.NormalizeProviderID(marketCfg.ProviderID) == mcpmarket.ProviderModelScope && len(detail.Endpoints) == 0 {
-		return nil, fmt.Errorf("该服务暂无可调用地址（可能未在魔搭激活完成），请先在魔搭激活后重试")
+		return nil, fmt.Errorf("Dịch vụ này chưa có địa chỉ có thể gọi (có thể chưa kích hoạt xong trên ModelScope), vui lòng kích hoạt trên ModelScope rồi thử lại")
 	}
 	return detail, nil
 }
@@ -588,7 +588,7 @@ func fetchMarketCatalog(ctx context.Context, marketCfg mcpmarket.MarketConnectio
 	catalogURL := strings.TrimSpace(marketCfg.CatalogURL)
 	if mcpmarket.NormalizeProviderID(marketCfg.ProviderID) == mcpmarket.ProviderModelScope {
 		if strings.TrimSpace(authCfg.Token) == "" {
-			return nil, fmt.Errorf("魔搭市场仅拉取已激活服务，请先在该市场连接中填写 Token")
+			return nil, fmt.Errorf("Market ModelScope chỉ lấy các dịch vụ đã kích hoạt, vui lòng nhập Token trong kết nối market này")
 		}
 		catalogURL = strings.TrimRight(catalogURL, "/") + "/operational"
 	}
@@ -627,7 +627,7 @@ func mergeEndpointsIntoMCPConfig(current mcpmarket.MergedMCPConfig, detail *mcpm
 
 	servers, err := decodeMCPServers(global["servers"])
 	if err != nil {
-		return mcpmarket.MergedMCPConfig{}, nil, "", fmt.Errorf("解析现有MCP服务失败: %w", err)
+		return mcpmarket.MergedMCPConfig{}, nil, "", fmt.Errorf("Phân tích dịch vụ MCP hiện có thất bại: %w", err)
 	}
 
 	existingURLSet := make(map[string]struct{})
@@ -652,7 +652,7 @@ func mergeEndpointsIntoMCPConfig(current mcpmarket.MergedMCPConfig, detail *mcpm
 	for idx, endpoint := range detail.Endpoints {
 		normURL := mcpmarket.NormalizeURL(endpoint.URL)
 		if _, exists := existingURLSet[normURL]; exists {
-			return mcpmarket.MergedMCPConfig{}, nil, endpoint.URL, fmt.Errorf("URL冲突，已存在相同MCP服务地址")
+			return mcpmarket.MergedMCPConfig{}, nil, endpoint.URL, fmt.Errorf("Xung đột URL, đã tồn tại địa chỉ dịch vụ MCP giống nhau")
 		}
 
 		candidateName := baseName
@@ -785,16 +785,16 @@ func buildStoredMarketConfig(req upsertMCPMarketRequest, existing *mcpmarket.Mar
 	catalogURL := strings.TrimSpace(req.CatalogURL)
 	detailTemplate := strings.TrimSpace(req.DetailURLTemplate)
 	if name == "" || catalogURL == "" {
-		return mcpmarket.MarketConnection{}, fmt.Errorf("name 和 catalog_url 不能为空")
+		return mcpmarket.MarketConnection{}, fmt.Errorf("name và catalog_url không được để trống")
 	}
 	if _, err := url.ParseRequestURI(catalogURL); err != nil {
-		return mcpmarket.MarketConnection{}, fmt.Errorf("catalog_url 格式不正确")
+		return mcpmarket.MarketConnection{}, fmt.Errorf("Định dạng catalog_url không đúng")
 	}
 	if detailTemplate != "" {
 		validateURL := strings.ReplaceAll(detailTemplate, "{id}", "placeholder")
 		validateURL = strings.ReplaceAll(validateURL, "{raw_id}", "placeholder/raw")
 		if _, err := url.ParseRequestURI(validateURL); err != nil {
-			return mcpmarket.MarketConnection{}, fmt.Errorf("detail_url_template 格式不正确")
+			return mcpmarket.MarketConnection{}, fmt.Errorf("Định dạng detail_url_template không đúng")
 		}
 	}
 
@@ -817,7 +817,7 @@ func buildStoredMarketConfig(req upsertMCPMarketRequest, existing *mcpmarket.Mar
 		authType = mcpmarket.AuthTypeBearer
 	}
 	if authType != mcpmarket.AuthTypeNone && authType != mcpmarket.AuthTypeBearer && authType != mcpmarket.AuthTypeHeader {
-		return mcpmarket.MarketConnection{}, fmt.Errorf("auth.type 仅支持 none/bearer/header")
+		return mcpmarket.MarketConnection{}, fmt.Errorf("auth.type chỉ hỗ trợ none/bearer/header")
 	}
 
 	headerName := strings.TrimSpace(req.Auth.HeaderName)
@@ -849,7 +849,7 @@ func buildStoredMarketConfig(req upsertMCPMarketRequest, existing *mcpmarket.Mar
 		tokenNonce = ""
 		tokenMask = mcpmarket.MaskToken(newToken)
 	case existing == nil && authType != mcpmarket.AuthTypeNone:
-		return mcpmarket.MarketConnection{}, fmt.Errorf("已启用鉴权但未提供 token")
+		return mcpmarket.MarketConnection{}, fmt.Errorf("Đã bật xác thực nhưng chưa cung cấp token")
 	}
 
 	extraHeadersCipher := ""
@@ -861,7 +861,7 @@ func buildStoredMarketConfig(req upsertMCPMarketRequest, existing *mcpmarket.Mar
 	if req.Auth.ExtraHeaders != nil {
 		headersJSON, err := json.Marshal(req.Auth.ExtraHeaders)
 		if err != nil {
-			return mcpmarket.MarketConnection{}, fmt.Errorf("extra_headers 格式错误")
+			return mcpmarket.MarketConnection{}, fmt.Errorf("Định dạng extra_headers không đúng")
 		}
 		if string(headersJSON) == "null" || string(headersJSON) == "{}" {
 			extraHeadersCipher = ""
@@ -895,7 +895,7 @@ func buildStoredMarketConfig(req upsertMCPMarketRequest, existing *mcpmarket.Mar
 
 func parseStoredMarketConfig(jsonData string) (mcpmarket.MarketConnection, error) {
 	if strings.TrimSpace(jsonData) == "" {
-		return mcpmarket.MarketConnection{}, fmt.Errorf("json_data 为空")
+		return mcpmarket.MarketConnection{}, fmt.Errorf("json_data trống")
 	}
 	var cfg mcpmarket.MarketConnection
 	if err := json.Unmarshal([]byte(jsonData), &cfg); err != nil {
@@ -903,7 +903,7 @@ func parseStoredMarketConfig(jsonData string) (mcpmarket.MarketConnection, error
 	}
 	cfg.ProviderID = mcpmarket.NormalizeProviderID(cfg.ProviderID)
 	if cfg.Name == "" || cfg.CatalogURL == "" {
-		return mcpmarket.MarketConnection{}, fmt.Errorf("市场配置缺少 name/catalog_url")
+		return mcpmarket.MarketConnection{}, fmt.Errorf("Cấu hình market thiếu name/catalog_url")
 	}
 	return cfg, nil
 }
@@ -923,7 +923,7 @@ func decodeMarketAuthConfig(cfg mcpmarket.MarketConnection) (mcpmarket.AuthConfi
 
 	if cfg.TokenCiphertext != "" {
 		auth.Token = cfg.TokenCiphertext
-		// 兼容历史加密存储：如果配置了旧密钥，优先解密并覆盖
+		// Tương thích lưu trữ mã hóa cũ: nếu có khóa cũ, ưu tiên giải mã và ghi đè.
 		if strings.TrimSpace(cfg.TokenNonce) != "" {
 			if token, err := mcpmarket.DecryptText(cfg.TokenCiphertext, cfg.TokenNonce); err == nil {
 				auth.Token = token
@@ -935,7 +935,7 @@ func decodeMarketAuthConfig(cfg mcpmarket.MarketConnection) (mcpmarket.AuthConfi
 		headersJSON := cfg.ExtraHeadersCiphertext
 		var headers map[string]string
 		if err := json.Unmarshal([]byte(headersJSON), &headers); err != nil {
-			// 兼容历史加密存储：尝试使用旧密钥解密
+			// Tương thích lưu trữ mã hóa cũ: thử giải mã bằng khóa cũ.
 			nonce := cfg.ExtraHeadersNonce
 			if strings.TrimSpace(nonce) == "" {
 				nonce = cfg.TokenNonce

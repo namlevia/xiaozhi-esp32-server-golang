@@ -152,7 +152,7 @@ func NewXunfeiTTSProvider(config map[string]interface{}) *XunfeiTTSProvider {
 
 	aue, expectedPayloadLen, err := mapXunfeiAudioEncoding(provider.AudioEncoding, provider.SampleRate)
 	if err != nil {
-		log.Warnf("初始化 xunfei TTS 配置失败，回退到 raw/16k: %v", err)
+		log.Warnf("noi_dung xunfei TTS configthất bại，noi_dungtới raw/16k: %v", err)
 		provider.AudioEncoding = defaultXunfeiAudioEncoding
 		provider.SampleRate = defaultXunfeiSampleRate
 		aue = "raw"
@@ -175,7 +175,7 @@ func (p *XunfeiTTSProvider) TextToSpeech(ctx context.Context, text string, sampl
 		audioFrames = append(audioFrames, frame)
 	}
 	if len(audioFrames) == 0 {
-		return nil, fmt.Errorf("xunfei TTS 返回音频为空")
+		return nil, fmt.Errorf("xunfei TTS trả vềaudiolàrỗng")
 	}
 	return audioFrames, nil
 }
@@ -204,7 +204,7 @@ func (p *XunfeiTTSProvider) TextToSpeechStream(ctx context.Context, text string,
 
 	go func() {
 		if err := p.streamSynthesis(ctx, text, targetSampleRate, targetFrameDuration, startTs, outputChan); err != nil && ctx.Err() == nil {
-			log.Errorf("xunfei TTS 流式合成失败: %v", err)
+			log.Errorf("xunfei TTS streamingTổng hợp thất bại: %v", err)
 		}
 	}()
 
@@ -249,7 +249,7 @@ func (p *XunfeiTTSProvider) streamSynthesis(ctx context.Context, text string, ta
 		_ = pipeReader.Close()
 		_ = pipeWriter.Close()
 		close(outputChan)
-		return fmt.Errorf("创建 xunfei 音频解码器失败: %v", err)
+		return fmt.Errorf("tạo xunfei audiodecoderthất bại: %v", err)
 	}
 	decoder.WithFormat(beep.Format{
 		SampleRate:  beep.SampleRate(p.SampleRate),
@@ -260,7 +260,7 @@ func (p *XunfeiTTSProvider) streamSynthesis(ctx context.Context, text string, ta
 	go func() {
 		defer close(decoderDone)
 		if err := decoder.Run(startTs); err != nil && ctx.Err() == nil {
-			log.Errorf("xunfei 音频解码失败: %v", err)
+			log.Errorf("xunfei Decode audio thất bại: %v", err)
 		}
 	}()
 
@@ -279,7 +279,7 @@ func (p *XunfeiTTSProvider) streamSynthesis(ctx context.Context, text string, ta
 	<-decoderDone
 
 	if streamErr == nil && ctx.Err() == nil {
-		log.Infof("xunfei TTS耗时: 从输入至获取音频数据结束耗时: %d ms", time.Now().UnixMilli()-startTs)
+		log.Infof("xunfei TTSnoi_dung: noi_dunginputnoi_dunglấyaudiodatanoi_dung: %d ms", time.Now().UnixMilli()-startTs)
 	}
 
 	return streamErr
@@ -309,11 +309,11 @@ func (p *XunfeiTTSProvider) sendSynthesisRequest(conn *websocket.Conn, text stri
 
 	payload, err := json.Marshal(reqBody)
 	if err != nil {
-		return fmt.Errorf("序列化 xunfei 请求失败: %v", err)
+		return fmt.Errorf("sequencenoi_dung xunfei request thất bại: %v", err)
 	}
 
 	if err := conn.WriteMessage(websocket.TextMessage, payload); err != nil {
-		return fmt.Errorf("发送 xunfei 请求失败: %v", err)
+		return fmt.Errorf("gửi xunfei request thất bại: %v", err)
 	}
 	return nil
 }
@@ -335,7 +335,7 @@ func (p *XunfeiTTSProvider) readSynthesisResponse(ctx context.Context, conn *web
 			if ctx.Err() != nil {
 				return ctx.Err()
 			}
-			return fmt.Errorf("读取 xunfei WebSocket 消息失败: %v", err)
+			return fmt.Errorf("đọc xunfei WebSocket messagethất bại: %v", err)
 		}
 		if messageType != websocket.TextMessage {
 			continue
@@ -343,10 +343,10 @@ func (p *XunfeiTTSProvider) readSynthesisResponse(ctx context.Context, conn *web
 
 		var resp xunfeiResponse
 		if err := json.Unmarshal(message, &resp); err != nil {
-			return fmt.Errorf("解析 xunfei 响应失败: %v, body=%s", err, previewString(string(message), 300))
+			return fmt.Errorf("parse xunfei responsethất bại: %v, body=%s", err, previewString(string(message), 300))
 		}
 		if resp.Code != 0 {
-			return fmt.Errorf("xunfei TTS错误 [%d]: %s", resp.Code, strings.TrimSpace(resp.Message))
+			return fmt.Errorf("xunfei TTSlỗi [%d]: %s", resp.Code, strings.TrimSpace(resp.Message))
 		}
 		if resp.Data == nil {
 			continue
@@ -356,21 +356,21 @@ func (p *XunfeiTTSProvider) readSynthesisResponse(ctx context.Context, conn *web
 		if audioData != "" {
 			chunk, err := base64.StdEncoding.DecodeString(audioData)
 			if err != nil {
-				return fmt.Errorf("解码 xunfei 音频 Base64 失败: %v", err)
+				return fmt.Errorf("noi_dung xunfei audio Base64 thất bại: %v", err)
 			}
 
 			if p.AudioEncoding == "raw" {
 				if _, err := pipeWriter.Write(chunk); err != nil {
-					return fmt.Errorf("写入 xunfei PCM 数据失败: %v", err)
+					return fmt.Errorf("ghi xunfei PCM datathất bại: %v", err)
 				}
 			} else {
 				frames, err := p.decodeXunfeiOpusFrames(chunk)
 				if err != nil {
-					return fmt.Errorf("解析 xunfei Opus 数据失败: %v", err)
+					return fmt.Errorf("parse xunfei Opus datathất bại: %v", err)
 				}
 				for _, frame := range frames {
 					if err := util.WriteLengthPrefixedFrame(pipeWriter, frame); err != nil {
-						return fmt.Errorf("写入 Opus 帧到音频链失败: %v", err)
+						return fmt.Errorf("ghi Opus frametớiaudionoi_dungthất bại: %v", err)
 					}
 				}
 			}
@@ -402,7 +402,7 @@ func (p *XunfeiTTSProvider) decodeXunfeiOpusFrames(chunk []byte) ([][]byte, erro
 				copy(frame, chunk[offset:])
 				return [][]byte{frame}, nil
 			}
-			return nil, fmt.Errorf("剩余数据不足以读取帧头: remain=%d", len(chunk)-offset)
+			return nil, fmt.Errorf("noi_dungdatanoi_dungđọcframenoi_dung: remain=%d", len(chunk)-offset)
 		}
 
 		payloadLen, ok := selectXunfeiPayloadLength(chunk[offset:offset+2], len(chunk)-offset-2, p.ExpectedOpusPayloadLen)
@@ -416,13 +416,13 @@ func (p *XunfeiTTSProvider) decodeXunfeiOpusFrames(chunk []byte) ([][]byte, erro
 			if headerEnd > len(chunk) {
 				headerEnd = len(chunk)
 			}
-			return nil, fmt.Errorf("无法识别的 Opus 帧长度头: %v", chunk[offset:headerEnd])
+			return nil, fmt.Errorf("noi_dung Opus frameđộ dàinoi_dung: %v", chunk[offset:headerEnd])
 		}
 
 		start := offset + 2
 		end := start + payloadLen
 		if end > len(chunk) {
-			return nil, fmt.Errorf("Opus 帧长度越界: offset=%d payload=%d total=%d", offset, payloadLen, len(chunk))
+			return nil, fmt.Errorf("Opus frameđộ dàinoi_dung: offset=%d payload=%d total=%d", offset, payloadLen, len(chunk))
 		}
 
 		frame := make([]byte, payloadLen)
@@ -432,7 +432,7 @@ func (p *XunfeiTTSProvider) decodeXunfeiOpusFrames(chunk []byte) ([][]byte, erro
 	}
 
 	if len(frames) == 0 {
-		return nil, fmt.Errorf("未解析出任何 Opus 帧")
+		return nil, fmt.Errorf("chưaparsenoi_dungbất kỳ Opus frame")
 	}
 	return frames, nil
 }
@@ -480,9 +480,9 @@ func (p *XunfeiTTSProvider) dial(ctx context.Context) (*websocket.Conn, error) {
 	if err != nil {
 		if resp != nil {
 			body, _ := io.ReadAll(resp.Body)
-			return nil, fmt.Errorf("连接 xunfei WebSocket 失败，状态码: %d, 响应: %s, err: %v", resp.StatusCode, string(body), err)
+			return nil, fmt.Errorf("kết nối xunfei WebSocket thất bại，trạng tháinoi_dung: %d, response: %s, err: %v", resp.StatusCode, string(body), err)
 		}
-		return nil, fmt.Errorf("连接 xunfei WebSocket 失败: %v", err)
+		return nil, fmt.Errorf("kết nối xunfei WebSocket thất bại: %v", err)
 	}
 	return conn, nil
 }
@@ -490,12 +490,12 @@ func (p *XunfeiTTSProvider) dial(ctx context.Context) (*websocket.Conn, error) {
 func (p *XunfeiTTSProvider) buildSignedURL() (string, error) {
 	parsed, err := url.Parse(p.WSURL)
 	if err != nil {
-		return "", fmt.Errorf("无效的 xunfei ws_url: %v", err)
+		return "", fmt.Errorf("noi_dung xunfei ws_url: %v", err)
 	}
 
 	host := parsed.Host
 	if host == "" {
-		return "", fmt.Errorf("xunfei ws_url 缺少 host")
+		return "", fmt.Errorf("xunfei ws_url noi_dung host")
 	}
 
 	requestURI := parsed.EscapedPath()
@@ -529,16 +529,16 @@ func (p *XunfeiTTSProvider) buildSignedURL() (string, error) {
 
 func (p *XunfeiTTSProvider) validate() error {
 	if p == nil {
-		return fmt.Errorf("xunfei provider 不能为空")
+		return fmt.Errorf("xunfei provider không được rỗng")
 	}
 	if p.AppID == "" {
-		return fmt.Errorf("xunfei app_id 不能为空")
+		return fmt.Errorf("xunfei app_id không được rỗng")
 	}
 	if p.APIKey == "" {
-		return fmt.Errorf("xunfei api_key 不能为空")
+		return fmt.Errorf("xunfei api_key không được rỗng")
 	}
 	if p.APISecret == "" {
-		return fmt.Errorf("xunfei api_secret 不能为空")
+		return fmt.Errorf("xunfei api_secret không được rỗng")
 	}
 	if _, _, err := mapXunfeiAudioEncoding(p.AudioEncoding, p.SampleRate); err != nil {
 		return err
@@ -551,7 +551,7 @@ func (p *XunfeiTTSProvider) SetVoice(voiceConfig map[string]interface{}) error {
 		p.Voice = strings.TrimSpace(voice)
 		return nil
 	}
-	return fmt.Errorf("无效的音色配置: 缺少 voice")
+	return fmt.Errorf("noi_dungvoiceconfig: noi_dung voice")
 }
 
 func (p *XunfeiTTSProvider) Close() error {
@@ -566,7 +566,7 @@ func mapXunfeiAudioEncoding(audioEncoding string, sampleRate int) (string, int, 
 	switch strings.ToLower(strings.TrimSpace(audioEncoding)) {
 	case "", "raw":
 		if sampleRate != 8000 && sampleRate != 16000 {
-			return "", 0, fmt.Errorf("xunfei raw 仅支持 8000/16000 采样率，当前: %d", sampleRate)
+			return "", 0, fmt.Errorf("xunfei raw noi_dunghỗ trợ 8000/16000 sample rate，hiện tại: %d", sampleRate)
 		}
 		return "raw", 0, nil
 	case "opus":
@@ -576,10 +576,10 @@ func mapXunfeiAudioEncoding(audioEncoding string, sampleRate int) (string, int, 
 		case 16000:
 			return "opus-wb", 40, nil
 		default:
-			return "", 0, fmt.Errorf("xunfei opus 仅支持 8000/16000 采样率，当前: %d", sampleRate)
+			return "", 0, fmt.Errorf("xunfei opus noi_dunghỗ trợ 8000/16000 sample rate，hiện tại: %d", sampleRate)
 		}
 	default:
-		return "", 0, fmt.Errorf("不支持的 xunfei audio_encoding: %s", audioEncoding)
+		return "", 0, fmt.Errorf("Không hỗ trợ xunfei audio_encoding: %s", audioEncoding)
 	}
 }
 

@@ -67,14 +67,14 @@ func GetToolByName(deviceId string, agentId string, toolName string, selectedMCP
 }
 
 func GetToolByNameWithTransport(deviceId string, agentId string, transportType string, toolName string, selectedMCPServiceNames string) (tool.InvokableTool, bool) {
-	// 优先从本地管理器获取
+	// Ưu tiên lấy từ local manager
 	localManager := GetLocalMCPManager()
 	tool, ok := localManager.GetToolByName(toolName)
 	if ok {
 		return tool, ok
 	}
 
-	// 其次从全局管理器获取
+	// Sau đó lấy từ global manager
 	selected := parseSelectedMCPServiceNames(selectedMCPServiceNames)
 	globalManager := GetGlobalMCPManager()
 	if len(selected) == 0 {
@@ -85,7 +85,7 @@ func GetToolByNameWithTransport(deviceId string, agentId string, transportType s
 	} else {
 		globalTools := globalManager.GetAllTools()
 
-		// 兼容直接传入 "server_tool" 的场景
+		// Tương thích trường hợp truyền trực tiếp "server_tool"
 		if invokable, exists := globalTools[toolName]; exists && isGlobalToolAllowed(toolName, selected) {
 			return invokable, true
 		}
@@ -98,7 +98,7 @@ func GetToolByNameWithTransport(deviceId string, agentId string, transportType s
 		}
 	}
 
-	// 最后从设备MCP客户端池获取，优先当前 transport 上报的工具
+	// Cuối cùng lấy từ pool MCP client của thiết bị, ưu tiên tool do transport hiện tại báo cáo.
 	if transportType = strings.TrimSpace(transportType); transportType != "" {
 		deviceClient := mcpClientPool.GetMcpClient(deviceId)
 		if deviceClient != nil {
@@ -154,20 +154,20 @@ func ShouldScheduleDeviceIotOverMcp(deviceId string, conn ConnInterface) bool {
 	return session.ShouldScheduleIotInit(transportType, conn)
 }
 
-// EnsureDeviceIotOverMcp 确保设备侧 IotOverMcp 运行时与 transport 绑定。
-// 复用已有连接；当 transport 变化时替换旧连接。
+// EnsureDeviceIotOverMcp đảm bảo runtime IotOverMcp phía thiết bị được bind với transport.
+// Tái sử dụng kết nối hiện có; khi transport thay đổi thì thay kết nối cũ.
 func EnsureDeviceIotOverMcp(deviceId string, conn ConnInterface) error {
 	if deviceId == "" || conn == nil {
-		return fmt.Errorf("deviceId 或 conn 为空")
+		return fmt.Errorf("deviceId hoặc conn rỗng")
 	}
 	transportType := strings.TrimSpace(conn.GetMcpTransportType())
 	if transportType == "" {
-		return fmt.Errorf("transportType 为空")
+		return fmt.Errorf("transportType rỗng")
 	}
 
 	mcpClientSession := GetOrCreateDeviceMcpClient(deviceId)
 	if mcpClientSession == nil {
-		return fmt.Errorf("获取或创建设备MCP会话失败")
+		return fmt.Errorf("Lấy hoặc tạo session MCP thiết bị thất bại")
 	}
 
 	transportType = normalizeDeviceTransportType(transportType)
@@ -184,7 +184,7 @@ func EnsureDeviceIotOverMcp(deviceId string, conn ConnInterface) error {
 	iotOverMcpClient := NewIotOverMcpClient(deviceId, transportType, conn)
 	if iotOverMcpClient == nil {
 		mcpClientSession.iotMux.Unlock()
-		return fmt.Errorf("创建IotOverMcp客户端失败")
+		return fmt.Errorf("Tạo client IotOverMcp thất bại")
 	}
 	var old *McpClientInstance
 	if existing := mcpClientSession.iotOverMcpByTransport[transportType]; existing != nil && existing != iotOverMcpClient {
@@ -200,7 +200,7 @@ func EnsureDeviceIotOverMcp(deviceId string, conn ConnInterface) error {
 	if err := iotOverMcpClient.startIotOverMcp(); err != nil {
 		iotOverMcpClient.setInitState(mcpClientInitStateIdle)
 		CloseDeviceIotOverMcp(deviceId, conn)
-		return fmt.Errorf("初始化IotOverMcp客户端失败: %w", err)
+		return fmt.Errorf("Khởi tạo client IotOverMcp thất bại: %w", err)
 	}
 	iotOverMcpClient.setInitState(mcpClientInitStateReady)
 
@@ -214,7 +214,7 @@ func HandleDeviceIotMcpMessage(deviceId string, transportType string, payload []
 	}
 	transportType = strings.TrimSpace(transportType)
 	if transportType == "" {
-		return fmt.Errorf("transportType 为空")
+		return fmt.Errorf("transportType rỗng")
 	}
 
 	mcpClientSession.iotMux.RLock()
@@ -224,8 +224,8 @@ func HandleDeviceIotMcpMessage(deviceId string, transportType string, payload []
 		return nil
 	}
 	if iotClient.iotTransport != nil {
-		// 设备侧入站 MCP 消息已经按 device + transportType 路由到了当前 runtime，
-		// 直接注入当前 transport，避免在共享 conn 队列上与历史 runtime 竞争消费。
+		// Message MCP inbound phía thiết bị đã được route tới runtime hiện tại theo device + transportType,
+		// inject trực tiếp vào transport hiện tại để tránh cạnh tranh consume với runtime cũ trên queue conn dùng chung.
 		iotClient.iotTransport.handleMessage(payload)
 		return nil
 	}
@@ -268,24 +268,24 @@ func GetToolsByDeviceId(deviceId string, agentId string, selectedMCPServiceNames
 func GetToolsByDeviceIdWithTransport(deviceId string, agentId string, transportType string, selectedMCPServiceNames string) (map[string]tool.InvokableTool, error) {
 	retTools := make(map[string]tool.InvokableTool)
 
-	// 优先从本地管理器获取
+	// Ưu tiên lấy từ local manager
 	localManager := GetLocalMCPManager()
 	localTools := localManager.GetAllTools()
 	for toolName, tool := range localTools {
 		retTools[toolName] = tool
 	}
-	log.Infof("从本地管理器获取到 %d 个工具", len(localTools))
+	log.Infof("Lấy được %d tool từ local manager", len(localTools))
 
-	// 其次从全局管理器获取
+	// Sau đó lấy từ global manager
 	globalTools := GetGlobalMCPManager().GetAllTools()
 	filteredGlobalTools := filterGlobalToolsBySelectedServices(globalTools, selectedMCPServiceNames)
 	for toolName, tool := range filteredGlobalTools {
-		// 本地工具优先，如果已存在同名工具则不覆盖
+		// Tool local được ưu tiên; nếu đã có tool cùng tên thì không override
 		if _, exists := retTools[toolName]; !exists {
 			retTools[toolName] = tool
 		}
 	}
-	log.Infof("从全局管理器获取到 %d 个工具（过滤后）", len(filteredGlobalTools))
+	log.Infof("Lấy được %d tool từ global manager sau khi filter", len(filteredGlobalTools))
 
 	if transportType = strings.TrimSpace(transportType); transportType != "" && deviceId != "" {
 		deviceClient := mcpClientPool.GetMcpClient(deviceId)
@@ -301,7 +301,7 @@ func GetToolsByDeviceIdWithTransport(deviceId string, agentId string, transportT
 	if transportType == "" {
 		deviceTools, err := mcpClientPool.GetAllToolsByDeviceIdAndAgentId(deviceId, agentId)
 		if err != nil {
-			log.Errorf("获取设备 %s 的工具失败: %v", deviceId, err)
+			log.Errorf("Lấy tool của thiết bị %s thất bại: %v", deviceId, err)
 			return retTools, nil
 		}
 		for toolName, tool := range deviceTools {
@@ -309,22 +309,22 @@ func GetToolsByDeviceIdWithTransport(deviceId string, agentId string, transportT
 				retTools[toolName] = tool
 			}
 		}
-		log.Infof("从设备 %s 获取到 %d 个工具", deviceId, len(deviceTools))
+		log.Infof("Lấy được %d tool từ thiết bị %s", deviceId, len(deviceTools))
 	} else if agentId != "" && agentId != deviceId {
-		log.Debugf("开始从智能体 %s 获取 ws endpoint MCP 工具, device=%s, transport=%s", agentId, deviceId, transportType)
+		log.Debugf("Bắt đầu lấy tool MCP ws endpoint từ agent %s, device=%s, transport=%s", agentId, deviceId, transportType)
 		agentTools, err := mcpClientPool.GetWsEndpointMcpTools(agentId)
 		if err != nil {
-			log.Errorf("获取智能体 %s 的工具失败: %v", agentId, err)
+			log.Errorf("Lấy tool của agent %s thất bại: %v", agentId, err)
 			return retTools, nil
 		}
-		log.Debugf("从智能体 %s 获取到 %d 个 ws endpoint MCP 工具, device=%s", agentId, len(agentTools), deviceId)
+		log.Debugf("Lấy được %d tool MCP ws endpoint từ agent %s, device=%s", agentId, len(agentTools), deviceId)
 		for toolName, tool := range agentTools {
 			if _, exists := retTools[toolName]; !exists {
 				retTools[toolName] = tool
 			}
 		}
 	}
-	log.Infof("设备 %s 总共获取到 %d 个工具", deviceId, len(retTools))
+	log.Infof("Thiết bị %s lấy được tổng cộng %d tool", deviceId, len(retTools))
 
 	return retTools, nil
 }
@@ -344,8 +344,8 @@ func GetWsEndpointConnectionStatus(agentId string) (bool, int) {
 	return client.GetWsEndpointConnectionStatus()
 }
 
-// GetReportedToolsByDeviceID 获取设备通过 Iot over MCP 上报的工具。
-// 控制台设备维度仅返回 websocket / mqtt_udp(udp) transport 下的工具，不混入 ws endpoint 等其它类型。
+// GetReportedToolsByDeviceID lấy các tool thiết bị báo cáo qua Iot over MCP.
+// Ở chiều thiết bị trên console, chỉ trả về tool thuộc transport websocket / mqtt_udp(udp), không trộn các loại khác như ws endpoint.
 func GetReportedToolsByDeviceID(deviceId string) (map[string]tool.InvokableTool, error) {
 	retTools := make(map[string]tool.InvokableTool)
 	if deviceId == "" {
@@ -369,8 +369,8 @@ func GetReportedToolsByDeviceID(deviceId string) (map[string]tool.InvokableTool,
 	return retTools, nil
 }
 
-// RefreshReportedToolsByDeviceID 强制向当前在线 transport 发起一次 tools/list。
-// 刷新失败时返回空列表，同时清空对应 runtime 的内存工具快照。
+// RefreshReportedToolsByDeviceID buộc transport đang online hiện tại gửi một lần tools/list.
+// Khi refresh thất bại, trả về danh sách rỗng và xóa snapshot tool trong bộ nhớ của runtime tương ứng.
 func RefreshReportedToolsByDeviceID(deviceId string) (map[string]tool.InvokableTool, error) {
 	retTools := make(map[string]tool.InvokableTool)
 	if deviceId == "" {
@@ -390,7 +390,7 @@ func RefreshReportedToolsByDeviceID(deviceId string) (map[string]tool.InvokableT
 	return client.RefreshIotToolsByTransport(transportType)
 }
 
-// GetReportedToolsByAgentID 仅获取智能体(WebSocket端点)上报的MCP工具
+// GetReportedToolsByAgentID chỉ lấy MCP tool do agent (WebSocket endpoint) báo cáo
 func GetReportedToolsByAgentID(agentId string) (map[string]tool.InvokableTool, error) {
 	retTools := make(map[string]tool.InvokableTool)
 	if agentId == "" {
@@ -400,8 +400,8 @@ func GetReportedToolsByAgentID(agentId string) (map[string]tool.InvokableTool, e
 	return mcpClientPool.GetWsEndpointMcpTools(agentId)
 }
 
-// RefreshReportedToolsByAgentID 强制向智能体的 ws endpoint 发起一次 tools/list。
-// 刷新失败时返回空列表，同时清空对应 runtime 的内存工具快照。
+// RefreshReportedToolsByAgentID buộc ws endpoint của agent gửi một lần tools/list.
+// Khi refresh thất bại, trả về danh sách rỗng và xóa snapshot tool trong bộ nhớ của runtime tương ứng.
 func RefreshReportedToolsByAgentID(agentId string) (map[string]tool.InvokableTool, error) {
 	retTools := make(map[string]tool.InvokableTool)
 	if agentId == "" {
@@ -416,7 +416,7 @@ func RefreshReportedToolsByAgentID(agentId string) (map[string]tool.InvokableToo
 	return client.RefreshWsEndpointTools()
 }
 
-// GetReportedToolByDeviceIDAndName 仅在设备上报工具中查找
+// GetReportedToolByDeviceIDAndName chỉ tìm trong tool do thiết bị báo cáo
 func GetReportedToolByDeviceIDAndName(deviceId, toolName string) (tool.InvokableTool, bool) {
 	if deviceId == "" {
 		return nil, false
@@ -436,11 +436,11 @@ func GetReportedToolByDeviceIDAndName(deviceId, toolName string) (tool.Invokable
 	return invokable, ok
 }
 
-// GetReportedToolByAgentIDAndName 仅在智能体上报工具中查找
+// GetReportedToolByAgentIDAndName chỉ tìm trong tool do agent báo cáo
 func GetReportedToolByAgentIDAndName(agentId, toolName string) (tool.InvokableTool, bool) {
 	reportedTools, err := GetReportedToolsByAgentID(agentId)
 	if err != nil {
-		log.Errorf("获取智能体上报MCP工具失败: agent=%s err=%v", agentId, err)
+		log.Errorf("Lấy MCP tool do agent báo cáo thất bại: agent=%s err=%v", agentId, err)
 		return nil, false
 	}
 
@@ -478,7 +478,7 @@ func RawCallReportedToolByAgentID(agentId, toolName string, arguments map[string
 	return client.RawCallWsEndpointTool(context.Background(), toolName, arguments)
 }
 
-// GetReportedToolsByDeviceIdAndAgentId 兼容方法：明确分流设备/智能体查询，不再混用
+// GetReportedToolsByDeviceIdAndAgentId method tương thích: tách rõ truy vấn thiết bị/agent, không dùng lẫn nữa
 func GetReportedToolsByDeviceIdAndAgentId(deviceId string, agentId string) (map[string]tool.InvokableTool, error) {
 	if deviceId != "" {
 		return GetReportedToolsByDeviceID(deviceId)
@@ -489,7 +489,7 @@ func GetReportedToolsByDeviceIdAndAgentId(deviceId string, agentId string) (map[
 	return make(map[string]tool.InvokableTool), nil
 }
 
-// GetReportedToolByName 兼容方法：按维度分流，不再混用
+// GetReportedToolByName là method tương thích: tách theo chiều, không dùng lẫn nữa
 func GetReportedToolByName(deviceId string, agentId string, toolName string) (tool.InvokableTool, bool) {
 	if deviceId != "" {
 		return GetReportedToolByDeviceIDAndName(deviceId, toolName)

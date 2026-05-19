@@ -20,7 +20,7 @@
     
     <MobileTabBar v-if="showTabBar" class="mobile-tabbar" />
     
-    <!-- 用户菜单弹出层 -->
+    <!-- Popup menu người dùng -->
     <van-popup
       v-model:show="showUserMenu"
       position="bottom"
@@ -62,7 +62,7 @@ const authStore = useAuthStore()
 
 const showUserMenu = ref(false)
 
-// 页面标题
+// Tiêu đề trang
 const pageTitle = computed(() => {
   const titleKey = route.meta?.titleKey
   if (titleKey && te(titleKey)) {
@@ -71,14 +71,14 @@ const pageTitle = computed(() => {
   return route.meta?.title || t('app.name')
 })
 
-// 是否显示返回按钮（非首页且不在标签栏页面时显示）
+// Có hiển thị nút quay lại hay không (hiện ở các trang không phải trang chủ và ngoài tab bar)
 const showBack = computed(() => {
   const hideBackPages = ['/dashboard', '/agents', '/user/speakers', '/more', '/login']
   const currentPath = route.path
   return !hideBackPages.some(path => currentPath === path || currentPath.startsWith(path + '/'))
 })
 
-// 是否显示底部标签栏
+// Có hiển thị thanh tab phía dưới hay không
 const showTabBar = computed(() => {
   const hideTabBarPages = [
     '/login',
@@ -88,7 +88,7 @@ const showTabBar = computed(() => {
   ]
   const currentPath = route.path
   
-  // 详情页面不显示标签栏
+  // Các trang chi tiết sẽ không hiển thị tab bar
   if (currentPath.includes('/edit') || currentPath.includes('/detail') || currentPath.includes('/history')) {
     return false
   }
@@ -96,12 +96,12 @@ const showTabBar = computed(() => {
   return !hideTabBarPages.includes(currentPath)
 })
 
-// 角色文本
+// Nhãn vai trò
 const roleText = computed(() => {
   return authStore.isAdmin ? t('layout.admin') : t('layout.user')
 })
 
-// 用户图标点击
+// Xử lý khi bấm icon người dùng
 const handleUserClick = () => {
   showUserMenu.value = true
 }
@@ -122,7 +122,7 @@ const handleGoConfigWizard = () => {
   showUserMenu.value = false
 }
 
-// 退出登录
+// Đăng xuất
 const handleLogout = async () => {
   try {
     await showConfirmDialog({
@@ -137,11 +137,10 @@ const handleLogout = async () => {
     router.push('/login')
     showUserMenu.value = false
   } catch {
-    // 用户取消
   }
 }
 
-// 监听路由变化，关闭用户菜单
+// Theo dõi thay đổi route để đóng menu người dùng
 watch(
   () => route.path,
   () => {
@@ -173,7 +172,7 @@ watch(
   padding-bottom: calc(84px + env(safe-area-inset-bottom));
 }
 
-/* 页面切换动画 */
+/* Hiệu ứng chuyển trang */
 .fade-enter-active,
 .fade-leave-active {
   transition: opacity 0.3s;

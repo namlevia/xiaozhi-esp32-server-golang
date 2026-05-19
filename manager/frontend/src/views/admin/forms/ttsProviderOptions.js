@@ -6,6 +6,7 @@ export const TTS_PROVIDER_OPTIONS = [
   { label: 'Doubao WebSocket', value: 'doubao_ws' },
   { label: 'Edge TTS', value: 'edge' },
   { label: 'Edge ngoại tuyến', value: 'edge_offline' },
+  { label: 'Piper TTS offline', value: 'piper' },
   { label: 'CosyVoice', value: 'cosyvoice' },
   { label: 'Xunfei', value: 'xunfei' },
   { label: 'Xunfei siêu nhân hoá', value: 'xunfei_super_tts' },
@@ -19,4 +20,4 @@ export const TTS_PROVIDER_OPTIONS = [
   supports_voice_clone: voiceCloneProviderSet.has(item.value)
 }))
 
-export const TTS_PROVIDERS_WITH_VOICES = ['minimax', 'edge', 'doubao', 'doubao_ws', 'zhipu', 'openai', 'indextts_vllm', 'xunfei_super_tts']
+export const TTS_PROVIDERS_WITH_VOICES = ['minimax', 'edge', 'doubao', 'doubao_ws', 'zhipu', 'openai', 'indextts_vllm', 'xunfei_super_tts', 'piper']

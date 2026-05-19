@@ -7,8 +7,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// InternalServiceAuth 内部服务鉴权中间件。
-// 要求：Authorization: Bearer <token>
+// InternalServiceAuth là middleware xác thực dịch vụ nội bộ.
+// Yêu cầu: Authorization: Bearer <token>
 func InternalServiceAuth(expectedToken string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		authHeader := strings.TrimSpace(c.GetHeader("Authorization"))

@@ -22,6 +22,7 @@
           <span class="apple-chip">{{ t('auth.chips.remoteCall') }}</span>
           <span class="apple-chip">{{ t('auth.chips.voicePush') }}</span>
         </div>
+        <p class="login-credit">{{ t('auth.brandCredit') }}</p>
       </section>
 
       <el-card class="login-card">
@@ -49,6 +50,7 @@
                 <el-input
                   v-model="loginForm.password"
                   type="password"
+                  show-password
                   :placeholder="t('validation.passwordRequired')"
                   @keyup.enter="handleLogin"
                 />
@@ -107,6 +109,7 @@
                 <el-input
                   v-model="registerForm.password"
                   type="password"
+                  show-password
                   :placeholder="t('validation.passwordRequired')"
                 />
               </el-form-item>
@@ -114,6 +117,7 @@
                 <el-input
                   v-model="registerForm.confirmPassword"
                   type="password"
+                  show-password
                   :placeholder="t('validation.confirmPasswordRequired')"
                   @keyup.enter="handleRegister"
                 />
@@ -379,7 +383,7 @@ const handleRegister = async () => {
   }
 }
 
-// 检查系统状态，如果未初始化则跳转到引导页面
+// Kiểm tra trạng thái hệ thống; nếu chưa khởi tạo thì chuyển sang trang hướng dẫn
 const checkSystemStatus = async () => {
   try {
     if (await checkNeedsSetup()) {
@@ -487,6 +491,12 @@ onMounted(async () => {
   flex-wrap: wrap;
   gap: 10px;
   margin-top: 22px;
+}
+
+.login-credit {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 
 .login-card {

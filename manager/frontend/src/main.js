@@ -2,7 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import ElementPlus from 'element-plus'
 import 'element-plus/dist/index.css'
-// Vant 4 按需引入，减少打包体积
+// Nạp Vant 4 theo nhu cầu để giảm kích thước bundle
 import { 
   NavBar, 
   Tabbar, 
@@ -26,12 +26,12 @@ import './styles/apple-light.css'
 
 const app = createApp(App)
 
-// 注册所有Element Plus图标
+// Đăng ký toàn bộ icon của Element Plus
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
   app.component(key, component)
 }
 
-// 注册Vant组件（按需引入）
+// Đăng ký các component Vant theo nhu cầu
 app.use(NavBar)
 app.use(Tabbar)
 app.use(TabbarItem)
@@ -48,6 +48,6 @@ app.use(Icon)
 app.use(createPinia())
 app.use(router)
 app.use(i18n)
-app.use(ElementPlus)  // 桌面端使用
+app.use(ElementPlus)  // Dùng cho giao diện desktop
 
 app.mount('#app')

@@ -46,9 +46,9 @@ func TestNewCosyVoiceTTSProviderDefaultsAndSetVoice(t *testing.T) {
 }
 
 func TestCosyVoiceTTS(t *testing.T) {
-	// 跳过实际的网络请求测试，除非设置了环境变量
+	// Bỏ qua networkrequesttest，trừ khi đã đặt biến môi trường
 	if os.Getenv("RUN_COSYVOICE_TEST") != "1" {
-		t.Skip("跳过CosyVoice API测试，设置环境变量RUN_COSYVOICE_TEST=1以启用")
+		t.Skip("Bỏ quaCosyVoice APItest，đặt biến môi trườngRUN_COSYVOICE_TEST=1để bật")
 	}
 
 	config := map[string]interface{}{
@@ -57,37 +57,37 @@ func TestCosyVoiceTTS(t *testing.T) {
 		"frame_duration": float64(60),
 		"target_sr":      float64(16000),
 		"audio_format":   "mp3",
-		"instruct_text":  "你好",
+		"instruct_text":  "Xin chào",
 	}
 
 	provider := NewCosyVoiceTTSProvider(config)
 
-	// 测试文本转语音
+	// testtext-to-speech
 	t.Run("TestTextToSpeech", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		frames, err := provider.TextToSpeech(ctx, "你会说四川话吗", 16000, 1, 60)
+		frames, err := provider.TextToSpeech(ctx, "Bạn có nói được tiếng Việt không", 16000, 1, 60)
 		if err != nil {
-			t.Fatalf("TextToSpeech失败: %v", err)
+			t.Fatalf("TextToSpeechthất bại: %v", err)
 		}
 
 		if len(frames) == 0 {
-			t.Error("未返回任何音频帧")
+			t.Error("chưatrả vềbất kỳaudioframe")
 		}
 	})
 
-	// 测试流式文本转语音
+	// teststreamingtext-to-speech
 	t.Run("TestTextToSpeechStream", func(t *testing.T) {
 		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 		defer cancel()
 
-		outputChan, err := provider.TextToSpeechStream(ctx, "你会说四川话吗", 16000, 1, 60)
+		outputChan, err := provider.TextToSpeechStream(ctx, "Bạn có nói được tiếng Việt không", 16000, 1, 60)
 		if err != nil {
-			t.Fatalf("TextToSpeechStream失败: %v", err)
+			t.Fatalf("TextToSpeechStreamthất bại: %v", err)
 		}
 
-		// 接收所有帧
+		// Nhận tất cảframe
 		var receivedFrames [][]byte
 		timeout := time.After(10 * time.Second)
 
@@ -100,13 +100,13 @@ func TestCosyVoiceTTS(t *testing.T) {
 				}
 				receivedFrames = append(receivedFrames, frame)
 			case <-timeout:
-				t.Error("接收音频帧超时")
+				t.Error("nhậnaudioframetimeout")
 				break receiveLoop
 			}
 		}
 
 		if len(receivedFrames) == 0 {
-			t.Error("未接收到任何音频帧")
+			t.Error("chưanoi_dungNhậnbất kỳaudioframe")
 		}
 	})
 }

@@ -1,37 +1,42 @@
-# WebSocket服务器与OTA配置流程说明
+# Hướng dẫn quy trình cấu hình WebSocket server và OTA
 
-本说明面向零基础用户，详细介绍如何配置WebSocket服务器及OTA（固件升级）相关参数。
+Tài liệu này dành cho người dùng mới, mô tả chi tiết cách cấu hình WebSocket server và các tham số liên quan đến OTA (nâng cấp firmware).
 
 ---
 
-## 1. 配置文件位置
+## 1. Vị trí file cấu hình
 
-所有主要配置都在：
+Toàn bộ cấu hình chính nằm ở:
 
 - `config/config.yaml`
 
-如找不到该文件，也可参考 `config/config.json.git`。
+Nếu không tìm thấy file này, cũng có thể tham khảo `config/config.json.git`.
 
 ---
 
-## 2. WebSocket服务器配置
+## 2. Cấu hình WebSocket server
 
-### 2.1 作用
-WebSocket服务器用于设备与服务器之间的实时通信。
+### 2.1 Tác dụng
 
-### 2.2 关键配置项
-在 `config/config.yaml` 文件中找到如下内容：
+WebSocket server dùng cho giao tiếp realtime giữa thiết bị và server.
+
+### 2.2 Mục cấu hình quan trọng
+
+Tìm nội dung sau trong file `config/config.yaml`:
 
 ```yaml
 websocket:
   host: "0.0.0.0"
   port: 8989
 ```
-- `host`：监听地址，通常保持 `0.0.0.0` 即可。
-- `port`：监听端口，默认 `8989`，可根据需要修改。
 
-### 2.3 修改方法
-如需更改端口为 9000：
+- `host`: địa chỉ lắng nghe, thường giữ `0.0.0.0` là được.
+- `port`: cổng lắng nghe, mặc định `8989`, có thể sửa theo nhu cầu.
+
+### 2.3 Cách sửa
+
+Nếu cần đổi cổng thành 9000:
+
 ```yaml
 websocket:
   host: "0.0.0.0"
@@ -40,13 +45,15 @@ websocket:
 
 ---
 
-## 3. OTA（固件升级）配置
+## 3. Cấu hình OTA (nâng cấp firmware)
 
-### 3.1 作用
-OTA用于设备自动获取服务器下发的WebSocket/MQTT连接参数和固件升级信息。
+### 3.1 Tác dụng
 
-### 3.2 关键配置项
-在 `config/config.yaml` 文件中找到 `ota` 部分：
+OTA dùng để thiết bị tự động lấy tham số kết nối WebSocket/MQTT do server cấp xuống và thông tin nâng cấp firmware.
+
+### 3.2 Mục cấu hình quan trọng
+
+Tìm phần `ota` trong file `config/config.yaml`:
 
 ```yaml
 ota:
@@ -63,21 +70,24 @@ ota:
       enable: false
       endpoint: "www.youdomain.cn"
 ```
-- `test`：内网环境下设备获取的参数，在程序中判断条件是以 192.168或127.0开头。
-- `external`：外网环境下设备获取的参数。
-- `websocket.url`：设备应连接的WebSocket服务器地址。
-- `mqtt.enable`：如果启用，会在ota接口中返回配置的mqtt地址，设备会优先选择mqtt+udp的方式。
-- `mqtt.endpoint`：MQTT服务器地址，设备端默认是8883端口(tls连接)，如果带非8883的端口 则会使用非加密的tcp连接。
 
-### 3.3 常见修改举例
-- 修改内网WebSocket地址：
+- `test`: tham số thiết bị lấy trong môi trường nội bộ; trong chương trình, điều kiện nhận diện thường là IP bắt đầu bằng `192.168` hoặc `127.0`.
+- `external`: tham số thiết bị lấy trong môi trường bên ngoài.
+- `websocket.url`: địa chỉ WebSocket server mà thiết bị cần kết nối.
+- `mqtt.enable`: nếu bật, interface OTA sẽ trả về địa chỉ MQTT đã cấu hình; thiết bị sẽ ưu tiên dùng phương thức MQTT+UDP.
+- `mqtt.endpoint`: địa chỉ MQTT server. Phía thiết bị mặc định dùng cổng `8883` (kết nối TLS); nếu kèm cổng khác `8883` thì sẽ dùng kết nối TCP không mã hóa.
+
+### 3.3 Ví dụ sửa thường gặp
+
+- Sửa địa chỉ WebSocket nội bộ:
   ```yaml
   ota:
     test:
       websocket:
         url: "ws://192.168.1.100:8989/xiaozhi/v1/"
   ```
-- 修改外网WebSocket地址：
+
+- Sửa địa chỉ WebSocket bên ngoài:
   ```yaml
   ota:
     external:
@@ -87,26 +97,26 @@ ota:
 
 ---
 
-## 4. OTA接口说明（设备如何获取配置）
+## 4. Mô tả interface OTA (thiết bị lấy cấu hình như thế nào)
 
-1. 设备通过HTTP POST请求 `http://服务器地址:端口/xiaozhi/ota/`。
-2. 请求头需包含：
-   - `Device-Id`：设备唯一ID（如MAC地址）
-   - `Client-Id`：客户端唯一ID
-3. 服务器会根据设备IP自动选择 `test` 或 `external` 配置，并返回WebSocket/MQTT等参数。
-4. 设备解析返回内容，按 `websocket.url` 连接WebSocket服务器。
-
----
-
-## 5. 常见问题
-
-- **端口被占用？**
-  - 修改 `websocket.port`，重启服务。
-- **设备连不上服务器？**
-  - 检查 `ota` 配置的 `websocket.url` 是否正确，服务器端口是否开放。
-- **需要MQTT？**
-  - 设置 `mqtt.enable` 为 `true`，并配置 `endpoint`。
+1. Thiết bị gửi HTTP POST tới `http://địa_chỉ_server:cổng/xiaozhi/ota/`.
+2. Request header cần chứa:
+   - `Device-Id`: ID duy nhất của thiết bị (như địa chỉ MAC)
+   - `Client-Id`: ID duy nhất của client
+3. Server sẽ tự động chọn cấu hình `test` hoặc `external` theo IP thiết bị và trả về tham số như WebSocket/MQTT.
+4. Thiết bị parse nội dung trả về rồi kết nối WebSocket server theo `websocket.url`.
 
 ---
 
-如有疑问，建议先检查 `config/config.yaml` 配置项，再查阅本说明。
+## 5. Câu hỏi thường gặp
+
+- **Cổng bị chiếm?**
+  - Sửa `websocket.port`, rồi khởi động lại service.
+- **Thiết bị không kết nối được server?**
+  - Kiểm tra `websocket.url` trong cấu hình `ota` có đúng không, cổng server đã mở chưa.
+- **Cần MQTT?**
+  - Đặt `mqtt.enable` thành `true`, rồi cấu hình `endpoint`.
+
+---
+
+Nếu có thắc mắc, nên kiểm tra mục cấu hình trong `config/config.yaml` trước, sau đó tham khảo tài liệu này.

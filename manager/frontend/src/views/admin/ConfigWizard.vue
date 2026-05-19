@@ -31,7 +31,7 @@
           </el-form-item>
           <el-form-item label="Bật MQTT/UDP" prop="enableMqttUdp">
             <el-switch v-model="otaForm.enableMqttUdp" active-text="Bật" inactive-text="Tắt" />
-            <span class="form-hint">BậtSau khi bật, hệ thống sẽ tự cấu hình MQTT Server, MQTT client và UDP; thiết bị đầu cuối có thể kết nối qua MQTT.</span>
+            <span class="form-hint">Sau khi bật, hệ thống sẽ tự cấu hình MQTT Server, MQTT client và UDP; thiết bị đầu cuối có thể kết nối qua MQTT.</span>
           </el-form-item>
           <template v-if="otaForm.enableMqttUdp">
             <el-form-item label="Cổng MQTT Server" prop="mqttServerPort" required>
@@ -78,7 +78,7 @@
         />
       </template>
 
-      <!-- 完成页：展示 OTA 地址与 WebSocket 地址 -->
+      <!-- Trang hoàn tất: hiển thị địa chỉ OTA và WebSocket -->
       <template v-if="currentStep === 5">
         <div class="step-title">Hoàn tất cấu hình</div>
         <p class="step-hint">Dưới đây là các địa chỉ được tạo từ tên miền/IP bạn nhập ở bước OTA; hãy cấp phát cho thiết bị hoặc firmware sử dụng.</p>
@@ -180,7 +180,7 @@ const ttsConfigId = ref(null)
 
 const otaForm = reactive({
   host: '',
-  port: 8989,
+  port: 18989,
   protocol: 'http',
   signature_key: 'xiaozhi_ota_signature_key',
   enableMqttUdp: false,
@@ -227,9 +227,14 @@ const vadFormRules = {
 }
 
 const asrForm = reactive({
-  name: 'FunASR ASR',
-  config_id: 'funasr_default',
-  provider: 'funasr',
+  name: 'Vietnamese ASR (Go)',
+  config_id: 'wyoming_vietnamese_asr_default',
+  provider: 'wyoming_vietnamese_asr',
+  wyoming_vietnamese_asr: {
+    base_url: 'http://voice-server:9000',
+    sample_rate: 16000,
+    timeout_ms: 30000
+  },
   funasr: {
     host: '127.0.0.1',
     port: 10095,
@@ -308,6 +313,9 @@ const asrFormRules = {
   name: [{ required: true, message: 'Vui lòng nhập tên cấu hình', trigger: 'blur' }],
   config_id: [{ required: true, message: 'Vui lòng nhập ID cấu hình', trigger: 'blur' }],
   provider: [{ required: true, message: 'Vui lòng chọn nhà cung cấp', trigger: 'change' }],
+  'wyoming_vietnamese_asr.base_url': [{ required: true, message: 'Vui lòng nhập URL dịch vụ Go', trigger: 'blur' }],
+  'wyoming_vietnamese_asr.sample_rate': [{ required: true, message: 'Vui lòng chọn tần số lấy mẫu', trigger: 'change' }],
+  'wyoming_vietnamese_asr.timeout_ms': [{ required: true, message: 'Vui lòng nhập timeout', trigger: 'blur' }],
   'funasr.host': [{ required: true, message: 'Vui lòng nhập địa chỉ host', trigger: 'blur' }],
   'funasr.port': [{ required: true, message: 'Vui lòng nhập cổng', trigger: 'blur' }],
   'aliyun_funasr.ws_url': [{ required: true, message: 'Vui lòng nhập WS URL', trigger: 'blur' }],
@@ -421,9 +429,9 @@ const llmFormRules = {
 }
 
 const ttsForm = reactive({
-  name: 'Mặc địnhTTS',
-  config_id: 'minimax_default',
-  provider: 'minimax',
+  name: 'TTS offline mặc định',
+  config_id: 'edge_offline_default',
+  provider: 'edge_offline',
   double_stream: false,
   qwen_tts: {
     api_key: '',
@@ -452,7 +460,7 @@ const ttsForm = reactive({
     receive_timeout: 60
   },
   edge_offline: {
-    server_url: 'ws://localhost:8080/tts',
+    server_url: 'ws://main-server:9001/tts',
     timeout: 30,
     sample_rate: 16000,
     channels: 1,
@@ -631,17 +639,17 @@ async function saveMqttConfig() {
   const port = Number(otaForm.mqttServerPort) || 1883
   const useTls = port === 8883
 
-  // 先获取现有配置，只更新 enable 字段，Giữ其他配置不变
+  // Lấy cấu hình hiện có trước, chỉ cập nhật trường enable và giữ nguyên các trường khác
   const resGet = await api.get('/admin/mqtt-configs')
   const list = resGet.data?.data || []
   const existing = list.find(c => c.is_default) || list[0]
 
   let configData
   if (existing?.id) {
-    // 解析现有配置，Giữ其他字段
+    // Phân tích cấu hình hiện có và giữ nguyên các trường khác
     const existingData = JSON.parse(existing.json_data || '{}')
     existingData.enable = true
-    // 同时更新与 mqtt_server 相关的字段
+    // Đồng thời cập nhật các trường liên quan đến mqtt_server
     existingData.broker = host
     existingData.type = useTls ? 'ssl' : 'tcp'
     existingData.port = port
@@ -650,7 +658,7 @@ async function saveMqttConfig() {
     existingData.password = MQTT_SERVER_DEFAULT_PASS
     configData = existingData
   } else {
-    // 新建配置，使用完整数据
+    // Tạo cấu hình mới bằng bộ dữ liệu đầy đủ
     configData = {
       enable: true,
       broker: host,
@@ -920,7 +928,9 @@ async function loadAsrIfExists() {
     const data = JSON.parse(config.json_data || '{}')
     const provider = resolveASRProvider(config.provider, config.config_id, data)
     asrForm.provider = provider
-    if (provider === 'doubao') {
+    if (provider === 'wyoming_vietnamese_asr') {
+      Object.assign(asrForm.wyoming_vietnamese_asr, data.wyoming_vietnamese_asr || data)
+    } else if (provider === 'doubao') {
       Object.assign(asrForm.doubao, data.doubao || data)
     } else if (provider === 'aliyun_funasr') {
       Object.assign(asrForm.aliyun_funasr, data.aliyun_funasr || data)
@@ -1188,10 +1198,10 @@ async function runOtaTest() {
       if (entry) {
         const [, v] = entry
 
-        // 格式化显示结果
+        // Định dạng kết quả để hiển thị
         let displayText = ''
 
-        // WebSocket 结果
+        // Kết quả WebSocket
         if (v.websocket) {
           const ws = v.websocket
           displayText += `WebSocket: ${ws.ok ? '✓' : '✗'} ${ws.message}`
@@ -1202,7 +1212,7 @@ async function runOtaTest() {
           }
         }
 
-        // MQTT UDP 结果
+        // Kết quả MQTT UDP
         if (v.mqtt_udp) {
           const mqtt = v.mqtt_udp
           displayText += `MQTT UDP: ${mqtt.ok ? '✓' : '✗'} ${mqtt.message}`
@@ -1213,14 +1223,14 @@ async function runOtaTest() {
           }
         }
 
-        // OTA 响应内容（如果有）
+        // Nội dung phản hồi OTA, nếu có
         if (v.ota_response !== undefined && v.ota_response !== '') {
           displayText += `\n--- Phản hồi OTA ---\n${formatOtaResponseDisplay(v.ota_response)}`
         }
 
         otaTestResult.value = displayText.trim() || 'Chưa lấy được thông tin chi tiết'
 
-        // 根据整体结果显示消息
+        // Hiển thị thông báo theo kết quả tổng thể
         const overallOk = v.ok
         if (overallOk) {
           ElMessage.success(v.message || 'OTA Kiểm tra đạt')
@@ -1272,7 +1282,7 @@ async function loadOtaIfExists() {
   } catch (_) {}
 }
 
-// 加载 TTS 音色列表（与 Cấu hình TTS页一致）
+// Tải danh sách giọng TTS, thống nhất với trang cấu hình TTS
 async function loadTtsVoiceOptions(provider) {
   if (!provider) {
     voiceOptions.value = []
@@ -1299,14 +1309,14 @@ function handleTtsVoiceOptionsRequest(provider) {
   loadTtsVoiceOptions(provider || ttsForm.provider)
 }
 
-// 进入 TTS 步骤时加载当前 provider 的音色列表
+// Khi vào bước TTS thì tải danh sách giọng của provider hiện tại
 watch(currentStep, (step) => {
   if (step === 4 && ttsForm.provider) {
     nextTick(() => loadTtsVoiceOptions(ttsForm.provider))
   }
 }, { immediate: true })
 
-// TTS 步骤内切换 provider 时重新加载音色列表
+// Khi đổi provider trong bước TTS thì tải lại danh sách giọng
 watch(() => ttsForm.provider, (provider) => {
   if (currentStep.value === 4 && provider) {
     loadTtsVoiceOptions(provider)

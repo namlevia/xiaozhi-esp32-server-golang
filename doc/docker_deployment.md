@@ -1,70 +1,71 @@
-# Docker 本地编译支持
+# Hỗ trợ build Docker local
 
-新增了 `docker-compose.local.yml` 文件，支持本地编译和多架构部署。
+Đã thêm file `docker-compose.local.yml`, hỗ trợ build local và triển khai đa kiến trúc.
 
-## 新增文件
+## File mới
 
-- `docker/docker-composer/docker-compose.local.yml` - 本地编译配置文件
+- `docker/docker-composer/docker-compose.local.yml` - file cấu hình build local
 
-## 编译方法
+## Cách build
 
-### 默认编译（AMD64）
+### Biên dịch mặc định (AMD64)
 
 ```bash
 cd docker/docker-composer
 docker-compose -f docker-compose.local.yml up --build
 ```
 
-### ARM64 编译（Apple Silicon）
+### Biên dịch ARM64 (Apple Silicon)
 
 ```bash
 cd docker/docker-composer
 TARGETARCH=arm64 docker-compose -f docker-compose.local.yml up --build
 ```
 
-## 运行方法
+## Cách chạy
 
-编译完成后，服务会自动启动，包括：
-- 主服务器（端口 8989）
-- 后端管理（端口 8081）
-- 前端界面（端口 8080）
-- MySQL 数据库（端口 23306）
+Sau khi build xong, service sẽ tự khởi động, bao gồm:
 
-访问 http://<服务器IP或域名>:8080 查看前端界面。
+- Server chính (cổng 8989)
+- Backend quản trị (cổng 8081)
+- Giao diện frontend (cổng 8080)
+- Database MySQL (cổng 23306)
 
-## 🏗️ 多架构支持
+Truy cập http://<IP hoặc domain server>:8080 để xem giao diện frontend.
 
-### 自动架构检测（推荐）
+## 🏗️ Hỗ trợ đa kiến trúc
 
-`docker-compose.local.yml` 支持自动检测当前系统架构：
+### Tự động phát hiện kiến trúc (khuyến nghị)
+
+`docker-compose.local.yml` hỗ trợ tự động phát hiện kiến trúc hệ thống hiện tại:
 
 ```bash
-# 自动检测架构并构建（默认行为）
+# Tự động phát hiện kiến trúc và build (hành vi mặc định)
 docker-compose -f docker-compose.local.yml up --build
 ```
 
-### 手动指定架构
+### Chỉ định kiến trúc thủ công
 
-如果需要为特定架构构建：
+Nếu cần build cho kiến trúc cụ thể:
 
 ```bash
-# 为 ARM64 架构构建
+# Build cho kiến trúc ARM64
 TARGETARCH=arm64 docker-compose -f docker-compose.local.yml up --build
 
-# 为 AMD64 架构构建
+# Build cho kiến trúc AMD64
 TARGETARCH=amd64 docker-compose -f docker-compose.local.yml up --build
 ```
 
-### 支持的架构
+### Kiến trúc được hỗ trợ
 
-- **AMD64/x86_64**: Intel/AMD 处理器（默认）
-- **ARM64**: Apple Silicon (M1/M2)、ARM 服务器
+- **AMD64/x86_64**: CPU Intel/AMD (mặc định)
+- **ARM64**: Apple Silicon (M1/M2), server ARM
 
-## 📁 配置文件说明
+## 📁 Mô tả file cấu hình
 
 ### docker-compose.yml
 
-使用预构建的官方镜像，适合生产环境：
+Dùng image chính thức đã build sẵn, phù hợp môi trường production:
 
 ```yaml
 services:
@@ -80,7 +81,7 @@ services:
 
 ### docker-compose.local.yml
 
-本地构建版本，支持代码修改和多架构：
+Bản build local, hỗ trợ sửa code và đa kiến trúc:
 
 ```yaml
 services:
@@ -92,38 +93,37 @@ services:
         TARGETARCH: ${TARGETARCH:-amd64}
 ```
 
-## 🔧 环境变量配置
+## 🔧 Cấu hình biến môi trường
 
-### 架构相关
+### Liên quan kiến trúc
 
-| 变量名 | 默认值 | 说明 |
+| Tên biến | Mặc định | Mô tả |
 |-------|-------|------|
-| `TARGETARCH` | `amd64` | 目标架构（amd64/arm64） |
+| `TARGETARCH` | `amd64` | Kiến trúc mục tiêu (`amd64`/`arm64`) |
 
+## 🛠️ Thao tác thường gặp
 
-## 🛠️ 常见操作
-
-### 查看服务状态
+### Xem trạng thái service
 
 ```bash
-# 查看所有服务状态
+# Xem trạng thái toàn bộ service
 docker-compose ps
 
-# 查看服务日志
+# Xem log service
 docker-compose logs -f main-server
 docker-compose logs -f backend
 docker-compose logs -f frontend
 ```
 
-### 停止和重启服务
+### Dừng và restart service
 
 ```bash
-# 停止所有服务
+# Dừng toàn bộ service
 docker-compose down
 
-# 重启特定服务
+# Restart service cụ thể
 docker-compose restart main-server
 
-# 重新构建并启动
+# Build lại và khởi động
 docker-compose up --build
 ```

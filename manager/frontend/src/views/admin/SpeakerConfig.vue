@@ -22,7 +22,7 @@
         <el-form-item label="Địa chỉ dịch vụ" prop="base_url">
           <el-input 
             v-model="form.base_url" 
-            placeholder="Vui lòng nhập địa chỉ dịch vụ HTTP，ví dụ: http://192.168.208.214:8080"
+            placeholder="Vui lòng nhập địa chỉ dịch vụ HTTP, ví dụ: http://192.168.208.214:8080"
             style="width: 100%"
           />
           <div class="form-tip">
@@ -83,7 +83,7 @@ const rules = {
     { required: true, message: 'Vui lòng nhập địa chỉ dịch vụ', trigger: 'blur' },
     { 
       pattern: /^https?:\/\/.+/, 
-      message: 'Vui lòng nhập địa chỉ HTTP hợp lệ, ví dụ:http://192.168.208.214:8080', 
+      message: 'Vui lòng nhập địa chỉ HTTP hợp lệ, ví dụ: http://192.168.208.214:8080', 
       trigger: 'blur' 
     }
   ],
@@ -106,28 +106,28 @@ const loadConfig = async () => {
     const configs = response.data.data || []
     
     if (configs.length > 0) {
-      // 如果有配置，使用第一个（应该只有一个）
+      // Nếu đã có cấu hình thì dùng bản ghi đầu tiên, về lý thuyết chỉ nên có một bản
       currentConfig.value = configs[0]
       const configObj = JSON.parse(configs[0].json_data || '{}')
       
-      // 解析配置
+      // Phân tích dữ liệu cấu hình
       if (configObj.service && configObj.service.base_url) {
         form.base_url = configObj.service.base_url
       } else if (configObj.base_url) {
-        // 兼容旧格式
+        // Tương thích với định dạng cũ
         form.base_url = configObj.base_url
       }
-      // 读取Ngưỡng配置
+      // Đọc cấu hình ngưỡng
       if (configObj.service && configObj.service.threshold !== undefined) {
         form.threshold = configObj.service.threshold
       } else if (configObj.threshold !== undefined) {
-        // 兼容旧格式
+        // Tương thích với định dạng cũ
         form.threshold = configObj.threshold
       } else {
-        // Mặc định值
+        // Giá trị mặc định
         form.threshold = 0.4
       }
-      // 开关对应 json_data.enable（业务Bật），不使用接口返回的 enabled 列
+      // Công tắc tương ứng với json_data.enable trong nghiệp vụ, không dùng cột enabled trả về từ API
       form.enabled = configObj.enable !== undefined ? configObj.enable : true
     }
   } catch (error) {
@@ -144,7 +144,7 @@ const handleSave = async () => {
     if (valid) {
       saving.value = true
       try {
-        // 构建配置数据：开关写入 json_data.enable，对外输出以该字段为准
+        // Tạo dữ liệu cấu hình: trạng thái bật/tắt được ghi vào json_data.enable và dùng trường này làm chuẩn đầu ra
         const configData = {
           service: {
             base_url: form.base_url,
@@ -163,16 +163,16 @@ const handleSave = async () => {
         }
         
         if (currentConfig.value) {
-          // 更新现有配置
+          // Cập nhật cấu hình hiện có
           await api.put(`/admin/speaker-configs/${currentConfig.value.id}`, saveData)
           ElMessage.success('Cập nhật cấu hình thành công')
         } else {
-          // 创建新配置
+          // Tạo cấu hình mới
           await api.post('/admin/speaker-configs', saveData)
           ElMessage.success('Tạo cấu hình thành công')
         }
         
-        // 重新加载配置
+        // Tải lại cấu hình
         await loadConfig()
       } catch (error) {
         ElMessage.error('Lưu thất bại: ' + (error.response?.data?.message || error.message))

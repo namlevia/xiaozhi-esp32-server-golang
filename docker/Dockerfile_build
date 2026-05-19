@@ -1,13 +1,13 @@
-# 使用官方 Ubuntu 镜像作为基础镜像
+# Dùng image Ubuntu chính thức làm base image
 FROM hackers365/xiaozhi_golang_build:0.1 AS builder
 
 WORKDIR /app
 COPY . .
-RUN go build -o /app/xiaozhi_server /app/cmd/server/  # 编译生成二进制文件
+RUN go build -o /app/xiaozhi_server /app/cmd/server/  # Biên dịch tạo file binary
 
 FROM ubuntu:22.04
 
-# 设置非交互式安装环境变量
+# Thiết lập biến môi trường cài đặt non-interactive
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y --no-install-recommends libopus0 libopusfile-dev libc++1 libc++abi1 && rm -rf /var/lib/apt/lists/*
@@ -24,21 +24,21 @@ ENV ONNXRUNTIME_DIR=/usr/local
 ENV CGO_CFLAGS="-I${ONNXRUNTIME_DIR}/include/onnxruntime" 
 ENV CGO_LDFLAGS="-L${ONNXRUNTIME_DIR}/lib -lonnxruntime"
 
-# 设置工作目录
+# Thiết lập thư mục làm việc
 WORKDIR /workspace
 
-# 仅从构建阶段复制编译后的二进制文件（不携带源码和编译依赖）
+# Chỉ sao chép binary đã build từ giai đoạn build, không kèm source và dependency build
 COPY --from=builder /app/xiaozhi_server /workspace/bin/xiaozhi_server
-# 从构建阶段复制 lib 目录（包含 ten-vad 运行时库）
+# Sao chép thư mục lib từ giai đoạn build, gồm runtime library ten-vad
 COPY --from=builder /app/lib /workspace/lib
 
 RUN mkdir -p /workspace/logs /workspace/config
 
-# 设置运行时库路径（用于 ten-vad）
+# Thiết lập đường dẫn runtime library cho ten-vad
 ENV LD_LIBRARY_PATH=/workspace/lib:/workspace/lib/ten-vad/lib/Linux/x64 
 
-# 暴露端口, http/websocket:8989, udp:8990  mqtt: 1883,2883,8883, 
+# Expose cổng: http/websocket 8989, udp 8990, mqtt 1883/2883/8883 
 EXPOSE 8989 8990 1883 2883 8883
 
-# 启动命令
+# Lệnh khởi động
 CMD ["bin/xiaozhi_server", "-c", "config/config.yaml"]

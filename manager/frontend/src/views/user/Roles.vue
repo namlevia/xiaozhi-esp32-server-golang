@@ -53,8 +53,8 @@
             </div>
 
             <div class="role-prompt">
-              <p class="prompt-label">Prompt</p>
-              <p class="prompt-text">{{ role.prompt || t('role.noPrompt') }}</p>
+              <p class="prompt-label">Prompt hệ thống</p>
+              <p class="prompt-text">{{ role.prompt || t('role.noPrompt hệ thống') }}</p>
             </div>
           </div>
         </el-card>
@@ -101,7 +101,7 @@
 
           <section class="dialog-section">
             <h4 class="dialog-section-title">{{ t('role.promptConfig') }}</h4>
-            <el-form-item :label="t('role.systemPrompt')" prop="prompt">
+            <el-form-item :label="t('role.systemPrompt hệ thống')" prop="prompt">
               <el-input
                 v-model="form.prompt"
                 type="textarea"

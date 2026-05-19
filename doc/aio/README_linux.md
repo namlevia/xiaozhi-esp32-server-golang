@@ -1,40 +1,41 @@
-# 小智服务 Linux 使用说明
+# Hướng dẫn sử dụng Xiaozhi Server trên Linux
 
-欢迎使用小智服务 Linux aio 包。本文档包含依赖安装、启动和配置说明。
+Chào mừng bạn sử dụng gói Linux AIO của Xiaozhi Server. Tài liệu này bao gồm hướng dẫn cài dependency, khởi động và cấu hình.
 
-## 目录结构
+## Cấu trúc thư mục
 
-```
+```text
 xiaozhi_server-linux-amd64-<version>/
-├── xiaozhi_server              # 主程序
+├── xiaozhi_server              # Chương trình chính
 ├── ten-vad/
 │   └── lib/Linux/x64/
-│       ├── libten_vad.so       # VAD 依赖库
+│       ├── libten_vad.so       # Thư viện dependency VAD
 │       ├── libsherpa-onnx-c-api.so
 │       ├── libsherpa-onnx-cxx-api.so
-│       └── libonnxruntime.so   # ONNX Runtime 依赖库
-├── main_config.yaml            # 主配置文件
-├── manager.json                # 管理后台配置
-├── asr_server.json             # ASR 服务配置
-├── models/                     # 模型文件目录
-├── data/                       # 数据目录
-└── logs/                       # 日志目录
+│       └── libonnxruntime.so   # Thư viện dependency ONNX Runtime
+├── main_config.yaml            # File cấu hình chính
+├── manager.json                # Cấu hình backend quản trị
+├── asr_server.json             # Cấu hình dịch vụ ASR
+├── models/                     # Thư mục file model
+├── data/                       # Thư mục dữ liệu
+└── logs/                       # Thư mục log
 ```
 
-## 运行依赖
+## Dependency chạy
 
-### 系统要求
+### Yêu cầu hệ thống
 
-| 系统 | 最低版本 | 测试状态 |
+| Hệ thống | Phiên bản tối thiểu | Trạng thái kiểm thử |
 |------|----------|----------|
-| Ubuntu | 18.04 LTS | ✅ 已测试 |
-| Debian | 10 (Buster) | ⚠️ 预期兼容，未测试 |
-| CentOS / RHEL | 8 | ⚠️ 预期兼容，未测试 |
+| Ubuntu | 18.04 LTS | Đã kiểm thử |
+| Debian | 10 (Buster) | Dự kiến tương thích, chưa kiểm thử |
+| CentOS / RHEL | 8 | Dự kiến tương thích, chưa kiểm thử |
 
-**运行时要求**：
-- **架构**：x86_64 (amd64)
+**Yêu cầu runtime**:
 
-### 安装依赖
+- **Kiến trúc**: x86_64 (amd64)
+
+### Cài dependency
 
 #### Debian / Ubuntu
 
@@ -47,84 +48,85 @@ sudo apt install -y libc++1 libc++abi1
 
 ```bash
 sudo dnf install -y libcxx libcxxabi
-# 或
+# Hoặc
 sudo yum install -y libcxx libcxxabi
 ```
 
-#### 其他发行版
+#### Distribution khác
 
-请安装以下库的对应包：
-- `libc++.so.1` — LLVM C++ 标准库
+Hãy cài package tương ứng cho các thư viện sau:
+
+- `libc++.so.1` — LLVM C++ standard library
 - `libc++abi.so.1` — LLVM C++ ABI
 
-## 快速启动
+## Khởi động nhanh
 
 ```bash
-# 添加执行权限
+# Thêm quyền thực thi
 chmod +x xiaozhi_server
 
-# 启动服务
+# Khởi động service
 ./xiaozhi_server
 ```
 
-### 后台运行
+### Chạy nền
 
-使用 nohup：
+Dùng `nohup`:
 
 ```bash
 nohup ./xiaozhi_server > logs/output.log 2>&1 &
 ```
 
-或使用 systemd（推荐生产环境），见下文。
+Hoặc dùng `systemd` (khuyến nghị cho môi trường production), xem phần bên dưới.
 
-## 端口与服务
+## Cổng và service
 
-| 端口 | 配置来源 | 说明 |
+| Cổng | Nguồn cấu hình | Mô tả |
 |------|----------|------|
-| **8080** | `manager.json` → `server.port` | **管理后台**：Web 控制台 + HTTP API |
-| **8989** | `main_config.yaml` → `websocket.port` | **主服务 WebSocket**：设备/客户端连接 |
-| **9000** | `asr_server.json` → `server.port` | **ASR/声纹服务**：语音识别内部接口 |
-| **2883** | 控制台配置 | **MQTT 服务**：设备 MQTT 连接 |
-| **8990** | 控制台配置 | **UDP 服务**：设备 UDP 通信 |
-| **6060** | 控制台配置 | **pprof**：性能分析（默认关闭） |
+| **8080** | `manager.json` → `server.port` | **Backend quản trị**: Web console + HTTP API |
+| **8989** | `main_config.yaml` → `websocket.port` | **WebSocket service chính**: thiết bị/client kết nối |
+| **9000** | `asr_server.json` → `server.port` | **Dịch vụ ASR/voiceprint**: interface nội bộ nhận diện giọng nói |
+| **2883** | Cấu hình console | **MQTT service**: thiết bị kết nối MQTT |
+| **8990** | Cấu hình console | **UDP service**: thiết bị giao tiếp UDP |
+| **6060** | Cấu hình console | **pprof**: phân tích hiệu năng (mặc định tắt) |
 
-## 访问地址
+## Địa chỉ truy cập
 
-### 管理后台
+### Backend quản trị
 
-- **本地访问**：`http://localhost:8080/`
-- **局域网访问**：`http://<服务器IP>:8080/`
+- **Truy cập local**: `http://localhost:8080/`
+- **Truy cập LAN**: `http://<IP server>:8080/`
 
-### 设备/客户端连接
+### Kết nối thiết bị/client
 
-- **WebSocket**：`ws://<服务器IP>:8989/`
-- **MQTT**：`<服务器IP>:2883`
-- **UDP**：`<服务器IP>:8990`
+- **WebSocket**: `ws://<IP server>:8989/`
+- **MQTT**: `<IP server>:2883`
+- **UDP**: `<IP server>:8990`
 
-## 修改配置
+## Sửa cấu hình
 
-### 需在配置文件中修改的端口
+### Cổng cần sửa trong file cấu hình
 
-以下端口修改后需重启服务生效：
+Các cổng sau cần restart service sau khi sửa mới có hiệu lực:
 
-| 端口 | 配置文件 | 配置项 |
+| Cổng | File cấu hình | Mục cấu hình |
 |------|----------|--------|
 | 8080 | `manager.json` | `server.port` |
 | 8989 | `main_config.yaml` | `websocket.port` |
 | 9000 | `asr_server.json` | `server.port` |
 
-### 控制台配置
+### Cấu hình console
 
-以下端口及所有其他配置通过管理后台控制台进行变更：
+Các cổng sau và toàn bộ cấu hình khác được thay đổi qua console quản trị:
 
-- **端口配置**：MQTT (2883)、UDP (8990)、pprof (6060)
-- **功能配置**：LLM、TTS、ASR、声纹识别等
-- 访问 `http://localhost:8080/` 进入管理后台
-- 配置变更实时生效，无需重启服务
+- **Cấu hình cổng**: MQTT (2883), UDP (8990), pprof (6060)
+- **Cấu hình chức năng**: LLM, TTS, ASR, nhận diện voiceprint, v.v.
+- Truy cập `http://localhost:8080/` để vào backend quản trị
+- Thay đổi cấu hình có hiệu lực realtime, không cần restart service
 
-## 生产环境部署（systemd）
+## Triển khai production bằng systemd
 
-创建服务文件 `/etc/systemd/system/xiaozhi.service`：
+Tạo file service `/etc/systemd/system/xiaozhi.service`:
 
 ```ini
 [Unit]
@@ -143,32 +145,32 @@ RestartSec=3
 WantedBy=multi-user.target
 ```
 
-启动服务：
+Khởi động service:
 
 ```bash
-# 重载配置
+# Reload cấu hình
 sudo systemctl daemon-reload
 
-# 启用开机自启
+# Bật tự khởi động cùng hệ thống
 sudo systemctl enable xiaozhi
 
-# 启动服务
+# Khởi động service
 sudo systemctl start xiaozhi
 
-# 查看状态
+# Xem trạng thái
 sudo systemctl status xiaozhi
 
-# 查看日志
+# Xem log
 sudo journalctl -u xiaozhi -f
 ```
 
-## 防火墙配置
+## Cấu hình firewall
 
-如果服务器启用了防火墙，需要开放相应端口：
+Nếu server đã bật firewall, cần mở các cổng tương ứng:
 
 ```bash
 # Ubuntu/Debian (ufw)
-sudo ufw allow 8080/tcp  # 管理后台
+sudo ufw allow 8080/tcp  # Backend quản trị
 sudo ufw allow 8989/tcp  # WebSocket
 sudo ufw allow 2883/tcp  # MQTT
 sudo ufw allow 8990/udp  # UDP
@@ -181,32 +183,33 @@ sudo firewall-cmd --permanent --add-port=8990/udp
 sudo firewall-cmd --reload
 ```
 
-## 常见问题
+## Câu hỏi thường gặp
 
-### 提示缺少共享库
+### Báo thiếu shared library
 
-使用 `ldd` 命令检查缺失的库：
+Dùng lệnh `ldd` để kiểm tra thư viện bị thiếu:
 
 ```bash
 ldd xiaozhi_server
 ldd ten-vad/lib/Linux/x64/libten_vad.so
 ```
 
-根据输出安装对应的系统包。
+Dựa vào output để cài package hệ thống tương ứng.
 
-### glibc 版本过低
+### Phiên bản glibc quá thấp
 
-如果出现 `version 'GLIBC_2.xx' not found`，说明系统 glibc 版本过旧。建议：
-- 升级系统到较新版本
-- 或使用 Docker 容器运行
+Nếu xuất hiện `version 'GLIBC_2.xx' not found`, nghĩa là phiên bản glibc của hệ thống quá cũ. Khuyến nghị:
 
-### 端口被占用
+- Nâng cấp hệ thống lên phiên bản mới hơn
+- Hoặc chạy bằng Docker container
+
+### Cổng bị chiếm
 
 ```bash
-# 查看端口占用
-sudo lsof -i :端口号
-# 或
-sudo netstat -tulpn | grep 端口号
+# Xem tình trạng chiếm dụng cổng
+sudo lsof -i :số_cổng
+# Hoặc
+sudo netstat -tulpn | grep số_cổng
 
-# 修改配置文件中的端口号或结束占用进程
+# Sửa số cổng trong file cấu hình hoặc kết thúc process đang chiếm cổng
 ```

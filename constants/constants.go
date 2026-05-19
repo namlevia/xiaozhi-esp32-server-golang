@@ -7,11 +7,12 @@ const (
 )
 
 const (
-	AsrTypeFunAsr       = "funasr"
-	AsrTypeDoubao       = "doubao"
-	AsrTypeAliyunFunASR = "aliyun_funasr"
-	AsrTypeAliyunQwen3  = "aliyun_qwen3"
-	AsrTypeXunfei       = "xunfei"
+	AsrTypeFunAsr            = "funasr"
+	AsrTypeDoubao            = "doubao"
+	AsrTypeAliyunFunASR      = "aliyun_funasr"
+	AsrTypeAliyunQwen3       = "aliyun_qwen3"
+	AsrTypeXunfei            = "xunfei"
+	AsrTypeWyomingVietnamese = "wyoming_vietnamese_asr"
 )
 
 const (
@@ -37,4 +38,5 @@ const (
 	TtsTypeMinimax      = "minimax"
 	TtsTypeAliyunQwen   = "aliyun_qwen"
 	TtsTypeIndexTTSVLLM = "indextts_vllm"
+	TtsTypePiper        = "piper"
 )

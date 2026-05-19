@@ -1,6 +1,6 @@
 const providers = {
   vad: new Set(['ten_vad', 'webrtc_vad', 'silero_vad']),
-  asr: new Set(['funasr', 'aliyun_funasr', 'doubao', 'aliyun_qwen3', 'xunfei']),
+  asr: new Set(['funasr', 'aliyun_funasr', 'doubao', 'aliyun_qwen3', 'xunfei', 'wyoming_vietnamese_asr']),
   tts: new Set([
     'doubao',
     'doubao_ws',
@@ -14,7 +14,8 @@ const providers = {
     'zhipu',
     'minimax',
     'aliyun_qwen',
-    'indextts_vllm'
+    'indextts_vllm',
+    'piper'
   ]),
   memory: new Set(['nomemo', 'memobase', 'mem0', 'memos']),
   vision: new Set(['aliyun_vision', 'doubao_vision'])
@@ -67,9 +68,10 @@ export function resolveASRProvider(provider, configId, data = {}) {
     if (includes(model, 'qwen3-asr') || includes(wsUrl, '/realtime')) return 'aliyun_qwen3'
     if (includes(model, 'fun-asr') || includes(wsUrl, '/inference')) return 'aliyun_funasr'
     if (has(value, 'access_token', 'resource_id', 'end_window_size', 'chunk_duration')) return 'doubao'
+    if (has(value, 'base_url') || includes(stringValue(value, 'api_url', 'url'), '8090', 'transcribe')) return 'wyoming_vietnamese_asr'
     if (has(value, 'host', 'port', 'chunk_size', 'chunk_interval', 'max_connections')) return 'funasr'
     return ''
-  }, 'funasr')
+  }, 'wyoming_vietnamese_asr')
 }
 
 export function resolveTTSProvider(provider, configId, data = {}) {
@@ -84,10 +86,11 @@ export function resolveTTSProvider(provider, configId, data = {}) {
     if (includes(url, 'bigmodel.cn') || includes(model, 'glm-tts')) return 'zhipu'
     if (includes(url, 'minimax')) return 'minimax'
     if (includes(model, 'indextts')) return 'indextts_vllm'
+    if (includes(url, 'piper') || has(value, 'model_path', 'model_config_path')) return 'piper'
     if (includes(url, 'openspeech', 'volces.com', 'volcengine')) return has(value, 'ws_url', 'ws_host', 'use_stream', 'resource_id') ? 'doubao_ws' : 'doubao'
     if (has(value, 'api_key', 'model', 'voice', 'response_format')) return 'openai'
     return ''
-  }, 'doubao_ws')
+  }, 'edge_offline')
 }
 
 export function resolveMemoryProvider(provider, configId, data = {}) {

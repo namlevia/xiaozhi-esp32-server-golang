@@ -240,7 +240,7 @@ const onlineDevicesCountText = computed(() => initialLoading.value ? '--' : onli
 const knowledgeBaseNameMap = computed(() => {
   const map = new Map()
   for (const kb of knowledgeBases.value) {
-    map.set(Number(kb.id), kb.name || `Knowledge Base #${kb.id}`)
+    map.set(Number(kb.id), kb.name || `Kho tri thức #${kb.id}`)
   }
   return map
 })
@@ -474,7 +474,7 @@ const getKnowledgeBaseCount = (agent) => {
 }
 
 const getKnowledgeBaseNames = (agent) => {
-  return getKnowledgeBaseIds(agent).map((id) => knowledgeBaseNameMap.value.get(Number(id)) || `Knowledge Base #${id}`)
+  return getKnowledgeBaseIds(agent).map((id) => knowledgeBaseNameMap.value.get(Number(id)) || `Kho tri thức #${id}`)
 }
 
 const getKnowledgeBaseTooltip = (agent) => {

@@ -76,23 +76,23 @@ func (vcc *VoiceCloneController) processVoiceCloneTask(taskPrimaryID uint) {
 
 	var clone models.VoiceClone
 	if err = vcc.DB.Where("id = ? AND user_id = ?", task.VoiceCloneID, task.UserID).First(&clone).Error; err != nil {
-		vcc.finishVoiceCloneTaskFailed(task, nil, fmt.Errorf("任务关联复刻记录不存在: %w", err))
+		vcc.finishVoiceCloneTaskFailed(task, nil, fmt.Errorf("Bản ghi clone liên kết với tác vụ không tồn tại: %w", err))
 		return
 	}
 
 	var audio models.VoiceCloneAudio
 	if err = vcc.DB.Where("voice_clone_id = ? AND user_id = ?", clone.ID, task.UserID).Order("created_at DESC").First(&audio).Error; err != nil {
-		vcc.finishVoiceCloneTaskFailed(task, &clone, fmt.Errorf("任务关联音频记录不存在: %w", err))
+		vcc.finishVoiceCloneTaskFailed(task, &clone, fmt.Errorf("Bản ghi audio liên kết với tác vụ không tồn tại: %w", err))
 		return
 	}
 	if !vcc.AudioStorage.FileExists(audio.FilePath) {
-		vcc.finishVoiceCloneTaskFailed(task, &clone, fmt.Errorf("任务音频文件不存在: %s", audio.FilePath))
+		vcc.finishVoiceCloneTaskFailed(task, &clone, fmt.Errorf("File audio của tác vụ không tồn tại: %s", audio.FilePath))
 		return
 	}
 
 	var ttsCfg models.Config
 	if err = vcc.DB.Where("type = ? AND config_id = ?", "tts", clone.TTSConfigID).First(&ttsCfg).Error; err != nil {
-		vcc.finishVoiceCloneTaskFailed(task, &clone, fmt.Errorf("任务关联TTS配置不存在: %w", err))
+		vcc.finishVoiceCloneTaskFailed(task, &clone, fmt.Errorf("Cấu hình TTS liên kết với tác vụ không tồn tại: %w", err))
 		return
 	}
 	provider := normalizeCloneProvider(strings.TrimSpace(ttsCfg.Provider))
@@ -109,7 +109,7 @@ func (vcc *VoiceCloneController) processVoiceCloneTask(taskPrimaryID uint) {
 	case "indextts_vllm":
 		result, err = vcc.cloneWithIndexTTSVLLM(ctx, ttsCfg, audio.FilePath, audio.FileName)
 	default:
-		vcc.finishVoiceCloneTaskFailed(task, &clone, fmt.Errorf("当前任务不支持提供商: %s", provider))
+		vcc.finishVoiceCloneTaskFailed(task, &clone, fmt.Errorf("Tác vụ hiện tại không hỗ trợ nhà cung cấp: %s", provider))
 		return
 	}
 	if err != nil {
@@ -178,7 +178,7 @@ func (vcc *VoiceCloneController) claimVoiceCloneTask(taskPrimaryID uint) (*model
 
 func (vcc *VoiceCloneController) finishVoiceCloneTaskSuccess(task *models.VoiceCloneTask, clone *models.VoiceClone, audio *models.VoiceCloneAudio, result *minimaxVoiceCloneResult) error {
 	if task == nil || clone == nil || audio == nil || result == nil {
-		return errors.New("task/clone/audio/result 参数不能为空")
+		return errors.New("task/clone/audio/result không được để trống")
 	}
 	now := time.Now()
 
@@ -232,7 +232,7 @@ func (vcc *VoiceCloneController) finishVoiceCloneTaskFailed(task *models.VoiceCl
 		return
 	}
 	now := time.Now()
-	lastError := "未知错误"
+	lastError := "Lỗi không xác định"
 	if failure != nil {
 		lastError = truncateForLog(strings.TrimSpace(failure.Error()), 2000)
 	}

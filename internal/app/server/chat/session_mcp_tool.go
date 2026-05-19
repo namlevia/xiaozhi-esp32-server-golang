@@ -21,9 +21,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-//此文件处理 local mcp tool 与 session绑定 的工具调用
+// File này xử lý các tool call local MCP gắn với session.
 
-// 音乐搜索API响应结构
+// Cấu trúc response API tìm nhạc
 type MusicSearchResponse struct {
 	Data  []MusicItem `json:"data"`
 	Code  int         `json:"code"`
@@ -41,13 +41,13 @@ type MusicItem struct {
 	Pic    string `json:"pic"`
 }
 
-// 全局HTTP客户端
+// HTTP client global
 var (
 	httpClient     *http.Client
 	httpClientOnce sync.Once
 )
 
-// 获取配置了连接池的HTTP客户端
+// Lấy HTTP client đã cấu hình connection pool
 func getHTTPClient() *http.Client {
 	httpClientOnce.Do(func() {
 		transport := &http.Transport{
@@ -70,24 +70,24 @@ func getHTTPClient() *http.Client {
 	return httpClient
 }
 
-// 关闭会话
+// Đóng phiên
 func (c *ChatManager) LocalMcpCloseChat() error {
 	return c.ExitChat()
 }
 
-// 清空历史对话
+// Xóa lịch sử hội thoại
 func (c *ChatManager) LocalMcpClearHistory() error {
 	llm_memory.Get().ResetMemory(c.ctx, c.DeviceID)
 	return nil
 }
 
 type PlayMusicParams struct {
-	Name string `json:"name,omitempty" description:"音乐的名称"`
-	//Welcome string `json:"welcome" description:"搜索音乐会耗时过长，用于安抚用户的提示语" required:"true"`
+	Name string `json:"name,omitempty" description:"Tên bài nhạc"`
+	// Welcome string `json:"welcome" description:"Câu chuyển tiếp trấn an người dùng vì tìm nhạc có thể mất thời gian" required:"true"`
 }
 
 type MusicPlaybackControlParams struct {
-	Action string `json:"action" description:"控制动作：resume(继续播放/恢复播放/继续听/接着放)、pause、stop、prev、next、play_playlist(播放歌单/播放歌单里的歌曲/播放播放列表)、enqueue_current；play 和 continue 也会归一化为 resume" required:"true"`
+	Action string `json:"action" description:"Action điều khiển: resume(tiếp tục phát/phát tiếp/nghe tiếp), pause, stop, prev, next, play_playlist(phát danh sách/phát bài trong danh sách/phát playlist), enqueue_current; play và continue cũng được chuẩn hóa thành resume" required:"true"`
 }
 
 type MusicPlaybackControlResult struct {
@@ -102,23 +102,23 @@ type MusicPlaybackControlResult struct {
 	SilenceResponse bool   `json:"silence_response"`
 }
 
-// 播放音乐
+// Phát nhạc
 func (c *ChatManager) LocalMcpPlayMusic(ctx context.Context, musicParams *PlayMusicParams) error {
 	musicName := musicParams.Name
 	//welcome := musicParams.Welcome
 	welcome := ""
-	log.Infof("搜索音乐: %s 中, welcome: %s", musicName, welcome)
+	log.Infof("Đang tìm nhạc: %s, welcome: %s", musicName, welcome)
 	var musicURL, realMusicName string
 	var wg sync.WaitGroup
 	var ierr error
 	wg.Add(2)
 	go func() {
 		defer wg.Done()
-		// 这里可以根据音乐名称获取音乐URL
-		// 目前简化实现，假设musicName就是URL或者从配置中获取
+		// Có thể lấy URL nhạc theo tên bài hát tại đây.
+		// Hiện triển khai đơn giản, giả định musicName là URL hoặc lấy từ config.
 		musicURL, realMusicName, ierr = getMusicURL(musicName)
 		if ierr != nil {
-			log.Errorf("获取音乐URL失败: %v", ierr)
+			log.Errorf("Lấy URL nhạc thất bại: %v", ierr)
 			return
 		}
 
@@ -132,25 +132,25 @@ func (c *ChatManager) LocalMcpPlayMusic(ctx context.Context, musicParams *PlayMu
 	wg.Wait()
 
 	if musicURL == "" {
-		log.Errorf("未找到音乐: %s", musicName)
-		return fmt.Errorf("未找到音乐: %s", musicName)
+		log.Errorf("Không tìm thấy nhạc: %s", musicName)
+		return fmt.Errorf("không tìm thấy nhạc: %s", musicName)
 	}
 
-	log.Infof("找到音乐: %s, URL: %s", realMusicName, musicURL)
+	log.Infof("Tìm thấy nhạc: %s, URL: %s", realMusicName, musicURL)
 
 	return nil
 }
 
-// LocalMcpSwitchDeviceRole 按角色名称切换设备角色（支持模糊匹配）
+// LocalMcpSwitchDeviceRole chuyển vai trò thiết bị theo tên role (hỗ trợ khớp mờ).
 func (c *ChatManager) LocalMcpSwitchDeviceRole(ctx context.Context, roleName string) (string, error) {
 	roleName = strings.TrimSpace(roleName)
 	if roleName == "" {
-		return "", fmt.Errorf("role_name 不能为空")
+		return "", fmt.Errorf("role_name không được rỗng")
 	}
 
 	configProvider, err := user_config.GetProvider(viper.GetString("config_provider.type"))
 	if err != nil {
-		return "", fmt.Errorf("获取配置提供者失败: %w", err)
+		return "", fmt.Errorf("lấy config provider thất bại: %w", err)
 	}
 
 	matchedRoleName, err := configProvider.SwitchDeviceRoleByName(ctx, c.DeviceID, roleName)
@@ -159,18 +159,18 @@ func (c *ChatManager) LocalMcpSwitchDeviceRole(ctx context.Context, roleName str
 	}
 
 	if err := c.ReloadDeviceConfig(ctx); err != nil {
-		return "", fmt.Errorf("角色已切换，但刷新会话配置失败: %w", err)
+		return "", fmt.Errorf("role đã được chuyển nhưng refresh config phiên thất bại: %w", err)
 	}
 
-	log.Infof("设备 %s 切换角色成功, 请求=%s, 匹配=%s", c.DeviceID, roleName, matchedRoleName)
+	log.Infof("Thiết bị %s chuyển role thành công, yêu cầu=%s, khớp=%s", c.DeviceID, roleName, matchedRoleName)
 	return matchedRoleName, nil
 }
 
-// LocalMcpRestoreDeviceDefaultRole 恢复设备默认角色
+// LocalMcpRestoreDeviceDefaultRole khôi phục vai trò mặc định của thiết bị.
 func (c *ChatManager) LocalMcpRestoreDeviceDefaultRole(ctx context.Context) error {
 	configProvider, err := user_config.GetProvider(viper.GetString("config_provider.type"))
 	if err != nil {
-		return fmt.Errorf("获取配置提供者失败: %w", err)
+		return fmt.Errorf("lấy config provider thất bại: %w", err)
 	}
 
 	if err := configProvider.RestoreDeviceDefaultRole(ctx, c.DeviceID); err != nil {
@@ -178,39 +178,39 @@ func (c *ChatManager) LocalMcpRestoreDeviceDefaultRole(ctx context.Context) erro
 	}
 
 	if err := c.ReloadDeviceConfig(ctx); err != nil {
-		return fmt.Errorf("默认角色已恢复，但刷新会话配置失败: %w", err)
+		return fmt.Errorf("role mặc định đã được khôi phục nhưng refresh config phiên thất bại: %w", err)
 	}
 
-	log.Infof("设备 %s 恢复默认角色成功", c.DeviceID)
+	log.Infof("Thiết bị %s khôi phục role mặc định thành công", c.DeviceID)
 	return nil
 }
 
-// LocalMcpSearchKnowledge 检索当前智能体绑定的知识库
+// LocalMcpSearchKnowledge truy xuất knowledge base gắn với agent hiện tại.
 func (c *ChatManager) LocalMcpSearchKnowledge(ctx context.Context, query string, topK int, knowledgeBaseIDs []uint) ([]config_types.KnowledgeSearchHit, error) {
 	if c == nil || c.clientState == nil {
-		return nil, fmt.Errorf("会话状态不可用")
+		return nil, fmt.Errorf("trạng thái phiên không khả dụng")
 	}
 	return rag.Search(ctx, query, topK, c.clientState.DeviceConfig.KnowledgeBases, knowledgeBaseIDs)
 }
 
 func (c *ChatManager) LocalMcpControlMusicPlayback(ctx context.Context, params *MusicPlaybackControlParams) (*MusicPlaybackControlResult, error) {
 	if c == nil {
-		return nil, fmt.Errorf("chat manager 不可用")
+		return nil, fmt.Errorf("chat manager không khả dụng")
 	}
 	return controlMusicPlayback(ctx, c.GetSession(), params)
 }
 
 func controlMusicPlayback(ctx context.Context, session *ChatSession, params *MusicPlaybackControlParams) (*MusicPlaybackControlResult, error) {
 	if session == nil || session.mediaPlayer == nil {
-		return nil, fmt.Errorf("媒体播放器不可用")
+		return nil, fmt.Errorf("media player không khả dụng")
 	}
 	if params == nil {
-		return nil, fmt.Errorf("控制参数不能为空")
+		return nil, fmt.Errorf("tham số điều khiển không được rỗng")
 	}
 
 	action := normalizeMusicPlaybackAction(params.Action)
 	if action == "" {
-		return nil, fmt.Errorf("不支持的控制动作: %s", params.Action)
+		return nil, fmt.Errorf("action điều khiển không được hỗ trợ: %s", params.Action)
 	}
 
 	result := &MusicPlaybackControlResult{
@@ -252,7 +252,7 @@ func controlMusicPlayback(ctx context.Context, session *ChatSession, params *Mus
 		}
 		result.AddedTitle = appendResult.AddedTitle
 		if _, err := session.mediaPlayer.ResumeIfInterruptedPause(); err != nil {
-			log.Warnf("enqueue_current 自动恢复播放失败: %v", err)
+			log.Warnf("enqueue_current tự động resume phát thất bại: %v", err)
 		}
 	}
 
@@ -276,11 +276,11 @@ func flushQueuedMediaAudio(session *ChatSession, action string) {
 
 	if err := session.ttsManager.InterruptAndClearQueueSync(interruptCtx); err != nil {
 		if errors.Is(err, context.DeadlineExceeded) {
-			log.Warnf("媒体控制后清理音频发送队列超时: action=%s", action)
+			log.Warnf("Dọn hàng đợi gửi audio sau điều khiển media bị timeout: action=%s", action)
 			return
 		}
 		if !errors.Is(err, context.Canceled) {
-			log.Warnf("媒体控制后清理音频发送队列失败: action=%s, err=%v", action, err)
+			log.Warnf("Dọn hàng đợi gửi audio sau điều khiển media thất bại: action=%s, err=%v", action, err)
 		}
 	}
 }
@@ -306,21 +306,21 @@ func normalizeMusicPlaybackAction(action string) string {
 	}
 }
 
-// searchMusicFromAPI 从API搜索音乐
+// searchMusicFromAPI tìm nhạc từ API
 func getMusicURL(musicName string) (string, string, error) {
 	client := getHTTPClient()
 
-	// 构建请求体
+	// Tạo request body
 	data := fmt.Sprintf("input=%s&filter=name&type=migu&page=1",
 		url.QueryEscape(musicName))
 
 	req, err := http.NewRequest("POST", "https://music.txqq.pro/",
 		strings.NewReader(data))
 	if err != nil {
-		return "", "", fmt.Errorf("创建请求失败: %v", err)
+		return "", "", fmt.Errorf("tạo request thất bại: %v", err)
 	}
 
-	// 设置请求头，模拟浏览器请求
+	// Set request header để mô phỏng trình duyệt.
 	req.Header.Set("Accept", "application/json, text/javascript, */*; q=0.01")
 	req.Header.Set("Accept-Language", "zh-CN,zh;q=0.9,en;q=0.8")
 	req.Header.Set("Cache-Control", "no-cache")
@@ -338,35 +338,35 @@ func getMusicURL(musicName string) (string, string, error) {
 	req.Header.Set("sec-ch-ua-mobile", "?0")
 	req.Header.Set("sec-ch-ua-platform", `"Windows"`)
 
-	// 设置超时
+	// Set timeout
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 	req = req.WithContext(ctx)
 
 	resp, err := client.Do(req)
 	if err != nil {
-		return "", "", fmt.Errorf("API请求失败: %v", err)
+		return "", "", fmt.Errorf("request API thất bại: %v", err)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return "", "", fmt.Errorf("API请求失败，状态码: %d", resp.StatusCode)
+		return "", "", fmt.Errorf("request API thất bại, status code: %d", resp.StatusCode)
 	}
 
-	// 解析响应
+	// Parse response
 	var searchResp MusicSearchResponse
 	if err := json.NewDecoder(resp.Body).Decode(&searchResp); err != nil {
-		return "", "", fmt.Errorf("解析响应失败: %v", err)
+		return "", "", fmt.Errorf("parse response thất bại: %v", err)
 	}
 
 	if searchResp.Code != 200 {
-		return "", "", fmt.Errorf("API返回错误: %s", searchResp.Error)
+		return "", "", fmt.Errorf("API trả lỗi: %s", searchResp.Error)
 	}
 
 	if len(searchResp.Data) == 0 {
-		return "", "", fmt.Errorf("未找到音乐: %s", musicName)
+		return "", "", fmt.Errorf("không tìm thấy nhạc: %s", musicName)
 	}
 	musicItem := searchResp.Data[0]
-	// 返回第一个搜索结果的URL
+	// Trả URL của kết quả tìm kiếm đầu tiên.
 	return musicItem.URL, musicItem.Title, nil
 }

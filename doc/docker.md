@@ -1,34 +1,37 @@
+# Môi trường chạy
 
-# 运行环境
+#### I. Triển khai FunASR
 
-#### 一. 部署funasr
+Tham khảo [tài liệu triển khai Docker của FunASR](https://github.com/modelscope/FunASR/blob/main/runtime/docs/SDK_advanced_guide_online_zh.md).
 
-参见 [funasr docker部署文档](https://github.com/modelscope/FunASR/blob/main/runtime/docs/SDK_advanced_guide_online_zh.md)
+#### II. Clone code
 
-#### 二. 克隆代码
->git clone 'https://github.com/hackers365/xiaozhi-esp32-server-golang'
+```bash
+git clone 'https://github.com/hackers365/xiaozhi-esp32-server-golang'
+```
 
-#### 三. 配置config/config.yaml，详细参见 [config配置说明](config.md)
+#### III. Cấu hình `config/config.yaml`, xem chi tiết tại [mô tả cấu hình](config.md)
 
-主要修改项如下：
+Các mục chính cần sửa như sau:
+
 ```yaml
-# 1. asr语音识别
+# 1. Nhận diện giọng nói ASR
 asr:
   provider: "funasr"
   funasr:
-    host: "127.0.0.1"      # 部署的funasr websocket服务的ip
-    port: "10096"          # 部署的funasr websocket的port
-    mode: "offline"        # 模式, 使用offline即可
+    host: "127.0.0.1"      # IP của dịch vụ FunASR WebSocket đã triển khai
+    port: "10096"          # Cổng WebSocket của FunASR đã triển khai
+    mode: "offline"        # Chế độ, dùng offline là được
     # ...
 
-# 2. tts
+# 2. TTS
 tts:
-  provider: "xiaozhi"      # 使用tts的类型, 建议doubao_ws, 也可以选择免费的edge
+  provider: "xiaozhi"      # Loại TTS sử dụng; khuyến nghị doubao_ws, cũng có thể chọn edge miễn phí
   doubao_ws:
-    appid: "6886011847"                         # 你的appid
-    access_token: "access_token"                # 你的access token
+    appid: "6886011847"                         # appid của bạn
+    access_token: "access_token"                # access token của bạn
     cluster: "volcano_tts"
-    voice: "zh_female_wanwanxiaohe_moon_bigtts" # 音色，默认是湾湾小何
+    voice: "zh_female_wanwanxiaohe_moon_bigtts" # Âm sắc, mặc định là Wanwan Xiaohe
     ws_host: "openspeech.bytedance.com"
     use_stream: true
   edge:
@@ -40,50 +43,55 @@ tts:
     receive_timeout: 60
   # ....
 
-# 3. llm 大模型
+# 3. LLM model lớn
 llm:
-  provider: "deepseek"                        # 提供商，对应下面的key
+  provider: "deepseek"                        # Provider, tương ứng với key bên dưới
   deepseek:
-    type: "openai"                            # 服务端接口兼容的类型
-    model_name: "Pro/deepseek-ai/DeepSeek-V3" # 模型名称
-    api_key: "api_key"                        # api key
-    base_url: "https://api.siliconflow.cn/v1" # 服务接口，默认硅基流动
+    type: "openai"                            # Kiểu interface server tương thích
+    model_name: "Pro/deepseek-ai/DeepSeek-V3" # Tên model
+    api_key: "api_key"                        # API key
+    base_url: "https://api.siliconflow.cn/v1" # Interface service, mặc định SiliconFlow
     max_tokens: 500
   # ...
-
 ```
 
-#### 四. 启动docker
-在项目根目录 启动docker并挂载config目录和端口(http/websocket:8989, 其它端口按需映射)
+#### IV. Khởi động Docker
 
-```
+Tại root dự án, khởi động Docker và mount thư mục `config` cùng cổng (http/websocket:8989, các cổng khác map theo nhu cầu):
+
+```bash
 docker run -itd --name xiaozhi_server -v $(pwd)/config:/workspace/config -p 8989:8989 hackers365/xiaozhi_server:latest
 
-国内连不上的话，使用如下源
-
+# Nếu không kết nối được ở trong nước, dùng mirror sau:
 docker run -itd --name xiaozhi_server -v $(pwd)/config:/workspace/config -p 8989:8989 docker.jsdelivr.fyi/hackers365/xiaozhi_server:latest
 ```
 
-**ten_vad 支持说明：**
-- Docker 镜像已自动包含 ten_vad 库文件，无需额外挂载
-- 如果使用 ten_vad 作为 VAD 提供商，在配置文件中设置 `vad.provider: "ten_vad"` 即可
+**Mô tả hỗ trợ ten_vad:**
 
-现在应该可以连上 
->ws://机器ip:8989/xiaozhi/v1/ 
+- Docker image đã tự bao gồm file thư viện ten_vad, không cần mount thêm
+- Nếu dùng ten_vad làm VAD provider, chỉ cần đặt `vad.provider: "ten_vad"` trong file cấu hình
 
-进行聊天了
+Lúc này có thể kết nối tới:
 
-
-# 开发环境
+```text
+ws://IP_máy:8989/xiaozhi/v1/
 ```
+
+để chat.
+
+# Môi trường phát triển
+
+```bash
 docker run -itd --name xiaozhi_server_golang -v $(pwd):/workspace/ -p 8989:8989 hackers365/xiaozhi_golang:0.1
-国内连不上的话，使用如下源
+
+# Nếu không kết nối được ở trong nước, dùng mirror sau:
 docker run -itd --name xiaozhi_server_golang -v $(pwd):/workspace/ -p 8989:8989 docker.jsdelivr.fyi/hackers365/xiaozhi_golang:0.1
 
 go build -o xiaozhi_server cmd/server/*.go
 ```
 
-**开发环境 ten_vad 说明：**
-- 开发环境镜像已包含 ten_vad 编译和运行时依赖
-- 如果需要在开发环境中使用 ten_vad，确保项目根目录的 `lib/ten-vad` 目录存在
-- 编译时会自动使用 ten_vad 的头文件和库文件
+**Mô tả ten_vad trong môi trường phát triển:**
+
+- Image môi trường phát triển đã bao gồm dependency biên dịch và runtime của ten_vad
+- Nếu cần dùng ten_vad trong môi trường phát triển, hãy đảm bảo thư mục `lib/ten-vad` tồn tại ở root dự án
+- Khi biên dịch, hệ thống sẽ tự dùng header và file thư viện của ten_vad
