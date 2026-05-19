@@ -172,7 +172,7 @@ jobs:
           CGO_ENABLED: "1"
         run: |
           go mod tidy
-          go build -v -tags "nolibopusfile asr_server manager embed_ui" \
+          go build -v -tags "nolibopusfile asr_server manager embed_ui tts_server" \
             -ldflags "-s -w" \
             -o xiaozhi_server ./cmd/server
 
@@ -184,8 +184,9 @@ jobs:
 
           cp xiaozhi_server "$PACK_DIR/"
           cp build/common/main_config.yaml build/common/manager.json build/common/asr_server.json "$PACK_DIR/"
+          cp build/common/tts_server_aio.json "$PACK_DIR/tts_server.json"
           cp doc/aio/README_macos.md "$PACK_DIR/README.md"
-          cp -r build/common/models build/common/data "$PACK_DIR/"
+          cp -r build/common/models build/common/data tts_server/tts-model "$PACK_DIR/"
           rm -f "$PACK_DIR/data/xiaozhi.db"
           cp -R lib/ten-vad/lib/macOS/ten_vad.framework "$PACK_DIR/ten-vad/lib/macOS/"
           # Sao chép toàn bộ sherpa dylib, gồm file có version như libonnxruntime.1.17.1.dylib.

@@ -1,0 +1,30 @@
+{
+  "server": {
+    "host": "0.0.0.0",
+    "port": 9001,
+    "path": "/tts",
+    "read_timeout_seconds": 60,
+    "write_timeout_seconds": 60
+  },
+  "edge": {
+    "voice": "vi-VN-HoaiMyNeural",
+    "rate": "+0%",
+    "volume": "+0%",
+    "pitch": "+0Hz",
+    "connect_timeout_seconds": 10,
+    "receive_timeout_seconds": 60
+  },
+  "piper": {
+    "model_dir": "tts-model",
+    "default_voice": "banmai",
+    "espeak_data_dir": "",
+    "provider": "cpu",
+    "response_format": "wav",
+    "num_threads": 2,
+    "max_num_sentences": 1,
+    "silence_scale": 0.2,
+    "length_scale": 1.0,
+    "noise_scale": 0.667,
+    "noise_w": 0.8
+  }
+}

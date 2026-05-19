@@ -140,6 +140,7 @@ COPY --from=builder /app/xiaozhi_server /workspace/bin/xiaozhi_server
 COPY --from=builder /app/lib /workspace/lib
 COPY --from=builder /app/asr_server/lib /workspace/asr_server/lib
 COPY --from=builder /app/build/common/tts_server.json /workspace/tts_server.json
+COPY --from=builder /app/tts_server/tts-model /workspace/tts-model
 
 # Tạo các thư mục cần thiết
 RUN mkdir -p /workspace/logs /workspace/config

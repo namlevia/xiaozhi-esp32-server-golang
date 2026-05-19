@@ -16,7 +16,9 @@ xiaozhi_server-linux-amd64-<version>/
 ├── main_config.yaml            # File cấu hình chính
 ├── manager.json                # Cấu hình backend quản trị
 ├── asr_server.json             # Cấu hình dịch vụ ASR
+├── tts_server.json             # Cấu hình Edge/Piper TTS offline nhúng
 ├── models/                     # Thư mục file model
+├── tts-model/                  # Model Piper/VITS offline
 ├── data/                       # Thư mục dữ liệu
 └── logs/                       # Thư mục log
 ```
@@ -86,6 +88,7 @@ Hoặc dùng `systemd` (khuyến nghị cho môi trường production), xem ph�
 | **8080** | `manager.json` → `server.port` | **Backend quản trị**: Web console + HTTP API |
 | **8989** | `main_config.yaml` → `websocket.port` | **WebSocket service chính**: thiết bị/client kết nối |
 | **9000** | `asr_server.json` → `server.port` | **Dịch vụ ASR/voiceprint**: interface nội bộ nhận diện giọng nói |
+| **9001** | `tts_server.json` → `server.port` | **Edge/Piper TTS offline nhúng**: `/healthz`, `/piper/voices`, `/piper/tts`, WebSocket `/tts` |
 | **2883** | Cấu hình console | **MQTT service**: thiết bị kết nối MQTT |
 | **8990** | Cấu hình console | **UDP service**: thiết bị giao tiếp UDP |
 | **6060** | Cấu hình console | **pprof**: phân tích hiệu năng (mặc định tắt) |
@@ -102,6 +105,13 @@ Hoặc dùng `systemd` (khuyến nghị cho môi trường production), xem ph�
 - **WebSocket**: `ws://<IP server>:8989/`
 - **MQTT**: `<IP server>:2883`
 - **UDP**: `<IP server>:8990`
+
+### TTS offline nhúng
+
+- **Health**: `http://localhost:9001/healthz`
+- **Danh sách giọng Piper**: `http://localhost:9001/piper/voices`
+- **Edge Offline**: WebSocket `ws://localhost:9001/tts`
+- **Piper Offline**: HTTP `POST http://localhost:9001/piper/tts`
 
 ## Sửa cấu hình
 
