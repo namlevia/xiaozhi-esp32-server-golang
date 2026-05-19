@@ -96,6 +96,14 @@ services:
       - DB_USER=root
       - DB_PASSWORD=password
       - DB_NAME=xiaozhi_admin
+      - DEFAULT_ASR_BASE_URL=http://voice-server:9000
+      - DEFAULT_EDGE_OFFLINE_URL=ws://main-server:9001/tts
+      - DEFAULT_PIPER_API_URL=http://main-server:9001/piper/tts
+      - DEFAULT_PIPER_VOICE=banmai
+      - DEFAULT_PIPER_MODEL_PATH=/workspace/tts-model/banmai.onnx
+      - DEFAULT_PIPER_MODEL_CONFIG_PATH=/workspace/tts-model/banmai.onnx.json
+      - HEALTH_TTS_BASE_URL=http://main-server:9001
+      - HEALTH_ASR_ADDRESS=voice-server:9000
     extra_hosts:
       - "host.docker.internal:host-gateway"
     volumes:

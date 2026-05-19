@@ -121,7 +121,7 @@
         </div>
       </el-form-item>
       <el-form-item label="API URL" prop="piper.api_url">
-        <el-input v-model="model.piper.api_url" placeholder="http://main-server:9001/piper/tts" />
+        <el-input v-model="model.piper.api_url" placeholder="http://127.0.0.1:9001/piper/tts" />
       </el-form-item>
       <el-form-item label="Giọng" prop="piper.voice">
         <el-select
@@ -142,10 +142,10 @@
         </div>
       </el-form-item>
       <el-form-item label="Model ONNX" prop="piper.model_path">
-        <el-input v-model="model.piper.model_path" placeholder="/workspace/tts-model/banmai.onnx" />
+        <el-input v-model="model.piper.model_path" placeholder="tts-model/ngochuyen.onnx" />
       </el-form-item>
       <el-form-item label="Metadata JSON" prop="piper.model_config_path">
-        <el-input v-model="model.piper.model_config_path" placeholder="/workspace/tts-model/banmai.onnx.json" />
+        <el-input v-model="model.piper.model_config_path" placeholder="tts-model/ngochuyen.onnx.json" />
         <div class="form-tip">
           <el-icon><InfoFilled /></el-icon>
           Model ONNX và metadata sẽ tự điền khi chọn giọng; chỉ sửa thủ công khi cần cấu hình nâng cao.

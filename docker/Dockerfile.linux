@@ -74,7 +74,10 @@ RUN PACK_DIR="/out/linux-amd64/xiaozhi_server-linux-amd64" \
     && cp build/common/main_config.yaml build/common/manager.json build/common/asr_server.json "$PACK_DIR/" \
     && cp build/common/tts_server_aio.json "$PACK_DIR/tts_server.json" \
     && cp doc/aio/README_linux.md "$PACK_DIR/README.md" \
-    && cp -r build/common/models build/common/data tts_server/tts-model "$PACK_DIR/" \
+    && cp -r build/common/models build/common/data "$PACK_DIR/" \
+    && mkdir -p "$PACK_DIR/tts-model" \
+    && cp tts_server/tts-model/adam1.onnx tts_server/tts-model/adam1.onnx.json "$PACK_DIR/tts-model/" \
+    && cp tts_server/tts-model/ngochuyen.onnx tts_server/tts-model/ngochuyen.onnx.json "$PACK_DIR/tts-model/" \
     && chmod +x "$PACK_DIR/xiaozhi_server"
 
 FROM scratch AS export

@@ -16,7 +16,7 @@
   },
   "piper": {
     "model_dir": "tts-model",
-    "default_voice": "banmai",
+    "default_voice": "ngochuyen",
     "espeak_data_dir": "",
     "provider": "cpu",
     "response_format": "wav",

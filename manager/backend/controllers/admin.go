@@ -124,11 +124,20 @@ type healthCheckItem struct {
 }
 
 func (ac *AdminController) HealthCheck(c *gin.Context) {
+	ttsBaseURL := os.Getenv("HEALTH_TTS_BASE_URL")
+	if ttsBaseURL == "" {
+		ttsBaseURL = "http://127.0.0.1:9001"
+	}
+	asrAddress := os.Getenv("HEALTH_ASR_ADDRESS")
+	if asrAddress == "" {
+		asrAddress = "127.0.0.1:9000"
+	}
+
 	items := []healthCheckItem{{Name: "Backend", Status: "healthy", Message: "Backend đang phản hồi"}}
 	items = append(items, ac.checkDatabaseHealth())
-	items = append(items, checkHTTPHealth("Main-server TTS", "http://main-server:9001/healthz", 2*time.Second))
-	items = append(items, checkHTTPHealth("Piper voices", "http://main-server:9001/piper/voices", 3*time.Second))
-	items = append(items, checkTCPHealth("ASR voice-server", "voice-server:9000", 2*time.Second))
+	items = append(items, checkHTTPHealth("Main-server TTS", strings.TrimRight(ttsBaseURL, "/")+"/healthz", 2*time.Second))
+	items = append(items, checkHTTPHealth("Piper voices", strings.TrimRight(ttsBaseURL, "/")+"/piper/voices", 3*time.Second))
+	items = append(items, checkTCPHealth("ASR voice-server", asrAddress, 2*time.Second))
 	items = append(items, ac.checkConfigReadiness())
 
 	overall := "healthy"

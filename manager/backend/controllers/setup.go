@@ -191,7 +191,7 @@ func (sc *SetupController) InitializeDatabase(c *gin.Context) {
 		Name:      "Vietnamese ASR (Go)",
 		ConfigID:  "wyoming_vietnamese_asr_default",
 		Provider:  "wyoming_vietnamese_asr",
-		JsonData:  `{"base_url":"http://voice-server:9000","sample_rate":16000,"timeout_ms":30000}`,
+		JsonData:  `{"base_url":"http://127.0.0.1:9000","sample_rate":16000,"timeout_ms":30000}`,
 		Enabled:   true,
 		IsDefault: true,
 	}

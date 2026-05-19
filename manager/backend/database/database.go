@@ -330,8 +330,12 @@ func ensureDefaultASRConfig(db *gorm.DB) error {
 		return nil
 	}
 
+	baseURL := os.Getenv("DEFAULT_ASR_BASE_URL")
+	if baseURL == "" {
+		baseURL = "http://127.0.0.1:9000"
+	}
 	data := map[string]interface{}{
-		"base_url":    "http://voice-server:9000",
+		"base_url":    baseURL,
 		"sample_rate": 16000,
 		"timeout_ms":  30000,
 	}
@@ -365,9 +369,13 @@ func ensureDefaultTTSConfig(db *gorm.DB) error {
 		return nil
 	}
 
+	serverURL := os.Getenv("DEFAULT_EDGE_OFFLINE_URL")
+	if serverURL == "" {
+		serverURL = "ws://127.0.0.1:9001/tts"
+	}
 	data := map[string]interface{}{
 		"provider":       "edge_offline",
-		"server_url":     "ws://main-server:9001/tts",
+		"server_url":     serverURL,
 		"timeout":        30,
 		"sample_rate":    16000,
 		"channels":       1,
@@ -403,12 +411,28 @@ func ensureDefaultPiperTTSConfig(db *gorm.DB) error {
 		return nil
 	}
 
+	apiURL := os.Getenv("DEFAULT_PIPER_API_URL")
+	if apiURL == "" {
+		apiURL = "http://127.0.0.1:9001/piper/tts"
+	}
+	modelPath := os.Getenv("DEFAULT_PIPER_MODEL_PATH")
+	if modelPath == "" {
+		modelPath = "tts-model/ngochuyen.onnx"
+	}
+	modelConfigPath := os.Getenv("DEFAULT_PIPER_MODEL_CONFIG_PATH")
+	if modelConfigPath == "" {
+		modelConfigPath = "tts-model/ngochuyen.onnx.json"
+	}
+	voice := os.Getenv("DEFAULT_PIPER_VOICE")
+	if voice == "" {
+		voice = "ngochuyen"
+	}
 	data := map[string]interface{}{
 		"provider":          "piper",
-		"api_url":           "http://main-server:9001/piper/tts",
-		"voice":             "banmai",
-		"model_path":        "/workspace/tts-model/banmai.onnx",
-		"model_config_path": "/workspace/tts-model/banmai.onnx.json",
+		"api_url":           apiURL,
+		"voice":             voice,
+		"model_path":        modelPath,
+		"model_config_path": modelConfigPath,
 		"response_format":   "wav",
 		"sample_rate":       22050,
 		"frame_duration":    20,

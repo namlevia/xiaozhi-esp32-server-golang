@@ -112,6 +112,7 @@ Hoặc dùng `systemd` (khuyến nghị cho môi trường production), xem ph�
 - **Danh sách giọng Piper**: `http://localhost:9001/piper/voices`
 - **Edge Offline**: WebSocket `ws://localhost:9001/tts`
 - **Piper Offline**: HTTP `POST http://localhost:9001/piper/tts`
+- Gói ZIP chỉ kèm sẵn một số giọng nhẹ hơn: `ngochuyen` và `adam1`. Muốn thêm giọng khác, copy cặp file `.onnx` và `.onnx.json` vào thư mục `tts-model/`.
 
 ## Sửa cấu hình
 
