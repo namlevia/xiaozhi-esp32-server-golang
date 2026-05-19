@@ -183,6 +183,10 @@ jobs:
           rm -rf /tmp/zipformer-vietnamese-30m /tmp/espeak-ng
           git clone --depth 1 https://huggingface.co/hynt/Zipformer-30M-RNNT-6000h /tmp/zipformer-vietnamese-30m
           git -C /tmp/zipformer-vietnamese-30m lfs pull
+          test "$(wc -c < /tmp/zipformer-vietnamese-30m/encoder-epoch-20-avg-10.onnx)" -gt 10000000
+          test "$(wc -c < /tmp/zipformer-vietnamese-30m/decoder-epoch-20-avg-10.onnx)" -gt 1000000
+          test "$(wc -c < /tmp/zipformer-vietnamese-30m/joiner-epoch-20-avg-10.onnx)" -gt 1000000
+          test "$(wc -c < /tmp/zipformer-vietnamese-30m/config.json)" -gt 1000
           git clone --depth 1 https://github.com/espeak-ng/espeak-ng /tmp/espeak-ng
 
       - name: Đóng gói release macOS

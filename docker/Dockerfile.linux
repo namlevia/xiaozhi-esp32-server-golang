@@ -13,7 +13,11 @@ FROM python:3.11-slim-bookworm AS model-downloader
 WORKDIR /model
 RUN apt-get update && apt-get install -y --no-install-recommends git git-lfs ca-certificates && rm -rf /var/lib/apt/lists/*
 RUN git lfs install
-RUN git clone --depth 1 https://huggingface.co/hynt/Zipformer-30M-RNNT-6000h /model && git lfs pull
+RUN git clone --depth 1 https://huggingface.co/hynt/Zipformer-30M-RNNT-6000h /model && git lfs pull \
+    && test "$(wc -c < /model/encoder-epoch-20-avg-10.onnx)" -gt 10000000 \
+    && test "$(wc -c < /model/decoder-epoch-20-avg-10.onnx)" -gt 1000000 \
+    && test "$(wc -c < /model/joiner-epoch-20-avg-10.onnx)" -gt 1000000 \
+    && test "$(wc -c < /model/config.json)" -gt 1000
 
 FROM alpine/git:2.45.2 AS espeak-data
 WORKDIR /espeak-ng
