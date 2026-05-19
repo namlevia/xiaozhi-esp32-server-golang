@@ -17,7 +17,7 @@
   "piper": {
     "model_dir": "tts-model",
     "default_voice": "ngochuyen",
-    "espeak_data_dir": "",
+    "espeak_data_dir": "espeak-ng-data",
     "provider": "cpu",
     "response_format": "wav",
     "num_threads": 2,

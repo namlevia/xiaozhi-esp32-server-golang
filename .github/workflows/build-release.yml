@@ -176,6 +176,15 @@ jobs:
             -ldflags "-s -w" \
             -o xiaozhi_server ./cmd/server
 
+      - name: Tải model ASR Vietnamese và dữ liệu espeak
+        run: |
+          brew install git-lfs
+          git lfs install
+          rm -rf /tmp/zipformer-vietnamese-30m /tmp/espeak-ng
+          git clone --depth 1 https://huggingface.co/hynt/Zipformer-30M-RNNT-6000h /tmp/zipformer-vietnamese-30m
+          git -C /tmp/zipformer-vietnamese-30m lfs pull
+          git clone --depth 1 https://github.com/espeak-ng/espeak-ng /tmp/espeak-ng
+
       - name: Đóng gói release macOS
         run: |
           ARCH="${{ matrix.arch }}"
@@ -187,6 +196,9 @@ jobs:
           cp build/common/tts_server_aio.json "$PACK_DIR/tts_server.json"
           cp doc/aio/README_macos.md "$PACK_DIR/README.md"
           cp -r build/common/models build/common/data "$PACK_DIR/"
+          mkdir -p "$PACK_DIR/models/asr"
+          cp -r /tmp/zipformer-vietnamese-30m "$PACK_DIR/models/asr/zipformer-vietnamese-30m"
+          cp -r /tmp/espeak-ng/espeak-ng-data "$PACK_DIR/espeak-ng-data"
           mkdir -p "$PACK_DIR/tts-model"
           cp tts_server/tts-model/adam1.onnx tts_server/tts-model/adam1.onnx.json "$PACK_DIR/tts-model/"
           cp tts_server/tts-model/ngochuyen.onnx tts_server/tts-model/ngochuyen.onnx.json "$PACK_DIR/tts-model/"

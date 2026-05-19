@@ -19,6 +19,7 @@ xiaozhi_server-linux-amd64-<version>/
 ├── tts_server.json             # Cấu hình Edge/Piper TTS offline nhúng
 ├── models/                     # Thư mục file model
 ├── tts-model/                  # Model Piper/VITS offline
+├── espeak-ng-data/             # Dữ liệu phát âm cho Piper/VITS
 ├── data/                       # Thư mục dữ liệu
 └── logs/                       # Thư mục log
 ```

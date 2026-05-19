@@ -13,6 +13,8 @@ import (
 	"strings"
 	"sync"
 
+	log "xiaozhi-esp32-server-golang/logger"
+
 	sherpa "github.com/k2-fsa/sherpa-onnx-go/sherpa_onnx"
 )
 
@@ -87,6 +89,12 @@ func (s *Server) handlePiperVoices(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) handlePiperTTS(w http.ResponseWriter, r *http.Request) {
+	defer func() {
+		if recovered := recover(); recovered != nil {
+			log.Errorf("Piper TTS panic: %v", recovered)
+			http.Error(w, fmt.Sprintf("Piper TTS lỗi runtime: %v", recovered), http.StatusInternalServerError)
+		}
+	}()
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
 		return
