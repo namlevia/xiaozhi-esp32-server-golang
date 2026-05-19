@@ -1,4 +1,4 @@
-﻿name: Build Go binaries
+﻿name: Build release Go binaries
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -16,24 +16,24 @@ jobs:
   build-windows-amd64:
     runs-on: ubuntu-latest
     steps:
-      - name: Set version
+      - name: Thiết lập phiên bản
         run: echo "VERSION=${GITHUB_REF_NAME//\//-}" >> $GITHUB_ENV
-      - name: Checkout code
+      - name: Checkout mã nguồn
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify asr_server submodule
+      - name: Kiểm tra submodule asr_server
         run: |
           if [ ! -f asr_server/server/setup.go ]; then
-            echo "::error::asr_server 子模块未拉取，binary 构建需要 voice_server" 
+            echo "::error::Chưa kéo submodule asr_server, build binary cần voice_server"
             ls -la asr_server 2>/dev/null || true
             exit 1
           fi
 
-      - name: Build Windows package with Docker
+      - name: Build gói Windows bằng Docker
         run: |
           docker build --target builder -f docker/Dockerfile.windows -t xiaozhi-build-windows .
           docker create --name xiaozhi_windows xiaozhi-build-windows
@@ -42,7 +42,7 @@ jobs:
           rm -rf "out/xiaozhi_server-windows-amd64-${VERSION}"
           mv out/windows-amd64 "out/xiaozhi_server-windows-amd64-${VERSION}"
 
-      - name: Upload Windows package
+      - name: Upload gói Windows
         uses: actions/upload-artifact@v4
         with:
           name: xiaozhi_server-windows-amd64-${{ env.VERSION }}
@@ -51,24 +51,24 @@ jobs:
   build-linux-amd64:
     runs-on: ubuntu-latest
     steps:
-      - name: Set version
+      - name: Thiết lập phiên bản
         run: echo "VERSION=${GITHUB_REF_NAME//\//-}" >> $GITHUB_ENV
-      - name: Checkout code
+      - name: Checkout mã nguồn
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify asr_server submodule
+      - name: Kiểm tra submodule asr_server
         run: |
           if [ ! -f asr_server/server/setup.go ]; then
-            echo "::error::asr_server 子模块未拉取，binary 构建需要 voice_server" 
+            echo "::error::Chưa kéo submodule asr_server, build binary cần voice_server"
             ls -la asr_server 2>/dev/null || true
             exit 1
           fi
 
-      - name: Build Linux package with Docker
+      - name: Build gói Linux bằng Docker
         run: |
           docker build --target builder -f docker/Dockerfile.linux -t xiaozhi-build-linux .
           docker create --name xiaozhi_linux xiaozhi-build-linux
@@ -77,7 +77,7 @@ jobs:
           rm -rf "out/xiaozhi_server-linux-amd64-${VERSION}"
           mv out/linux-amd64 "out/xiaozhi_server-linux-amd64-${VERSION}"
 
-      - name: Upload Linux package
+      - name: Upload gói Linux
         uses: actions/upload-artifact@v4
         with:
           name: xiaozhi_server-linux-amd64-${{ env.VERSION }}
@@ -93,37 +93,37 @@ jobs:
             runner: macos-14
     runs-on: ${{ matrix.runner }}
     steps:
-      - name: Set version
+      - name: Thiết lập phiên bản
         run: echo "VERSION=${GITHUB_REF_NAME//\//-}" >> $GITHUB_ENV
 
-      - name: Checkout code
+      - name: Checkout mã nguồn
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
           submodules: recursive
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Verify asr_server submodule
+      - name: Kiểm tra submodule asr_server
         run: |
           if [ ! -f asr_server/server/setup.go ]; then
-            echo "::error::asr_server 子模块未拉取，binary 构建需要 voice_server"
+            echo "::error::Chưa kéo submodule asr_server, build binary cần voice_server"
             ls -la asr_server 2>/dev/null || true
             exit 1
           fi
 
-      - name: Set up Go
+      - name: Thiết lập Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.24.4"
 
-      - name: Set up Node (frontend)
+      - name: Thiết lập Node (frontend)
         uses: actions/setup-node@v4
         with:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: manager/frontend/package-lock.json
 
-      - name: Build libopus (static, macOS)
+      - name: Build libopus static cho macOS
         run: |
           brew update
           brew install pkg-config autoconf automake libtool
@@ -137,17 +137,17 @@ jobs:
           popd
           echo "PKG_CONFIG_PATH=$HOME/opus-macos/lib/pkgconfig" >> $GITHUB_ENV
 
-      - name: Build frontend (embed_ui)
+      - name: Build frontend để embed UI
         run: |
           cd manager/frontend && npm ci && npm run build
           mkdir -p ../backend/static/dist
           cp -r dist/* ../backend/static/dist/
 
-      - name: Download sherpa-onnx-go-macos libs
+      - name: Tải thư viện sherpa-onnx-go cho macOS
         run: |
           SHERPA_ONNX_GO_VERSION="$(grep -E 'github.com/k2-fsa/sherpa-onnx-go[[:space:]]+v' go.mod | head -n 1 | awk '{print $2}')"
           if [ -z "$SHERPA_ONNX_GO_VERSION" ]; then
-            echo "sherpa-onnx-go version not found in go.mod" >&2
+            echo "Không tìm thấy phiên bản sherpa-onnx-go trong go.mod" >&2
             exit 1
           fi
           SHERPA_ONNX_GO_MACOS_VERSION="${SHERPA_ONNX_GO_VERSION#v}"
@@ -160,12 +160,12 @@ jobs:
             SHERPA_LIB_DIR="${SHERPA_DIR}/lib/aarch64-apple-darwin"
           fi
           if [ ! -d "$SHERPA_LIB_DIR" ]; then
-            echo "sherpa-onnx lib dir not found: $SHERPA_LIB_DIR" >&2
+            echo "Không tìm thấy thư mục lib sherpa-onnx: $SHERPA_LIB_DIR" >&2
             exit 1
           fi
           echo "SHERPA_LIB_DIR=$SHERPA_LIB_DIR" >> $GITHUB_ENV
 
-      - name: Build macOS binary
+      - name: Build binary macOS
         env:
           GOOS: darwin
           GOARCH: ${{ matrix.arch }}
@@ -176,7 +176,7 @@ jobs:
             -ldflags "-s -w" \
             -o xiaozhi_server ./cmd/server
 
-      - name: Pack macOS release
+      - name: Đóng gói release macOS
         run: |
           ARCH="${{ matrix.arch }}"
           PACK_DIR="out/macos-${ARCH}/xiaozhi_server-macos-${ARCH}"
@@ -188,7 +188,7 @@ jobs:
           cp -r build/common/models build/common/data "$PACK_DIR/"
           rm -f "$PACK_DIR/data/xiaozhi.db"
           cp -R lib/ten-vad/lib/macOS/ten_vad.framework "$PACK_DIR/ten-vad/lib/macOS/"
-          # Copy all sherpa dylibs, including versioned files like libonnxruntime.1.17.1.dylib.
+          # Sao chép toàn bộ sherpa dylib, gồm file có version như libonnxruntime.1.17.1.dylib.
           cp "$SHERPA_LIB_DIR"/*.dylib "$PACK_DIR/ten-vad/lib/macOS/"
           chmod +x "$PACK_DIR/xiaozhi_server"
           chmod +x ./build/macos/fix_rpath.sh
@@ -198,7 +198,7 @@ jobs:
           rm -rf "out/xiaozhi_server-macos-${ARCH}-${VERSION}"
           mv "out/macos-${ARCH}" "out/xiaozhi_server-macos-${ARCH}-${VERSION}"
 
-      - name: Upload macOS package
+      - name: Upload gói macOS
         uses: actions/upload-artifact@v4
         with:
           name: xiaozhi_server-macos-${{ matrix.arch }}-${{ env.VERSION }}
@@ -212,33 +212,33 @@ jobs:
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
-      - name: Set version
+      - name: Thiết lập phiên bản
         run: echo "VERSION=${GITHUB_REF_NAME//\//-}" >> $GITHUB_ENV
-      - name: Download Windows package
+      - name: Tải gói Windows
         uses: actions/download-artifact@v4
         with:
           name: xiaozhi_server-windows-amd64-${{ env.VERSION }}
           path: release/xiaozhi_server-windows-amd64-${{ env.VERSION }}
 
-      - name: Download Linux package
+      - name: Tải gói Linux
         uses: actions/download-artifact@v4
         with:
           name: xiaozhi_server-linux-amd64-${{ env.VERSION }}
           path: release/xiaozhi_server-linux-amd64-${{ env.VERSION }}
 
-      - name: Download macOS amd64 package
+      - name: Tải gói macOS amd64
         uses: actions/download-artifact@v4
         with:
           name: xiaozhi_server-macos-amd64-${{ env.VERSION }}
           path: release/xiaozhi_server-macos-amd64-${{ env.VERSION }}
 
-      - name: Download macOS arm64 package
+      - name: Tải gói macOS arm64
         uses: actions/download-artifact@v4
         with:
           name: xiaozhi_server-macos-arm64-${{ env.VERSION }}
           path: release/xiaozhi_server-macos-arm64-${{ env.VERSION }}
 
-      - name: Pack release zip
+      - name: Đóng gói file zip release
         run: |
           cd release
           zip -r "xiaozhi_server-windows-amd64-${VERSION}.zip" "xiaozhi_server-windows-amd64-${VERSION}"
@@ -246,7 +246,7 @@ jobs:
           zip -r "xiaozhi_server-macos-amd64-${VERSION}.zip" "xiaozhi_server-macos-amd64-${VERSION}"
           zip -r "xiaozhi_server-macos-arm64-${VERSION}.zip" "xiaozhi_server-macos-arm64-${VERSION}"
 
-      - name: Create GitHub Release
+      - name: Tạo GitHub Release
         uses: softprops/action-gh-release@v2
         with:
           tag_name: ${{ github.ref_name }}
