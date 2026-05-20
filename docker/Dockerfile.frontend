@@ -17,6 +17,7 @@ RUN ls -a
 
 # Giai đoạn runtime
 FROM nginx:alpine
+LABEL org.opencontainers.image.source="https://github.com/namlevia/Xiaozhi-Esp32-Server-Go-Vi"
 
 # Sao chép kết quả build
 COPY --from=builder /app/dist /usr/share/nginx/html

@@ -1,5 +1,6 @@
 # Dùng image Ubuntu chính thức làm base image
 FROM golang:1.24.4
+LABEL org.opencontainers.image.source="https://github.com/namlevia/Xiaozhi-Esp32-Server-Go-Vi"
 
 # Thiết lập biến môi trường cài đặt non-interactive
 ENV DEBIAN_FRONTEND=noninteractive

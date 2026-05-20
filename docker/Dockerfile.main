@@ -87,6 +87,7 @@ RUN go build -tags "nolibopusfile asr_server manager embed_ui tts_server" -o /ap
 
 # Giai đoạn runtime, chỉ hỗ trợ kiến trúc amd64/x64
 FROM --platform=linux/amd64 ubuntu:22.04
+LABEL org.opencontainers.image.source="https://github.com/namlevia/Xiaozhi-Esp32-Server-Go-Vi"
 
 # Thiết lập biến môi trường cài đặt non-interactive
 ENV DEBIAN_FRONTEND=noninteractive

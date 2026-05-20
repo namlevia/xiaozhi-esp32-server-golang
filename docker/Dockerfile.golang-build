@@ -1,5 +1,6 @@
 # syntax=docker/dockerfile:1
 FROM golang:1.24.4
+LABEL org.opencontainers.image.source="https://github.com/namlevia/Xiaozhi-Esp32-Server-Go-Vi"
 
 ENV DEBIAN_FRONTEND=noninteractive
 ENV GOPROXY=https://goproxy.cn,direct
