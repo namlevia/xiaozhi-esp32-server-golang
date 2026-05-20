@@ -252,11 +252,94 @@ jobs:
           name: xiaozhi_server-macos-${{ matrix.arch }}-lite-${{ env.VERSION }}
           path: out/xiaozhi_server-macos-${{ matrix.arch }}-lite-${{ env.VERSION }}
 
+  build-android-arm64:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Thiết lập phiên bản
+        run: echo "VERSION=${GITHUB_REF_NAME//\//-}" >> $GITHUB_ENV
+
+      - name: Checkout mã nguồn
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Kiểm tra submodule asr_server
+        run: |
+          if [ ! -f asr_server/server/setup.go ]; then
+            echo "::error::Chưa kéo submodule asr_server, build binary cần voice_server"
+            ls -la asr_server 2>/dev/null || true
+            exit 1
+          fi
+
+      - name: Thiết lập Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24.4"
+
+      - name: Thiết lập Node (frontend)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: manager/frontend/package-lock.json
+
+      - name: Build frontend để embed UI
+        run: |
+          cd manager/frontend && npm ci && npm run build
+          mkdir -p ../backend/static/dist
+          cp -r dist/* ../backend/static/dist/
+
+      - name: Build binary Android ARM64 Lite
+        env:
+          GOOS: android
+          GOARCH: arm64
+          CGO_ENABLED: "1"
+        run: |
+          NDK_HOME="${ANDROID_NDK_HOME:-${ANDROID_NDK_LATEST_HOME:-${ANDROID_NDK_ROOT:-}}}"
+          if [ -z "$NDK_HOME" ]; then
+            echo "::error::Không tìm thấy Android NDK trên runner"
+            exit 1
+          fi
+          export CC="$NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/aarch64-linux-android24-clang"
+          if [ ! -x "$CC" ]; then
+            echo "::error::Không tìm thấy Android NDK clang: $CC"
+            exit 1
+          fi
+          go mod tidy
+          go build -v -tags "manager embed_ui" \
+            -ldflags "-s -w" \
+            -o xiaozhi_server ./cmd/server
+
+      - name: Đóng gói release Android ARM64 Lite
+        run: |
+          PACK_DIR="out/android-arm64-lite/xiaozhi_server-android-arm64-lite"
+          mkdir -p "$PACK_DIR/logs" "$PACK_DIR/data" "$PACK_DIR/storage"
+          cp xiaozhi_server "$PACK_DIR/"
+          cp build/common/main_config.yaml build/common/manager.json build/common/asr_server.json "$PACK_DIR/"
+          cp build/common/tts_server_aio.json "$PACK_DIR/tts_server.json"
+          cp doc/aio/README_android.md "$PACK_DIR/README.md"
+          cp -r build/common/models "$PACK_DIR/"
+          cp -r build/common/data/* "$PACK_DIR/data/"
+          rm -f "$PACK_DIR/data/xiaozhi.db"
+          chmod +x "$PACK_DIR/xiaozhi_server"
+
+          rm -rf "out/xiaozhi_server-android-arm64-lite-${VERSION}"
+          mv out/android-arm64-lite "out/xiaozhi_server-android-arm64-lite-${VERSION}"
+
+      - name: Upload gói Android ARM64 Lite
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiaozhi_server-android-arm64-lite-${{ env.VERSION }}
+          path: out/xiaozhi_server-android-arm64-lite-${{ env.VERSION }}
+
   release:
     needs:
       - build-windows-amd64
       - build-linux-amd64
       - build-macos
+      - build-android-arm64
     if: startsWith(github.ref, 'refs/tags/')
     runs-on: ubuntu-latest
     steps:
@@ -310,6 +393,12 @@ jobs:
           name: xiaozhi_server-macos-arm64-lite-${{ env.VERSION }}
           path: release/xiaozhi_server-macos-arm64-lite-${{ env.VERSION }}
 
+      - name: Tải gói Android ARM64 Lite
+        uses: actions/download-artifact@v4
+        with:
+          name: xiaozhi_server-android-arm64-lite-${{ env.VERSION }}
+          path: release/xiaozhi_server-android-arm64-lite-${{ env.VERSION }}
+
       - name: Đóng gói file zip release
         run: |
           cd release
@@ -321,6 +410,7 @@ jobs:
           zip -r "xiaozhi_server-macos-amd64-lite-${VERSION}.zip" "xiaozhi_server-macos-amd64-lite-${VERSION}"
           zip -r "xiaozhi_server-macos-arm64-${VERSION}.zip" "xiaozhi_server-macos-arm64-${VERSION}"
           zip -r "xiaozhi_server-macos-arm64-lite-${VERSION}.zip" "xiaozhi_server-macos-arm64-lite-${VERSION}"
+          zip -r "xiaozhi_server-android-arm64-lite-${VERSION}.zip" "xiaozhi_server-android-arm64-lite-${VERSION}"
           tar -C "xiaozhi_server-linux-amd64-${VERSION}/xiaozhi_server-linux-amd64" -czf xiaozhi_models_asr_vi.tar.gz models/asr/zipformer-vietnamese-30m
           tar -C "xiaozhi_server-linux-amd64-${VERSION}/xiaozhi_server-linux-amd64" -czf xiaozhi_models_piper_vi.tar.gz tts-model espeak-ng-data
 
@@ -343,6 +433,11 @@ jobs:
             - File ZIP lớn hơn vì đã có sẵn model.
             - Chạy được ngay và phù hợp máy không có internet.
             - Nên chọn bản này nếu cần copy sang máy offline hoàn toàn.
+
+            ### Android ARM64 Lite - thử nghiệm
+            - Dành cho máy Android ARM64 chạy qua Termux hoặc môi trường shell tương tự, không phải file APK.
+            - Bản này ưu tiên web quản trị và server chính; ASR/TTS nhúng native Android sẽ cần bổ sung thư viện `.so` phù hợp nếu muốn bật đầy đủ như desktop.
+            - Nếu chỉ dùng thử trên điện thoại Android, hãy đọc README trong ZIP trước khi chạy.
           files: |
             release/xiaozhi_server-windows-amd64-${{ env.VERSION }}.zip
             release/xiaozhi_server-windows-amd64-lite-${{ env.VERSION }}.zip
@@ -352,6 +447,7 @@ jobs:
             release/xiaozhi_server-macos-amd64-lite-${{ env.VERSION }}.zip
             release/xiaozhi_server-macos-arm64-${{ env.VERSION }}.zip
             release/xiaozhi_server-macos-arm64-lite-${{ env.VERSION }}.zip
+            release/xiaozhi_server-android-arm64-lite-${{ env.VERSION }}.zip
             release/xiaozhi_models_asr_vi.tar.gz
             release/xiaozhi_models_piper_vi.tar.gz
         env:
