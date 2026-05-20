@@ -24,6 +24,7 @@ mkdir -p logs
 - WebSocket thiết bị: `1233`
 - MQTT: `1235`
 - UDP: `1236`
+- TTS Edge local: `http://127.0.0.1:1232/healthz`, WebSocket `ws://127.0.0.1:1232/tts`
 
 Nếu cổng `1234` bị ứng dụng khác chiếm, đổi đồng thời:
 
@@ -46,6 +47,6 @@ Sau đó chạy lại `./xiaozhi_server` và mở `http://127.0.0.1:38080`.
 ## Lưu ý về bản Android ARM64 Lite
 
 - Bản này ưu tiên web quản trị và server chính chạy trong shell Android.
-- ASR/TTS nhúng native Android chưa được bật mặc định như Windows/Linux/macOS vì cần thư viện `.so` riêng cho Android.
-- Nếu cần ASR/TTS đầy đủ trên Android, cần bổ sung và kiểm thử thêm thư viện native Android cho sherpa/onnxruntime, Piper/espeak và các module liên quan.
+- TTS Edge local đã được bật qua service nhúng `/tts`; lần tổng hợp cần internet vì Edge TTS vẫn gọi dịch vụ Microsoft ở phía server local.
+- Piper native và ASR native Android chưa bật đầy đủ như Windows/Linux/macOS vì cần Go binding và `.so` Android cho sherpa/onnxruntime, Piper/espeak và các module liên quan.
 - Android có thể giới hạn tiến trình nền; nên giữ Termux mở khi đang test.
