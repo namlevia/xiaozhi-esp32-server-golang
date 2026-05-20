@@ -314,6 +314,9 @@ func RunConfigTest(data map[string]interface{}, testText string) (vadResult, asr
 			}
 			ttsProvider := wrapper.GetProvider()
 			ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+			if strings.TrimSpace(testText) == "" || testText == "配置测试" {
+				testText = "Xin chào, đây là kiểm tra cấu hình giọng nói."
+			}
 			outputChan, err := ttsProvider.TextToSpeechStream(ctx, testText, 24000, 1, 60)
 			if err != nil {
 				cancel()
