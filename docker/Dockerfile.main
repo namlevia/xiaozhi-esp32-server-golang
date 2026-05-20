@@ -1,5 +1,13 @@
 # Giai đoạn build, chỉ hỗ trợ kiến trúc amd64/x64
 # syntax=docker/dockerfile:1
+FROM --platform=linux/amd64 node:20-bullseye AS frontend
+
+WORKDIR /src/manager/frontend
+COPY manager/frontend/package*.json ./
+RUN npm ci
+COPY manager/frontend ./
+RUN npm run build
+
 FROM --platform=linux/amd64 golang:1.24.4 AS builder
 
 # Thiết lập biến môi trường cài đặt non-interactive
@@ -73,9 +81,9 @@ ENV CGO_LDFLAGS="-L${ONNXRUNTIME_DIR}/lib -lonnxruntime -L/app/lib/ten-vad/lib/L
 ENV CGO_CFLAGS="-I${ONNXRUNTIME_DIR}/include/onnxruntime -I/app/lib/ten-vad/include"
 
 # Biên dịch chương trình chính đầy đủ AIO cho Docker package
-RUN mkdir -p manager/backend/static/dist \
-    && if [ -d manager/frontend/dist ]; then cp -r manager/frontend/dist/* manager/backend/static/dist/; fi \
-    && go build -tags "nolibopusfile asr_server manager embed_ui tts_server" -o /app/xiaozhi_server ./cmd/server/
+RUN mkdir -p manager/backend/static/dist
+COPY --from=frontend /src/manager/frontend/dist /app/manager/backend/static/dist
+RUN go build -tags "nolibopusfile asr_server manager embed_ui tts_server" -o /app/xiaozhi_server ./cmd/server/
 
 # Giai đoạn runtime, chỉ hỗ trợ kiến trúc amd64/x64
 FROM --platform=linux/amd64 ubuntu:22.04
