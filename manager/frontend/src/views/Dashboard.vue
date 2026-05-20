@@ -100,8 +100,8 @@
           <template #header>
             <div class="card-header">
               <div>
-                <p class="card-eyebrow">HEALTH CHECK</p>
-                <h3>Trạng thái stack local</h3>
+                <p class="card-eyebrow">KIỂM TRA HỆ THỐNG</p>
+                <h3>Tình trạng dịch vụ</h3>
               </div>
               <el-button size="small" :loading="healthLoading" @click="loadHealthCheck">Làm mới</el-button>
             </div>
@@ -109,10 +109,18 @@
 
           <div v-loading="healthLoading" class="health-content">
             <div v-if="healthCheckedAt" class="health-summary">
-              <el-tag :type="healthStatusType(healthStatus)" effect="light">{{ healthStatusLabel(healthStatus) }}</el-tag>
-              <span>Kiểm tra lúc {{ formatDateTime(healthCheckedAt) }}</span>
+              <div class="health-summary-main">
+                <el-tag :type="healthStatusType(healthStatus)" effect="light">{{ healthStatusLabel(healthStatus) }}</el-tag>
+                <span>Cập nhật lúc {{ formatDateTime(healthCheckedAt) }}</span>
+              </div>
+              <el-button link type="primary" class="health-toggle" @click="healthDetailsExpanded = !healthDetailsExpanded">
+                <span>{{ healthDetailsExpanded ? 'Ẩn chi tiết' : 'Xem chi tiết' }}</span>
+                <el-icon :class="['health-toggle-icon', { expanded: healthDetailsExpanded }]">
+                  <ArrowDown />
+                </el-icon>
+              </el-button>
             </div>
-            <div v-if="healthItems.length" class="health-list">
+            <div v-if="healthItems.length && healthDetailsExpanded" class="health-list">
               <div v-for="item in healthItems" :key="item.name" class="health-row">
                 <div class="health-row-main">
                   <strong>{{ item.name }}</strong>
@@ -125,7 +133,7 @@
                 </div>
               </div>
             </div>
-            <div v-else class="empty-inline">Chưa có dữ liệu health check.</div>
+            <div v-else-if="!healthCheckedAt" class="empty-inline">Đang kiểm tra trạng thái dịch vụ...</div>
           </div>
         </el-card>
 
@@ -261,7 +269,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/utils/api'
@@ -275,7 +283,8 @@ import {
   Upload,
   Cpu,
   Guide,
-  CopyDocument
+  CopyDocument,
+  ArrowDown
 } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
@@ -363,6 +372,9 @@ const healthLoading = ref(false)
 const healthStatus = ref('unknown')
 const healthCheckedAt = ref('')
 const healthItems = ref([])
+const healthDetailsExpanded = ref(false)
+let healthAutoRefreshTimer = null
+let healthAutoRefreshCount = 0
 
 function healthStatusLabel(status) {
   switch (status) {
@@ -390,7 +402,7 @@ function formatDateTime(value) {
   return value ? new Date(value).toLocaleString('vi-VN') : '—'
 }
 
-async function loadHealthCheck() {
+async function loadHealthCheck({ auto = false } = {}) {
   healthLoading.value = true
   try {
     const res = await api.get('/admin/health-check', { timeout: 10000 })
@@ -398,13 +410,27 @@ async function loadHealthCheck() {
     healthStatus.value = data.status || 'unknown'
     healthCheckedAt.value = data.checked_at || ''
     healthItems.value = data.items || []
+    scheduleHealthAutoRefresh(auto)
   } catch (error) {
     healthStatus.value = 'unreachable'
     healthCheckedAt.value = new Date().toISOString()
-    healthItems.value = [{ name: 'Health check', status: 'unreachable', message: error.response?.data?.error || error.message || 'Yêu cầu health check thất bại' }]
+    healthItems.value = [{ name: 'Kiểm tra hệ thống', status: 'unreachable', message: error.response?.data?.error || error.message || 'Yêu cầu kiểm tra hệ thống thất bại' }]
   } finally {
     healthLoading.value = false
   }
+}
+
+function scheduleHealthAutoRefresh(auto) {
+  if (healthAutoRefreshTimer) {
+    clearTimeout(healthAutoRefreshTimer)
+    healthAutoRefreshTimer = null
+  }
+  const shouldContinue = auto && healthStatus.value !== 'healthy' && healthAutoRefreshCount < 12
+  if (!shouldContinue) return
+  healthAutoRefreshCount += 1
+  healthAutoRefreshTimer = window.setTimeout(() => {
+    loadHealthCheck({ auto: true })
+  }, 5000)
 }
 
 function formatOtaResponseDisplay(str) {
@@ -480,7 +506,14 @@ onMounted(async () => {
   await loadStats()
   if (authStore.isAdmin) {
     loadServiceAddress()
-    loadHealthCheck()
+    healthAutoRefreshCount = 0
+    loadHealthCheck({ auto: true })
+  }
+})
+
+onUnmounted(() => {
+  if (healthAutoRefreshTimer) {
+    clearTimeout(healthAutoRefreshTimer)
   }
 })
 
@@ -870,8 +903,24 @@ const handleFileChange = async (event) => {
 }
 
 .health-summary {
+  justify-content: space-between;
   color: var(--apple-text-secondary);
   font-size: 13px;
+}
+
+.health-summary-main,
+.health-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.health-toggle-icon {
+  transition: transform 0.2s ease;
+}
+
+.health-toggle-icon.expanded {
+  transform: rotate(180deg);
 }
 
 .health-row {
