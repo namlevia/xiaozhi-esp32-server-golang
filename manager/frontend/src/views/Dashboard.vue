@@ -103,11 +103,15 @@
                 <p class="card-eyebrow">KIỂM TRA HỆ THỐNG</p>
                 <h3>Tình trạng dịch vụ</h3>
               </div>
-              <el-button size="small" :loading="healthLoading" @click="loadHealthCheck">Làm mới</el-button>
+              <el-button size="small" :loading="healthChecking" @click="loadHealthCheck">Làm mới</el-button>
             </div>
           </template>
 
-          <div v-loading="healthLoading" class="health-content">
+          <div v-loading="healthChecking" class="health-content">
+            <div v-if="healthChecking" class="health-loading-inline">
+              <el-icon class="is-loading"><Loading /></el-icon>
+              <span>Đang kiểm tra trạng thái dịch vụ...</span>
+            </div>
             <div v-if="healthCheckedAt" class="health-summary">
               <div class="health-summary-main">
                 <el-tag :type="healthStatusType(healthStatus)" effect="light">{{ healthStatusLabel(healthStatus) }}</el-tag>
@@ -269,7 +273,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@/stores/auth'
 import api from '@/utils/api'
@@ -284,7 +288,8 @@ import {
   Cpu,
   Guide,
   CopyDocument,
-  ArrowDown
+  ArrowDown,
+  Loading
 } from '@element-plus/icons-vue'
 
 const { t } = useI18n()
@@ -369,6 +374,9 @@ function copyAddress(text) {
 const otaTestLoading = ref(false)
 const otaTestResult = ref(null)
 const healthLoading = ref(false)
+const healthAutoChecking = ref(false)
+const healthStarted = ref(false)
+const healthChecking = computed(() => healthLoading.value || healthAutoChecking.value)
 const healthStatus = ref('unknown')
 const healthCheckedAt = ref('')
 const healthItems = ref([])
@@ -403,6 +411,17 @@ function formatDateTime(value) {
 }
 
 async function loadHealthCheck({ auto = false } = {}) {
+  if (!auto) {
+    healthAutoChecking.value = false
+    healthAutoRefreshCount = 0
+    if (healthAutoRefreshTimer) {
+      clearTimeout(healthAutoRefreshTimer)
+      healthAutoRefreshTimer = null
+    }
+  } else {
+    healthAutoChecking.value = true
+  }
+
   healthLoading.value = true
   try {
     const res = await api.get('/admin/health-check', { timeout: 10000 })
@@ -415,6 +434,7 @@ async function loadHealthCheck({ auto = false } = {}) {
     healthStatus.value = 'unreachable'
     healthCheckedAt.value = new Date().toISOString()
     healthItems.value = [{ name: 'Kiểm tra hệ thống', status: 'unreachable', message: error.response?.data?.error || error.message || 'Yêu cầu kiểm tra hệ thống thất bại' }]
+    scheduleHealthAutoRefresh(auto)
   } finally {
     healthLoading.value = false
   }
@@ -425,12 +445,27 @@ function scheduleHealthAutoRefresh(auto) {
     clearTimeout(healthAutoRefreshTimer)
     healthAutoRefreshTimer = null
   }
+
   const shouldContinue = auto && healthStatus.value !== 'healthy' && healthAutoRefreshCount < 12
-  if (!shouldContinue) return
+  if (!shouldContinue) {
+    healthAutoChecking.value = false
+    return
+  }
+
+  healthAutoChecking.value = true
   healthAutoRefreshCount += 1
   healthAutoRefreshTimer = window.setTimeout(() => {
     loadHealthCheck({ auto: true })
   }, 5000)
+}
+
+function startHealthAutoCheck() {
+  if (healthStarted.value) return
+  healthStarted.value = true
+  healthAutoRefreshCount = 0
+  healthAutoChecking.value = true
+  loadHealthCheck({ auto: true })
+  loadServiceAddress()
 }
 
 function formatOtaResponseDisplay(str) {
@@ -502,12 +537,11 @@ const stats = ref({
 const programStartedAt = ref('—')
 const fileInput = ref(null)
 
+watch(() => authStore.isAdmin, (isAdmin) => {
+  if (isAdmin) startHealthAutoCheck()
+}, { immediate: true })
+
 onMounted(() => {
-  if (authStore.isAdmin) {
-    healthAutoRefreshCount = 0
-    loadHealthCheck({ auto: true })
-    loadServiceAddress()
-  }
   loadStats()
 })
 
@@ -515,6 +549,7 @@ onUnmounted(() => {
   if (healthAutoRefreshTimer) {
     clearTimeout(healthAutoRefreshTimer)
   }
+  healthAutoChecking.value = false
 })
 
 const loadStats = async () => {
@@ -906,6 +941,19 @@ const handleFileChange = async (event) => {
   justify-content: space-between;
   color: var(--apple-text-secondary);
   font-size: 13px;
+}
+
+.health-loading-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: fit-content;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--apple-primary);
+  background: var(--apple-primary-soft);
+  font-size: 13px;
+  font-weight: 600;
 }
 
 .health-summary-main,
