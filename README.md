@@ -97,7 +97,7 @@ Tải gói nén phù hợp với nền tảng của bạn, giải nén và chạ
 - **Trang Release**: <https://github.com/hackers365/xiaozhi-esp32-server-golang/releases>
 - **Hướng dẫn sử dụng**: [doc/quickstart_bundle_tutorial.md](doc/quickstart_bundle_tutorial.md)
 
-Sau khi khởi động, truy cập **http://<IP-hoặc-domain-của-server>:8080** để vào console web và cấu hình.
+Sau khi khởi động, truy cập **http://<IP-hoặc-domain-của-server>:1234** để vào console web và cấu hình.
 
 ### Cách 2: triển khai bằng Docker
 

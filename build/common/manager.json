@@ -1,6 +1,6 @@
 {
   "server": {
-    "port": "8080",
+    "port": "1234",
     "mode": "debug"
   },
   "database": {
@@ -21,7 +21,7 @@
     "expire_hour": 24
   },
   "speaker_service": {
-    "url": "http://127.0.0.1:9000"
+    "url": "http://127.0.0.1:1231"
   },
   "storage": {
     "speaker_audio_path": "storage/speakers",

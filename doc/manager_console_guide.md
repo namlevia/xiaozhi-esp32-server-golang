@@ -2,7 +2,7 @@
 
 ## Truy cập trang quản trị
 
-- Địa chỉ: http://<IP hoặc domain server>:8080
+- Địa chỉ: http://<IP hoặc domain server>:1234
 
 ---
 

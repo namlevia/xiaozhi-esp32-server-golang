@@ -79,7 +79,7 @@ Bước này sửa `rpath` trong binary từ đường dẫn source trên máy b
 
 ### 1. Truy cập Web console
 
-Mở trình duyệt và truy cập: **http://<IP hoặc domain server>:8080**
+Mở trình duyệt và truy cập: **http://<IP hoặc domain server>:1234**
 
 <!-- Vị trí ảnh chụp: màn hình đăng nhập -->
 > Hình: màn hình đăng nhập Web console
@@ -102,7 +102,7 @@ Chương trình đã tích hợp dịch vụ nhận diện giọng nói.
 
 ### Q1: Sau khi khởi động không truy cập được Web console?
 
-Kiểm tra firewall và đảm bảo cổng 8080 có thể truy cập.
+Kiểm tra firewall và đảm bảo cổng 1234 có thể truy cập.
 
 ### Q2: Khởi động lại dịch vụ như thế nào?
 

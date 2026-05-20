@@ -1,6 +1,6 @@
 {
   "server": {
-    "port": 9000,
+    "port": 1231,
     "host": "0.0.0.0",
     "read_timeout": 300,
     "websocket": {

@@ -20,12 +20,12 @@ mkdir -p logs
 
 ## Cổng mặc định
 
-- Web quản trị: `http://127.0.0.1:8080`
-- WebSocket thiết bị: `8989`
-- MQTT: `2883`
-- UDP: `8990`
+- Web quản trị: `http://127.0.0.1:1234`
+- WebSocket thiết bị: `1233`
+- MQTT: `1235`
+- UDP: `1236`
 
-Nếu cổng `8080` bị ứng dụng khác chiếm, đổi đồng thời:
+Nếu cổng `1234` bị ứng dụng khác chiếm, đổi đồng thời:
 
 - `manager.json`: `server.port`
 - `main_config.yaml`: `manager.backend_url`

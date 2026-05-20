@@ -22,7 +22,7 @@ config_provider:          # Tương ứng với provider trong domain/config/
   update_interval: "5m"   # Khoảng thời gian cập nhật cấu hình, hỗ trợ đơn vị như "5m", "1h", "30s"
 
 manager:                  # Cấu hình quản trị nội bộ, tương ứng với domain/config/manager/manager.go
-  backend_url: "http://127.0.0.1:8080" # Địa chỉ backend quản trị nội bộ
+  backend_url: "http://127.0.0.1:1234" # Địa chỉ backend quản trị nội bộ
   auth_token: "xiaozhi_admin_secret_key" # Token gọi HTTP nội bộ của console (giá trị mặc định, phải đổi khi chạy production; không dùng nguyên giá trị này trên môi trường thật)
   endpoint_auth_token: "xiaozhi_mcp_openclaw_secret_key" # Token kiểm tra chữ ký JWT cho endpoint MCP/OpenClaw (giá trị mặc định, phải đổi khi chạy production; không dùng nguyên giá trị này trên môi trường thật)
   history_timeout: 5s        # Thời gian timeout cho yêu cầu HTTP
@@ -50,14 +50,14 @@ redis:
 # Cấu hình dịch vụ WebSocket
 websocket:
   host: "0.0.0.0"  # Địa chỉ lắng nghe; 0.0.0.0 nghĩa là lắng nghe trên mọi card mạng
-  port: 8989       # Cổng lắng nghe WebSocket
+  port: 1233       # Cổng lắng nghe WebSocket
 
 # Cấu hình MQTT client (kết nối tới máy chủ MQTT bên ngoài)
 mqtt:
   enable: true                # Có bật MQTT client hay không; nếu false thì máy chủ UDP cũng sẽ bị tắt
   broker: "127.0.0.1"         # Địa chỉ MQTT broker
   type: "tcp"                 # Kiểu kết nối
-  port: 2883                  # Cổng MQTT
+  port: 1235                  # Cổng MQTT
   client_id: "xiaozhi_server" # Client ID
   username: "admin"           # Tên người dùng MQTT
   password: "test!@#"         # Mật khẩu MQTT (giá trị ví dụ/dev; phải đổi khi chạy production)
@@ -66,7 +66,7 @@ mqtt:
 mqtt_server:
   enable: true                          # Có bật máy chủ MQTT hay không
   listen_host: "0.0.0.0"                # Địa chỉ lắng nghe
-  listen_port: 2883                     # Cổng lắng nghe
+  listen_port: 1235                     # Cổng lắng nghe
   client_id: "xiaozhi_server"           # Client ID của máy chủ
   username: "admin"                     # Tên người dùng mặc định
   password: "test!@#"                   # Mật khẩu mặc định (phải đổi khi chạy production)
@@ -75,16 +75,16 @@ mqtt_server:
   # Cấu hình kết nối TLS an toàn
   tls:
     enable: false                # Có bật TLS hay không
-    port: 8883                   # Cổng TLS
+    port: 1237                   # Cổng TLS
     pem: "config/server.pem"     # Đường dẫn file chứng chỉ
     key: "config/server.key"     # Đường dẫn file khóa riêng
 
 # Cấu hình dịch vụ UDP
 udp:
   external_host: "127.0.0.1"  # Địa chỉ truy cập từ bên ngoài, sẽ được gửi xuống trong bản tin hello
-  external_port: 8990         # Cổng truy cập từ bên ngoài, sẽ được gửi xuống trong bản tin hello
+  external_port: 1236         # Cổng truy cập từ bên ngoài, sẽ được gửi xuống trong bản tin hello
   listen_host: "0.0.0.0"      # Địa chỉ lắng nghe
-  listen_port: 8990           # Cổng lắng nghe
+  listen_port: 1236           # Cổng lắng nghe
 
 # Cấu hình resource pool (mọi loại tài nguyên dùng chung cấu hình mặc định)
 resource_pools:
@@ -127,7 +127,7 @@ asr:
   provider: "wyoming_vietnamese_asr"  # Nhà cung cấp ASR: wyoming_vietnamese_asr / funasr / doubao
   # Cấu hình Vietnamese ASR Go-native
   wyoming_vietnamese_asr:
-    base_url: "http://127.0.0.1:8082"  # Địa chỉ dịch vụ ASR tiếng Việt Go-native
+    base_url: "http://127.0.0.1:1231"  # Địa chỉ dịch vụ ASR tiếng Việt Go-native
     sample_rate: 16000                  # Tần số lấy mẫu audio gửi sang ASR
     timeout_ms: 30000                   # Thời gian timeout khi gọi /transcribe
   # Cấu hình FunASR
@@ -197,7 +197,7 @@ tts:
     receive_timeout: 60            # Timeout nhận dữ liệu (giây)
   # Cấu hình Edge TTS offline
   edge_offline:
-    server_url: "ws://localhost:9001/tts"  # Địa chỉ máy chủ TTS local
+    server_url: "ws://localhost:1232/tts"  # Địa chỉ máy chủ TTS local
     timeout: 30                            # Thời gian timeout (giây)
     sample_rate: 16000                     # Tần số lấy mẫu
     channels: 1                            # Số kênh
@@ -258,7 +258,7 @@ llm:
 # Cấu hình nhận diện hình ảnh
 vision:
   enable_auth: false  # Có bật xác thực hay không
-  vision_url: "http://192.168.208.214:8989/xiaozhi/api/vision"  # Địa chỉ Vision API được cấp xuống thiết bị
+  vision_url: "http://192.168.208.214:1233/xiaozhi/api/vision"  # Địa chỉ Vision API được cấp xuống thiết bị
   # Cấu hình mô hình ngôn ngữ thị giác
   vllm:
     provider: "aliyun_vision"  # Nhà cung cấp model thị giác
@@ -283,7 +283,7 @@ ota:
   # Cấu hình môi trường test, dùng cho kiểm thử nội bộ
   test:
     websocket:
-      url: "ws://192.168.208.214:8989/xiaozhi/v1/"  # Địa chỉ WebSocket
+      url: "ws://192.168.208.214:1233/xiaozhi/v1/"  # Địa chỉ WebSocket
     mqtt:
       enable: false                # Khi là true, hệ thống sẽ cấp cấu hình MQTT xuống thiết bị
       endpoint: "192.168.208.214"  # Điểm cuối MQTT, có thể kèm cổng
@@ -365,5 +365,5 @@ wakeup_words:
 
 voice_identify:
   enable: true
-  base_url: "http://192.168.208.214:8080"
+  base_url: "http://192.168.208.214:1231"
   threshold: 0.4  # Ngưỡng nhận diện giọng nói, phạm vi 0.0-1.0, mặc định 0.6

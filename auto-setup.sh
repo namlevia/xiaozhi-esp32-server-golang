@@ -140,10 +140,10 @@ start_server() {
     return 0
   fi
 
-  if curl -fsSL --max-time 5 "http://127.0.0.1:8080" >/dev/null 2>&1; then
-    info "Manager UI đã sẵn sàng: http://127.0.0.1:8080"
+  if curl -fsSL --max-time 5 "http://127.0.0.1:1234" >/dev/null 2>&1; then
+    info "Manager UI đã sẵn sàng: http://127.0.0.1:1234"
   else
-    warn "Chưa xác nhận được UI 127.0.0.1:8080. Server có thể vẫn đang khởi động. Xem log: $dir/logs/run.log"
+    warn "Chưa xác nhận được UI 127.0.0.1:1234. Server có thể vẫn đang khởi động. Xem log: $dir/logs/run.log"
   fi
 }
 
@@ -200,7 +200,7 @@ Cài đặt xong.
 Thư mục: $INSTALL_DIR/current
 Log server: $INSTALL_DIR/current/logs/run.log
 Mở giao diện quản trị:
-  http://127.0.0.1:8080
+  http://127.0.0.1:1234
 
 Dừng server:
   kill "\$(cat "$INSTALL_DIR/current/logs/server.pid")"

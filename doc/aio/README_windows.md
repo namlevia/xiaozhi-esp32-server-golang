@@ -40,33 +40,33 @@ Nhấp đúp `start.bat` để khởi động service. Sau khi khởi động, c
 
 | Cổng | Nguồn cấu hình | Mô tả |
 |------|----------|------|
-| **8080** | `manager.json` → `server.port` | **Backend quản trị**: Web console + HTTP API |
-| **8989** | `main_config.yaml` → `websocket.port` | **WebSocket service chính**: thiết bị/client kết nối |
-| **9000** | `asr_server.json` → `server.port` | **Dịch vụ ASR/voiceprint**: interface nội bộ nhận diện giọng nói |
-| **9001** | `tts_server.json` → `server.port` | **Edge/Piper TTS offline nhúng**: `/healthz`, `/piper/voices`, `/piper/tts`, WebSocket `/tts` |
-| **2883** | Cấu hình console | **MQTT service**: thiết bị kết nối MQTT |
-| **8990** | Cấu hình console | **UDP service**: thiết bị giao tiếp UDP |
+| **1234** | `manager.json` → `server.port` | **Backend quản trị**: Web console + HTTP API |
+| **1233** | `main_config.yaml` → `websocket.port` | **WebSocket service chính**: thiết bị/client kết nối |
+| **1231** | `asr_server.json` → `server.port` | **Dịch vụ ASR/voiceprint**: interface nội bộ nhận diện giọng nói |
+| **1232** | `tts_server.json` → `server.port` | **Edge/Piper TTS offline nhúng**: `/healthz`, `/piper/voices`, `/piper/tts`, WebSocket `/tts` |
+| **1235** | Cấu hình console | **MQTT service**: thiết bị kết nối MQTT |
+| **1236** | Cấu hình console | **UDP service**: thiết bị giao tiếp UDP |
 | **6060** | Cấu hình console | **pprof**: phân tích hiệu năng (mặc định tắt) |
 
 ## Địa chỉ truy cập
 
 ### Backend quản trị
 
-- **Truy cập local**: `http://localhost:8080/`
-- **Truy cập LAN**: `http://<IP máy hiện tại>:8080/`
+- **Truy cập local**: `http://localhost:1234/`
+- **Truy cập LAN**: `http://<IP máy hiện tại>:1234/`
 
 ### Kết nối thiết bị/client
 
-- **WebSocket**: `ws://<IP server>:8989/`
-- **MQTT**: `<IP server>:2883`
-- **UDP**: `<IP server>:8990`
+- **WebSocket**: `ws://<IP server>:1233/`
+- **MQTT**: `<IP server>:1235`
+- **UDP**: `<IP server>:1236`
 
 ### TTS offline nhúng
 
-- **Health**: `http://localhost:9001/healthz`
-- **Danh sách giọng Piper**: `http://localhost:9001/piper/voices`
-- **Edge Offline**: WebSocket `ws://localhost:9001/tts`
-- **Piper Offline**: HTTP `POST http://localhost:9001/piper/tts`
+- **Health**: `http://localhost:1232/healthz`
+- **Danh sách giọng Piper**: `http://localhost:1232/piper/voices`
+- **Edge Offline**: WebSocket `ws://localhost:1232/tts`
+- **Piper Offline**: HTTP `POST http://localhost:1232/piper/tts`
 - Gói ZIP chỉ kèm sẵn một số giọng nhẹ hơn: `ngochuyen` và `adam1`. Muốn thêm giọng khác, copy cặp file `.onnx` và `.onnx.json` vào thư mục `tts-model/`.
 
 ## Sửa cấu hình
@@ -77,17 +77,17 @@ Các cổng sau cần khởi động lại service sau khi sửa mới có hiệ
 
 | Cổng | File cấu hình | Mục cấu hình |
 |------|----------|--------|
-| 8080 | `manager.json` | `server.port` |
-| 8989 | `main_config.yaml` | `websocket.port` |
-| 9000 | `asr_server.json` | `server.port` |
+| 1234 | `manager.json` | `server.port` |
+| 1233 | `main_config.yaml` | `websocket.port` |
+| 1231 | `asr_server.json` | `server.port` |
 
 ### Cấu hình console
 
 Các cổng sau và toàn bộ cấu hình khác được thay đổi qua console quản trị:
 
-- **Cấu hình cổng**: MQTT (2883), UDP (8990), pprof (6060)
+- **Cấu hình cổng**: MQTT (1235), UDP (1236), pprof (6060)
 - **Cấu hình chức năng**: LLM, TTS, ASR, nhận diện voiceprint, v.v.
-- Truy cập `http://localhost:8080/` để vào backend quản trị
+- Truy cập `http://localhost:1234/` để vào backend quản trị
 - Thay đổi cấu hình có hiệu lực realtime, không cần khởi động lại service
 
 ## Câu hỏi thường gặp
