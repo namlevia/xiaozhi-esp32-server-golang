@@ -32,6 +32,7 @@ type EdgeConfig struct {
 
 type PiperConfig struct {
 	ModelDir        string  `json:"model_dir"`
+	CacheDir        string  `json:"cache_dir"`
 	DefaultVoice    string  `json:"default_voice"`
 	EspeakDataDir   string  `json:"espeak_data_dir"`
 	Provider        string  `json:"provider"`
@@ -103,6 +104,9 @@ func (c *Config) applyDefaults() {
 	}
 	if c.Piper.ModelDir == "" {
 		c.Piper.ModelDir = "tts_server/tts-model"
+	}
+	if c.Piper.CacheDir == "" {
+		c.Piper.CacheDir = "data/piper-cache"
 	}
 	if c.Piper.DefaultVoice == "" {
 		c.Piper.DefaultVoice = "banmai"

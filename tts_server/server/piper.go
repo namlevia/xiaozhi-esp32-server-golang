@@ -179,13 +179,20 @@ func (s *Server) getPiperRuntime(req piperRequest) (*piperRuntime, error) {
 		return runtime, nil
 	}
 
-	tokens, err := ensurePiperTokens(voice.ModelConfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("chuẩn bị tokens Piper thất bại, kiểm tra quyền ghi thư mục model hoặc mount tts-model: %w", err)
+	if err := validatePiperDataDir(s.cfg.Piper.EspeakDataDir); err != nil {
+		return nil, err
 	}
-	modelPath, err := ensurePiperModelMetadata(voice)
+	cacheDir := s.cfg.Piper.CacheDir
+	if cacheDir == "" {
+		cacheDir = "data/piper-cache"
+	}
+	tokens, err := ensurePiperTokens(voice, cacheDir)
 	if err != nil {
-		return nil, fmt.Errorf("chuẩn bị metadata ONNX cho Piper thất bại, kiểm tra quyền ghi thư mục model hoặc mount tts-model: %w", err)
+		return nil, fmt.Errorf("chuẩn bị tokens Piper thất bại: %w", err)
+	}
+	modelPath, err := ensurePiperModelMetadata(voice, cacheDir)
+	if err != nil {
+		return nil, fmt.Errorf("chuẩn bị metadata ONNX cho Piper thất bại: %w", err)
 	}
 	cfg := &sherpa.OfflineTtsConfig{
 		Model: sherpa.OfflineTtsModelConfig{
@@ -287,19 +294,22 @@ func readPiperVoice(modelPath, configPath string) (PiperVoice, error) {
 	return voice, nil
 }
 
-func ensurePiperModelMetadata(voice PiperVoice) (string, error) {
+func ensurePiperModelMetadata(voice PiperVoice, cacheDir string) (string, error) {
 	modelPath := voice.ModelPath
-	cachePath := strings.TrimSuffix(modelPath, ".onnx") + ".sherpa.onnx"
 	modelInfo, err := os.Stat(modelPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("không đọc được model %s: %w", modelPath, err)
 	}
-	if cacheInfo, err := os.Stat(cachePath); err == nil && cacheInfo.ModTime().After(modelInfo.ModTime()) {
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		return "", fmt.Errorf("không tạo được thư mục cache %s: %w", cacheDir, err)
+	}
+	cachePath := filepath.Join(cacheDir, voice.ID+".sherpa.onnx")
+	if cacheInfo, err := os.Stat(cachePath); err == nil && cacheInfo.ModTime().After(modelInfo.ModTime()) && cacheInfo.Size() > 0 {
 		return cachePath, nil
 	}
 	data, err := os.ReadFile(modelPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("không đọc được model %s: %w", modelPath, err)
 	}
 	metadata := map[string]string{
 		"sample_rate":    fmt.Sprintf("%d", voice.SampleRate),
@@ -320,7 +330,7 @@ func ensurePiperModelMetadata(voice PiperVoice) (string, error) {
 	}
 	patched := appendModelMetadata(data, metadata)
 	if err := os.WriteFile(cachePath, patched, 0644); err != nil {
-		return "", err
+		return "", fmt.Errorf("không ghi được cache model %s: %w", cachePath, err)
 	}
 	return cachePath, nil
 }
@@ -355,21 +365,24 @@ func appendProtoVarint(dst []byte, value uint64) []byte {
 	return append(dst, byte(value))
 }
 
-func ensurePiperTokens(configPath string) (string, error) {
-	tokensPath := strings.TrimSuffix(configPath, ".json") + ".tokens.txt"
-	if _, err := os.Stat(tokensPath); err == nil {
+func ensurePiperTokens(voice PiperVoice, cacheDir string) (string, error) {
+	if err := os.MkdirAll(cacheDir, 0755); err != nil {
+		return "", fmt.Errorf("không tạo được thư mục cache %s: %w", cacheDir, err)
+	}
+	tokensPath := filepath.Join(cacheDir, voice.ID+".tokens.txt")
+	if info, err := os.Stat(tokensPath); err == nil && info.Size() > 0 {
 		return tokensPath, nil
 	}
-	data, err := os.ReadFile(configPath)
+	data, err := os.ReadFile(voice.ModelConfigPath)
 	if err != nil {
-		return "", err
+		return "", fmt.Errorf("không đọc được metadata %s: %w", voice.ModelConfigPath, err)
 	}
 	var meta piperMetadata
 	if err := json.Unmarshal(data, &meta); err != nil {
-		return "", err
+		return "", fmt.Errorf("metadata Piper không hợp lệ %s: %w", voice.ModelConfigPath, err)
 	}
 	if len(meta.PhonemeIDMap) == 0 {
-		return "", fmt.Errorf("metadata Piper thiếu phoneme_id_map: %s", configPath)
+		return "", fmt.Errorf("metadata Piper thiếu phoneme_id_map: %s", voice.ModelConfigPath)
 	}
 	type token struct {
 		symbol string
@@ -390,9 +403,22 @@ func ensurePiperTokens(configPath string) (string, error) {
 		b.WriteString(fmt.Sprintf("%d\n", token.id))
 	}
 	if err := os.WriteFile(tokensPath, []byte(b.String()), 0644); err != nil {
-		return "", err
+		return "", fmt.Errorf("không ghi được tokens %s: %w", tokensPath, err)
 	}
 	return tokensPath, nil
+}
+
+func validatePiperDataDir(dataDir string) error {
+	if strings.TrimSpace(dataDir) == "" {
+		return fmt.Errorf("Piper thiếu espeak_data_dir")
+	}
+	required := filepath.Join(dataDir, "phontab")
+	if info, err := os.Stat(required); err != nil {
+		return fmt.Errorf("Piper thiếu dữ liệu espeak-ng tại %s: %w", required, err)
+	} else if info.IsDir() || info.Size() == 0 {
+		return fmt.Errorf("Piper dữ liệu espeak-ng không hợp lệ: %s", required)
+	}
+	return nil
 }
 
 func writeJSON(w http.ResponseWriter, value interface{}) {

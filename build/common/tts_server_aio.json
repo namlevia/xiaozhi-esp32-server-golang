@@ -16,6 +16,7 @@
   },
   "piper": {
     "model_dir": "tts-model",
+    "cache_dir": "data/piper-cache",
     "default_voice": "ngochuyen",
     "espeak_data_dir": "espeak-ng-data",
     "provider": "cpu",
