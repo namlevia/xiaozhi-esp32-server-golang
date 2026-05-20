@@ -62,3 +62,20 @@ func PCM16ToOggOpus(samples []int16, sampleRate int, channels int, frameDuration
 func WrapOggOpusPackets(packets [][]byte, sampleRate int, channels int, frameSizePerChannel int) []byte {
 	return nil
 }
+
+func GetAudioFormatByMimeType(mimeType string) string {
+	switch mimeType {
+	case "audio/mpeg", "audio/mp3", "audio/mpeg3", "audio/x-mpeg-3":
+		return "mp3"
+	case "audio/wav", "audio/wave", "audio/x-wav":
+		return "wav"
+	case "audio/pcm", "audio/x-pcm":
+		return "pcm"
+	case "audio/ogg", "application/ogg":
+		return "ogg_opus"
+	case "audio/opus":
+		return "opus"
+	default:
+		return "mp3"
+	}
+}
