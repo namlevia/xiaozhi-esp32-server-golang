@@ -1,0 +1,94 @@
+name: GHCR package admin
+
+on:
+  workflow_dispatch:
+
+jobs:
+  ghcr-admin:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Make GHCR packages public and grant repository access
+        env:
+          GHCR_TOKEN_ADMIN: ${{ secrets.GHCR_TOKEN_ADMIN }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.event.repository.name }}
+          REPO_ID: ${{ github.event.repository.id }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GHCR_TOKEN_ADMIN:-}" ]; then
+            echo "::error::Thiếu secret GHCR_TOKEN_ADMIN"
+            exit 1
+          fi
+
+          packages="xiaozhi_server xiaozhi_manager_frontend xiaozhi_manager_backend xiaozhi_golang xiaozhi_golang_build"
+
+          api() {
+            method="$1"
+            path="$2"
+            data="${3:-}"
+            if [ -n "$data" ]; then
+              curl -sS -L -X "$method" \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer ${GHCR_TOKEN_ADMIN}" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                -H "Content-Type: application/json" \
+                "https://api.github.com${path}" \
+                -d "$data"
+            else
+              curl -sS -L -X "$method" \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer ${GHCR_TOKEN_ADMIN}" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                "https://api.github.com${path}"
+            fi
+          }
+
+          api_with_code() {
+            method="$1"
+            path="$2"
+            data="${3:-}"
+            tmp="$(mktemp)"
+            if [ -n "$data" ]; then
+              code=$(curl -sS -L -X "$method" \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer ${GHCR_TOKEN_ADMIN}" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                -H "Content-Type: application/json" \
+                -o "$tmp" -w "%{http_code}" \
+                "https://api.github.com${path}" \
+                -d "$data")
+            else
+              code=$(curl -sS -L -X "$method" \
+                -H "Accept: application/vnd.github+json" \
+                -H "Authorization: Bearer ${GHCR_TOKEN_ADMIN}" \
+                -H "X-GitHub-Api-Version: 2022-11-28" \
+                -o "$tmp" -w "%{http_code}" \
+                "https://api.github.com${path}")
+            fi
+            echo "HTTP ${code} ${method} ${path}"
+            if [ "$code" -ge 400 ]; then
+              cat "$tmp"
+              echo
+            fi
+            rm -f "$tmp"
+          }
+
+          echo "Repo: ${OWNER}/${REPO} (${REPO_ID})"
+
+          for package in $packages; do
+            encoded="${package//\//%2F}"
+            echo "== ${package} =="
+
+            echo "Current package info:"
+            api GET "/user/packages/container/${encoded}" | jq '{name, visibility, repository: (.repository.full_name // null)}'
+
+            echo "Set package public:"
+            api_with_code PATCH "/user/packages/container/${encoded}/visibility" '{"visibility":"public"}'
+
+            echo "Grant repository package access:"
+            api_with_code PUT "/user/packages/container/${encoded}/permissions/repositories/${REPO_ID}"
+
+            echo "After package info:"
+            api GET "/user/packages/container/${encoded}" | jq '{name, visibility, repository: (.repository.full_name // null)}'
+          done
