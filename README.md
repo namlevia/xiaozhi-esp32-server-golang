@@ -82,6 +82,14 @@ Không nên giữ `127.0.0.1`, IP mẫu, domain mẫu hoặc credential ví dụ
 
 ## 🚀 Bắt đầu nhanh | Quick Start
 
+### 🚀 Cài đặt nhanh
+
+Sử dụng script tự động là cách đơn giản nhất để bắt đầu trên **Linux / Termux / macOS / Raspberry Pi**:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/namlevia/Xiaozhi-Esp32-Server-Go-Vi/main/auto-setup.sh -o auto-setup.sh && bash auto-setup.sh
+```
+
 ### Cách 1: gói khởi động một chạm (khuyến nghị)
 
 Tải gói nén phù hợp với nền tảng của bạn, giải nén và chạy trực tiếp:
