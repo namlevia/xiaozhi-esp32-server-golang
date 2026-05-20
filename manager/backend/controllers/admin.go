@@ -135,8 +135,10 @@ func (ac *AdminController) HealthCheck(c *gin.Context) {
 
 	items := []healthCheckItem{{Name: "Backend", Status: "healthy", Message: "Backend đang phản hồi"}}
 	items = append(items, ac.checkDatabaseHealth())
-	items = append(items, checkHTTPHealth("Main-server TTS", strings.TrimRight(ttsBaseURL, "/")+"/healthz", 2*time.Second))
-	items = append(items, checkHTTPHealth("Piper voices", strings.TrimRight(ttsBaseURL, "/")+"/piper/voices", 3*time.Second))
+	ttsBaseURL = strings.TrimRight(ttsBaseURL, "/")
+	items = append(items, checkHTTPHealth("Main-server TTS", ttsBaseURL+"/healthz", 2*time.Second))
+	items = append(items, checkHTTPHealth("Piper voices", ttsBaseURL+"/piper/voices", 3*time.Second))
+	items = append(items, checkPiperSynthesisHealth(ttsBaseURL+"/piper/tts", 20*time.Second))
 	items = append(items, checkTCPHealth("ASR voice-server", asrAddress, 2*time.Second))
 	items = append(items, ac.checkConfigReadiness())
 
@@ -173,7 +175,7 @@ func (ac *AdminController) checkDatabaseHealth() healthCheckItem {
 		item.Status = "unreachable"
 		item.Message = err.Error()
 	}
-	item.LatencyMS = time.Since(start).Milliseconds()
+	item.LatencyMS = elapsedHealthMS(start)
 	return item
 }
 
@@ -189,7 +191,7 @@ func checkHTTPHealth(name, rawURL string, timeout time.Duration) healthCheckItem
 		return item
 	}
 	resp, err := http.DefaultClient.Do(req)
-	item.LatencyMS = time.Since(start).Milliseconds()
+	item.LatencyMS = elapsedHealthMS(start)
 	if err != nil {
 		item.Status = "unreachable"
 		item.Message = err.Error()
@@ -217,11 +219,60 @@ func checkHTTPHealth(name, rawURL string, timeout time.Duration) healthCheckItem
 	return item
 }
 
+func checkPiperSynthesisHealth(rawURL string, timeout time.Duration) healthCheckItem {
+	start := time.Now()
+	item := healthCheckItem{Name: "Piper synthesize", Status: "healthy", URL: rawURL, Message: "Piper tạo được âm thanh"}
+	payload := map[string]interface{}{
+		"text":            "Xin chào, đây là kiểm tra Piper.",
+		"voice":           "ngochuyen",
+		"response_format": "wav",
+	}
+	body, _ := json.Marshal(payload)
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, rawURL, bytes.NewReader(body))
+	if err != nil {
+		item.Status = "unknown"
+		item.Message = err.Error()
+		return item
+	}
+	req.Header.Set("Content-Type", "application/json")
+	resp, err := http.DefaultClient.Do(req)
+	item.LatencyMS = elapsedHealthMS(start)
+	if err != nil {
+		item.Status = "unreachable"
+		item.Message = err.Error()
+		return item
+	}
+	defer resp.Body.Close()
+	data, _ := io.ReadAll(io.LimitReader(resp.Body, 4096))
+	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
+		item.Status = "degraded"
+		item.Message = fmt.Sprintf("HTTP %d: %s", resp.StatusCode, strings.TrimSpace(string(data)))
+		return item
+	}
+	if len(data) < 44 || !bytes.HasPrefix(data, []byte("RIFF")) {
+		item.Status = "degraded"
+		item.Message = fmt.Sprintf("Piper trả về audio không hợp lệ: %d bytes", len(data))
+		return item
+	}
+	item.Message = fmt.Sprintf("Piper tạo WAV hợp lệ: %d bytes", len(data))
+	return item
+}
+
+func elapsedHealthMS(start time.Time) int64 {
+	elapsed := time.Since(start).Milliseconds()
+	if elapsed == 0 {
+		return 1
+	}
+	return elapsed
+}
+
 func checkTCPHealth(name, address string, timeout time.Duration) healthCheckItem {
 	start := time.Now()
 	item := healthCheckItem{Name: name, Status: "healthy", URL: address, Message: "Cổng dịch vụ đang mở"}
 	conn, err := net.DialTimeout("tcp", address, timeout)
-	item.LatencyMS = time.Since(start).Milliseconds()
+	item.LatencyMS = elapsedHealthMS(start)
 	if err != nil {
 		item.Status = "unreachable"
 		item.Message = err.Error()
