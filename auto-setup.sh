@@ -4,10 +4,19 @@ set -euo pipefail
 REPO="namlevia/Xiaozhi-Esp32-Server-Go-Vi"
 INSTALL_DIR="${INSTALL_DIR:-$HOME/xiaozhi_server}"
 API_URL="https://api.github.com/repos/${REPO}/releases/latest"
+tmp_dir=""
 
 info() { printf '\033[1;34m[INFO]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[WARN]\033[0m %s\n' "$*"; }
 fail() { printf '\033[1;31m[ERROR]\033[0m %s\n' "$*" >&2; exit 1; }
+
+cleanup() {
+  if [ -n "${tmp_dir:-}" ] && [ -d "$tmp_dir" ]; then
+    rm -rf "$tmp_dir"
+  fi
+}
+
+trap cleanup EXIT
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || fail "Thiếu lệnh '$1'. Vui lòng cài đặt rồi chạy lại."
@@ -100,11 +109,49 @@ find_server_binary() {
   find "$root" -type f -name xiaozhi_server -print -quit
 }
 
+is_server_running() {
+  local dir="$1"
+  if [ -f "$dir/logs/server.pid" ]; then
+    local pid
+    pid="$(cat "$dir/logs/server.pid" 2>/dev/null || true)"
+    if [ -n "$pid" ] && kill -0 "$pid" >/dev/null 2>&1; then
+      return 0
+    fi
+  fi
+  pgrep -f "$dir/xiaozhi_server" >/dev/null 2>&1
+}
+
+start_server() {
+  local dir="$1" pid
+  mkdir -p "$dir/logs" "$dir/data" "$dir/storage"
+
+  if is_server_running "$dir"; then
+    warn "Server có vẻ đang chạy sẵn."
+    return 0
+  fi
+
+  info "Khởi động server nền"
+  (cd "$dir" && nohup ./xiaozhi_server > logs/run.log 2>&1 & echo $! > logs/server.pid)
+  pid="$(cat "$dir/logs/server.pid" 2>/dev/null || true)"
+
+  sleep 3
+  if [ -n "$pid" ] && ! kill -0 "$pid" >/dev/null 2>&1; then
+    warn "Server đã thoát ngay sau khi khởi động. Xem log: $dir/logs/run.log"
+    return 0
+  fi
+
+  if curl -fsSL --max-time 5 "http://127.0.0.1:8080" >/dev/null 2>&1; then
+    info "Manager UI đã sẵn sàng: http://127.0.0.1:8080"
+  else
+    warn "Chưa xác nhận được UI 127.0.0.1:8080. Server có thể vẫn đang khởi động. Xem log: $dir/logs/run.log"
+  fi
+}
+
 main() {
   need_cmd curl
   need_cmd python3
 
-  local platform pattern tmp_dir release_json tag asset_url zip_file server_bin server_dir
+  local platform pattern release_json tag asset_url zip_file server_bin server_dir
   platform="$(detect_platform)"
   pattern="$(asset_pattern_for_platform "$platform")"
 
@@ -112,7 +159,6 @@ main() {
   info "Lấy thông tin release mới nhất từ ${REPO}"
 
   tmp_dir="$(mktemp -d)"
-  trap 'rm -rf "$tmp_dir"' EXIT
   release_json="$tmp_dir/latest.json"
   curl -fsSL "$API_URL" -o "$release_json"
 
@@ -143,21 +189,24 @@ main() {
   chmod +x "$INSTALL_DIR/current/xiaozhi_server"
   mkdir -p "$INSTALL_DIR/current/logs" "$INSTALL_DIR/current/data" "$INSTALL_DIR/current/storage"
 
+  if [ "${START_SERVER:-1}" = "1" ]; then
+    start_server "$INSTALL_DIR/current"
+  fi
+
   cat <<EOF
 
 Cài đặt xong.
 
 Thư mục: $INSTALL_DIR/current
-Chạy server:
-  cd "$INSTALL_DIR/current"
-  ./xiaozhi_server
-
-Chạy nền và ghi log:
-  cd "$INSTALL_DIR/current"
-  nohup ./xiaozhi_server > logs/run.log 2>&1 &
-
+Log server: $INSTALL_DIR/current/logs/run.log
 Mở giao diện quản trị:
   http://127.0.0.1:8080
+
+Dừng server:
+  kill "\$(cat "$INSTALL_DIR/current/logs/server.pid")"
+
+Nếu không muốn tự chạy server khi cài:
+  START_SERVER=0 bash auto-setup.sh
 
 EOF
 }
