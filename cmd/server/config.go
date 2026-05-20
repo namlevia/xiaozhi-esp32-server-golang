@@ -305,7 +305,7 @@ func initRedis() error {
 
 	err := redisdb.Init(redisConfig)
 	if err != nil {
-		fmt.Printf("Khởi tạo Redis lỗi: %v\n", err)
+		fmt.Printf("Redis chưa sẵn sàng hoặc chưa được bật, các chức năng chính vẫn tiếp tục nếu không phụ thuộc Redis: %v\n", err)
 		return err
 	}
 

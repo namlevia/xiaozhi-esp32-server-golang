@@ -148,7 +148,7 @@ func (ac *AdminController) HealthCheck(c *gin.Context) {
 			overall = "unreachable"
 			break
 		}
-		if item.Status == "degraded" || item.Status == "unknown" || item.Status == "disabled" {
+		if item.Status == "degraded" || item.Status == "unknown" || item.Status == "disabled" || item.Status == "starting" {
 			overall = "degraded"
 		}
 	}
@@ -193,8 +193,7 @@ func checkHTTPHealth(name, rawURL string, timeout time.Duration) healthCheckItem
 	resp, err := http.DefaultClient.Do(req)
 	item.LatencyMS = elapsedHealthMS(start)
 	if err != nil {
-		item.Status = "unreachable"
-		item.Message = err.Error()
+		applyStartupConnectionStatus(&item, err)
 		return item
 	}
 	defer resp.Body.Close()
@@ -240,8 +239,7 @@ func checkPiperSynthesisHealth(rawURL string, timeout time.Duration) healthCheck
 	resp, err := http.DefaultClient.Do(req)
 	item.LatencyMS = elapsedHealthMS(start)
 	if err != nil {
-		item.Status = "unreachable"
-		item.Message = err.Error()
+		applyStartupConnectionStatus(&item, err)
 		return item
 	}
 	defer resp.Body.Close()
@@ -274,12 +272,32 @@ func checkTCPHealth(name, address string, timeout time.Duration) healthCheckItem
 	conn, err := net.DialTimeout("tcp", address, timeout)
 	item.LatencyMS = elapsedHealthMS(start)
 	if err != nil {
-		item.Status = "unreachable"
-		item.Message = err.Error()
+		applyStartupConnectionStatus(&item, err)
 		return item
 	}
 	conn.Close()
 	return item
+}
+
+func applyStartupConnectionStatus(item *healthCheckItem, err error) {
+	message := err.Error()
+	if isConnectionRefused(err) {
+		item.Status = "starting"
+		item.Message = "Dịch vụ đang khởi động, vui lòng đợi 30–60 giây rồi làm mới"
+		return
+	}
+	item.Status = "unreachable"
+	item.Message = message
+}
+
+func isConnectionRefused(err error) bool {
+	var opErr *net.OpError
+	if errors.As(err, &opErr) {
+		message := strings.ToLower(opErr.Err.Error())
+		return strings.Contains(message, "connection refused") || strings.Contains(message, "actively refused")
+	}
+	message := strings.ToLower(err.Error())
+	return strings.Contains(message, "connection refused") || strings.Contains(message, "actively refused")
 }
 
 func (ac *AdminController) checkConfigReadiness() healthCheckItem {

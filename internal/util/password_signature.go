@@ -26,41 +26,36 @@ func GeneratePasswordSignature(data, key string) string {
 func ValidateMqttCredentials(clientId, username, password, signatureKey string) (*MqttCredentialInfo, error) {
 	// 验证签名密钥
 	if signatureKey == "" {
-		return nil, fmt.Errorf("缺少签名密钥配置")
+		return nil, fmt.Errorf("thiếu cấu hình khóa chữ ký")
 	}
 
-	// 验证clientId
 	if clientId == "" {
-		return nil, fmt.Errorf("clientId必须是非空字符串")
+		return nil, fmt.Errorf("clientId phải là chuỗi không rỗng")
 	}
 
-	// 验证clientId格式（必须包含@@@分隔符）
 	clientIdParts := strings.Split(clientId, "@@@")
 	if len(clientIdParts) != 3 {
-		return nil, fmt.Errorf("clientId格式错误，必须包含@@@分隔符")
+		return nil, fmt.Errorf("định dạng clientId không hợp lệ, phải chứa dấu phân cách @@@")
 	}
 
-	// 验证username
 	if username == "" {
-		return nil, fmt.Errorf("username必须是非空字符串")
+		return nil, fmt.Errorf("username phải là chuỗi không rỗng")
 	}
 
-	// 尝试解码username（应该是base64编码的JSON）
 	var userData map[string]interface{}
 	decodedUsername, err := base64.StdEncoding.DecodeString(username)
 	if err != nil {
-		return nil, fmt.Errorf("username不是有效的base64编码: %v", err)
+		return nil, fmt.Errorf("username không phải base64 hợp lệ: %v", err)
 	}
 
 	if err := json.Unmarshal(decodedUsername, &userData); err != nil {
-		return nil, fmt.Errorf("username不是有效的base64编码JSON: %v", err)
+		return nil, fmt.Errorf("username không phải JSON base64 hợp lệ: %v", err)
 	}
 
-	// 验证密码签名
 	signatureData := clientId + "|" + username
 	expectedSignature := GeneratePasswordSignature(signatureData, signatureKey)
 	if password != expectedSignature {
-		return nil, fmt.Errorf("密码签名验证失败")
+		return nil, fmt.Errorf("xác thực chữ ký mật khẩu thất bại")
 	}
 
 	// 解析clientId中的信息
@@ -99,7 +94,7 @@ func GenerateMqttCredentials(deviceId, clientId, ip, signatureKey string) (*Mqtt
 	}
 	userNameJson, err := json.Marshal(userName)
 	if err != nil {
-		return nil, fmt.Errorf("用户名序列化失败: %v", err)
+		return nil, fmt.Errorf("serialize username thất bại: %v", err)
 	}
 	base64UserName := base64.StdEncoding.EncodeToString(userNameJson)
 

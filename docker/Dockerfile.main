@@ -72,8 +72,10 @@ RUN go mod tidy
 ENV CGO_LDFLAGS="-L${ONNXRUNTIME_DIR}/lib -lonnxruntime -L/app/lib/ten-vad/lib/Linux/x64"
 ENV CGO_CFLAGS="-I${ONNXRUNTIME_DIR}/include/onnxruntime -I/app/lib/ten-vad/include"
 
-# Biên dịch chương trình chính
-RUN go build -tags "tts_server" -o /app/xiaozhi_server ./cmd/server/
+# Biên dịch chương trình chính đầy đủ AIO cho Docker package
+RUN mkdir -p manager/backend/static/dist \
+    && if [ -d manager/frontend/dist ]; then cp -r manager/frontend/dist/* manager/backend/static/dist/; fi \
+    && go build -tags "nolibopusfile asr_server manager embed_ui tts_server" -o /app/xiaozhi_server ./cmd/server/
 
 # Giai đoạn runtime, chỉ hỗ trợ kiến trúc amd64/x64
 FROM --platform=linux/amd64 ubuntu:22.04
@@ -135,21 +137,29 @@ ENV CGO_LDFLAGS="-L${ONNXRUNTIME_DIR}/lib -lonnxruntime"
 WORKDIR /workspace
 
 # Sao chép binary đã build từ giai đoạn build
+COPY --from=builder /app/xiaozhi_server /workspace/xiaozhi_server
 COPY --from=builder /app/xiaozhi_server /workspace/bin/xiaozhi_server
 # Sao chép thư mục lib, gồm runtime library ten-vad và sherpa-onnx
 COPY --from=builder /app/lib /workspace/lib
 COPY --from=builder /app/asr_server/lib /workspace/asr_server/lib
-COPY --from=builder /app/build/common/tts_server.json /workspace/tts_server.json
+COPY --from=builder /app/build/common/main_config.yaml /workspace/main_config.yaml
+COPY --from=builder /app/build/common/manager.json /workspace/manager.json
+COPY --from=builder /app/build/common/asr_server.json /workspace/asr_server.json
+COPY --from=builder /app/build/common/tts_server_aio.json /workspace/tts_server.json
+COPY --from=builder /app/build/common/models /workspace/models
+COPY --from=builder /app/build/common/data /workspace/data
 COPY --from=builder /app/tts_server/tts-model /workspace/tts-model
 
 # Tạo các thư mục cần thiết
-RUN mkdir -p /workspace/logs /workspace/config
+RUN mkdir -p /workspace/logs /workspace/config /workspace/data/piper-cache \
+    && find /usr/lib /usr/share -type f -name phontab -path '*espeak-ng-data*' -print -quit | xargs -r dirname | xargs -r -I{} cp -r {} /workspace/espeak-ng-data \
+    && chmod +x /workspace/xiaozhi_server /workspace/bin/xiaozhi_server
 
 # Thiết lập đường dẫn runtime library cho ten-vad và sherpa-onnx
 ENV LD_LIBRARY_PATH=/workspace/lib:/workspace/lib/ten-vad/lib/Linux/x64:/workspace/asr_server/lib
 
-# Expose cổng: http/websocket 8989, TTS 9001, udp 8990, mqtt 1883/2883/8883
-EXPOSE 8989 9001 8990 1883 2883 8883
+# Expose cổng: http/websocket 8989, manager 8080, ASR 9000, TTS 9001, udp 8990, mqtt 1883/2883/8883
+EXPOSE 8989 8080 9000 9001 8990 1883 2883 8883
 
 # Lệnh khởi động
-CMD ["bin/xiaozhi_server", "-c", "config/config.yaml", "-tts-enable", "-tts-config", "tts_server.json"]
+CMD ["./xiaozhi_server", "-c", "main_config.yaml", "-asr-enable", "--asr-config", "asr_server.json", "--manager-enable", "--manager-config", "manager.json", "-tts-enable", "-tts-config", "tts_server.json"]

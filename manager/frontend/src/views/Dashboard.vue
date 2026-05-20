@@ -368,6 +368,7 @@ function healthStatusLabel(status) {
   switch (status) {
     case 'healthy': return 'Ổn định'
     case 'degraded': return 'Cần chú ý'
+    case 'starting': return 'Đang khởi động'
     case 'unreachable': return 'Không kết nối'
     case 'disabled': return 'Đã tắt'
     default: return 'Không rõ'
@@ -378,6 +379,7 @@ function healthStatusType(status) {
   switch (status) {
     case 'healthy': return 'success'
     case 'degraded': return 'warning'
+    case 'starting': return 'warning'
     case 'unreachable': return 'danger'
     case 'disabled': return 'info'
     default: return 'info'
