@@ -1,0 +1,47 @@
+name: GHCR package reset
+
+on:
+  workflow_dispatch:
+
+jobs:
+  delete-packages:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete existing GHCR packages
+        env:
+          GHCR_TOKEN_ADMIN: ${{ secrets.GHCR_TOKEN_ADMIN }}
+        run: |
+          set -euo pipefail
+
+          if [ -z "${GHCR_TOKEN_ADMIN:-}" ]; then
+            echo "::error::Thiếu secret GHCR_TOKEN_ADMIN"
+            exit 1
+          fi
+
+          packages="xiaozhi_server xiaozhi_manager_frontend xiaozhi_manager_backend xiaozhi_golang xiaozhi_golang_build"
+
+          request() {
+            method="$1"
+            path="$2"
+            tmp="$(mktemp)"
+            code=$(curl -sS -L -X "$method" \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GHCR_TOKEN_ADMIN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -o "$tmp" -w "%{http_code}" \
+              "https://api.github.com${path}")
+            echo "HTTP ${code} ${method} ${path}"
+            if [ "$code" -ge 400 ] && [ "$code" != "404" ]; then
+              cat "$tmp"
+              echo
+              rm -f "$tmp"
+              exit 1
+            fi
+            rm -f "$tmp"
+          }
+
+          for package in $packages; do
+            encoded="${package//\//%2F}"
+            echo "== ${package} =="
+            request DELETE "/user/packages/container/${encoded}"
+          done
