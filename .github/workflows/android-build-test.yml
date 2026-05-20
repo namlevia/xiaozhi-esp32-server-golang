@@ -77,7 +77,7 @@ jobs:
             echo "::error::Không tìm thấy Android NDK clang: $CC"
             exit 1
           fi
-          go build -v -tags "manager embed_ui" \
+          go build -v -tags "nolibopusfile manager embed_ui" \
             -ldflags "-s -w" \
             -o xiaozhi_server ./cmd/server
 
