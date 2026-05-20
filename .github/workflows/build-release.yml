@@ -285,6 +285,14 @@ jobs:
           cache: "npm"
           cache-dependency-path: manager/frontend/package-lock.json
 
+      - name: Thiết lập Android NDK
+        uses: android-actions/setup-android@v3
+
+      - name: Cài Android NDK
+        run: |
+          sdkmanager --install "ndk;27.2.12479018"
+          echo "ANDROID_NDK_HOME=$ANDROID_HOME/ndk/27.2.12479018" >> $GITHUB_ENV
+
       - name: Build frontend để embed UI
         run: |
           cd manager/frontend && npm ci && npm run build
