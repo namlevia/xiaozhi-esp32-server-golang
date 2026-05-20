@@ -116,7 +116,7 @@ jobs:
         uses: docker/build-push-action@v5
         with:
           context: .
-          file: ./docker/Dockerfile_build
+          file: ./docker/Dockerfile.golang-build
           platforms: linux/amd64
           push: true
           tags: ${{ steps.meta.outputs.tags }}

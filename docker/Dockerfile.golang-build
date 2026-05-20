@@ -1,0 +1,35 @@
+# syntax=docker/dockerfile:1
+FROM golang:1.24.4
+
+ENV DEBIAN_FRONTEND=noninteractive
+ENV GOPROXY=https://goproxy.cn,direct
+ENV CGO_ENABLED=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    curl \
+    git \
+    wget \
+    build-essential \
+    pkg-config \
+    libopus-dev \
+    libopusfile-dev \
+    libc++-dev \
+    libc++abi-dev \
+    unzip \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY docker/lib/onnxruntime-linux-x64-1.21.0.tgz /tmp/
+RUN cd /tmp \
+    && tar -xzf onnxruntime-linux-x64-1.21.0.tgz \
+    && mkdir -p /usr/local/include/onnxruntime \
+    && cp -r onnxruntime-linux-x64-1.21.0/include/* /usr/local/include/onnxruntime/ \
+    && cp -r onnxruntime-linux-x64-1.21.0/lib/* /usr/local/lib/ \
+    && rm -rf onnxruntime-linux-x64-1.21.0* \
+    && ldconfig
+
+ENV ONNXRUNTIME_DIR=/usr/local
+ENV CGO_CFLAGS="-I${ONNXRUNTIME_DIR}/include/onnxruntime"
+ENV CGO_LDFLAGS="-L${ONNXRUNTIME_DIR}/lib -lonnxruntime"
+
+WORKDIR /workspace
