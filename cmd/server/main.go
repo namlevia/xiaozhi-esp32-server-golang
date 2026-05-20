@@ -37,6 +37,7 @@ func main() {
 	if *managerEnable {
 		StartManagerHTTP(*managerConfig)
 	}
+	EnsureAIOAssets(*asrConfig, *ttsConfig, *asrEnable, *ttsEnable)
 	if *asrEnable {
 		StartAsrServerHTTP(*asrConfig)
 	}

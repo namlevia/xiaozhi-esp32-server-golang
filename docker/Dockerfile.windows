@@ -103,7 +103,11 @@ RUN PACK_DIR="/out/windows-amd64/xiaozhi-server-windows-amd64" \
     && cp /opt/sherpa-onnx-go-windows/x86_64-pc-windows-gnu/onnxruntime.dll "$PACK_DIR/" \
     && cp /opt/sherpa-onnx-go-windows/x86_64-pc-windows-gnu/sherpa-onnx-c-api.dll "$PACK_DIR/" \
     && cp /opt/sherpa-onnx-go-windows/x86_64-pc-windows-gnu/sherpa-onnx-cxx-api.dll "$PACK_DIR/" \
-    && cp build/windows/ten_vad.dll "$PACK_DIR/"
+    && cp build/windows/ten_vad.dll "$PACK_DIR/" \
+    && LITE_DIR="/out/windows-amd64-lite/xiaozhi-server-windows-amd64-lite" \
+    && mkdir -p "$(dirname "$LITE_DIR")" \
+    && cp -a "$PACK_DIR" "$LITE_DIR" \
+    && rm -rf "$LITE_DIR/models/asr/zipformer-vietnamese-30m" "$LITE_DIR/espeak-ng-data" "$LITE_DIR/tts-model"
 
 FROM scratch AS export
 COPY --from=builder /out /out

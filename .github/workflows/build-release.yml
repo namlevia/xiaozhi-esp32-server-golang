@@ -39,14 +39,21 @@ jobs:
           docker create --name xiaozhi_windows xiaozhi-build-windows
           docker cp xiaozhi_windows:/out ./out
           docker rm xiaozhi_windows
-          rm -rf "out/xiaozhi_server-windows-amd64-${VERSION}"
+          rm -rf "out/xiaozhi_server-windows-amd64-${VERSION}" "out/xiaozhi_server-windows-amd64-lite-${VERSION}"
           mv out/windows-amd64 "out/xiaozhi_server-windows-amd64-${VERSION}"
+          mv out/windows-amd64-lite "out/xiaozhi_server-windows-amd64-lite-${VERSION}"
 
-      - name: Upload gói Windows
+      - name: Upload gói Windows Full
         uses: actions/upload-artifact@v4
         with:
           name: xiaozhi_server-windows-amd64-${{ env.VERSION }}
           path: out/xiaozhi_server-windows-amd64-${{ env.VERSION }}
+
+      - name: Upload gói Windows Lite
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiaozhi_server-windows-amd64-lite-${{ env.VERSION }}
+          path: out/xiaozhi_server-windows-amd64-lite-${{ env.VERSION }}
 
   build-linux-amd64:
     runs-on: ubuntu-latest
@@ -74,14 +81,21 @@ jobs:
           docker create --name xiaozhi_linux xiaozhi-build-linux
           docker cp xiaozhi_linux:/out ./out
           docker rm xiaozhi_linux
-          rm -rf "out/xiaozhi_server-linux-amd64-${VERSION}"
+          rm -rf "out/xiaozhi_server-linux-amd64-${VERSION}" "out/xiaozhi_server-linux-amd64-lite-${VERSION}"
           mv out/linux-amd64 "out/xiaozhi_server-linux-amd64-${VERSION}"
+          mv out/linux-amd64-lite "out/xiaozhi_server-linux-amd64-lite-${VERSION}"
 
-      - name: Upload gói Linux
+      - name: Upload gói Linux Full
         uses: actions/upload-artifact@v4
         with:
           name: xiaozhi_server-linux-amd64-${{ env.VERSION }}
           path: out/xiaozhi_server-linux-amd64-${{ env.VERSION }}
+
+      - name: Upload gói Linux Lite
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiaozhi_server-linux-amd64-lite-${{ env.VERSION }}
+          path: out/xiaozhi_server-linux-amd64-lite-${{ env.VERSION }}
 
   build-macos:
     strategy:
@@ -217,14 +231,26 @@ jobs:
           ./build/macos/fix_rpath.sh "$PACK_DIR/xiaozhi_server"
           otool -L "$PACK_DIR/xiaozhi_server" | grep -E "libonnxruntime|libsherpa-onnx" || true
 
-          rm -rf "out/xiaozhi_server-macos-${ARCH}-${VERSION}"
-          mv "out/macos-${ARCH}" "out/xiaozhi_server-macos-${ARCH}-${VERSION}"
+          LITE_PACK_DIR="out/macos-${ARCH}-lite/xiaozhi_server-macos-${ARCH}-lite"
+          mkdir -p "$(dirname "$LITE_PACK_DIR")"
+          cp -a "$PACK_DIR" "$LITE_PACK_DIR"
+          rm -rf "$LITE_PACK_DIR/models/asr/zipformer-vietnamese-30m" "$LITE_PACK_DIR/espeak-ng-data" "$LITE_PACK_DIR/tts-model"
 
-      - name: Upload gói macOS
+          rm -rf "out/xiaozhi_server-macos-${ARCH}-${VERSION}" "out/xiaozhi_server-macos-${ARCH}-lite-${VERSION}"
+          mv "out/macos-${ARCH}" "out/xiaozhi_server-macos-${ARCH}-${VERSION}"
+          mv "out/macos-${ARCH}-lite" "out/xiaozhi_server-macos-${ARCH}-lite-${VERSION}"
+
+      - name: Upload gói macOS Full
         uses: actions/upload-artifact@v4
         with:
           name: xiaozhi_server-macos-${{ matrix.arch }}-${{ env.VERSION }}
           path: out/xiaozhi_server-macos-${{ matrix.arch }}-${{ env.VERSION }}
+
+      - name: Upload gói macOS Lite
+        uses: actions/upload-artifact@v4
+        with:
+          name: xiaozhi_server-macos-${{ matrix.arch }}-lite-${{ env.VERSION }}
+          path: out/xiaozhi_server-macos-${{ matrix.arch }}-lite-${{ env.VERSION }}
 
   release:
     needs:
@@ -236,37 +262,67 @@ jobs:
     steps:
       - name: Thiết lập phiên bản
         run: echo "VERSION=${GITHUB_REF_NAME//\//-}" >> $GITHUB_ENV
-      - name: Tải gói Windows
+      - name: Tải gói Windows Full
         uses: actions/download-artifact@v4
         with:
           name: xiaozhi_server-windows-amd64-${{ env.VERSION }}
           path: release/xiaozhi_server-windows-amd64-${{ env.VERSION }}
 
-      - name: Tải gói Linux
+      - name: Tải gói Windows Lite
+        uses: actions/download-artifact@v4
+        with:
+          name: xiaozhi_server-windows-amd64-lite-${{ env.VERSION }}
+          path: release/xiaozhi_server-windows-amd64-lite-${{ env.VERSION }}
+
+      - name: Tải gói Linux Full
         uses: actions/download-artifact@v4
         with:
           name: xiaozhi_server-linux-amd64-${{ env.VERSION }}
           path: release/xiaozhi_server-linux-amd64-${{ env.VERSION }}
 
-      - name: Tải gói macOS amd64
+      - name: Tải gói Linux Lite
+        uses: actions/download-artifact@v4
+        with:
+          name: xiaozhi_server-linux-amd64-lite-${{ env.VERSION }}
+          path: release/xiaozhi_server-linux-amd64-lite-${{ env.VERSION }}
+
+      - name: Tải gói macOS amd64 Full
         uses: actions/download-artifact@v4
         with:
           name: xiaozhi_server-macos-amd64-${{ env.VERSION }}
           path: release/xiaozhi_server-macos-amd64-${{ env.VERSION }}
 
-      - name: Tải gói macOS arm64
+      - name: Tải gói macOS amd64 Lite
+        uses: actions/download-artifact@v4
+        with:
+          name: xiaozhi_server-macos-amd64-lite-${{ env.VERSION }}
+          path: release/xiaozhi_server-macos-amd64-lite-${{ env.VERSION }}
+
+      - name: Tải gói macOS arm64 Full
         uses: actions/download-artifact@v4
         with:
           name: xiaozhi_server-macos-arm64-${{ env.VERSION }}
           path: release/xiaozhi_server-macos-arm64-${{ env.VERSION }}
 
+      - name: Tải gói macOS arm64 Lite
+        uses: actions/download-artifact@v4
+        with:
+          name: xiaozhi_server-macos-arm64-lite-${{ env.VERSION }}
+          path: release/xiaozhi_server-macos-arm64-lite-${{ env.VERSION }}
+
       - name: Đóng gói file zip release
         run: |
           cd release
           zip -r "xiaozhi_server-windows-amd64-${VERSION}.zip" "xiaozhi_server-windows-amd64-${VERSION}"
+          zip -r "xiaozhi_server-windows-amd64-lite-${VERSION}.zip" "xiaozhi_server-windows-amd64-lite-${VERSION}"
           zip -r "xiaozhi_server-linux-amd64-${VERSION}.zip" "xiaozhi_server-linux-amd64-${VERSION}"
+          zip -r "xiaozhi_server-linux-amd64-lite-${VERSION}.zip" "xiaozhi_server-linux-amd64-lite-${VERSION}"
           zip -r "xiaozhi_server-macos-amd64-${VERSION}.zip" "xiaozhi_server-macos-amd64-${VERSION}"
+          zip -r "xiaozhi_server-macos-amd64-lite-${VERSION}.zip" "xiaozhi_server-macos-amd64-lite-${VERSION}"
           zip -r "xiaozhi_server-macos-arm64-${VERSION}.zip" "xiaozhi_server-macos-arm64-${VERSION}"
+          zip -r "xiaozhi_server-macos-arm64-lite-${VERSION}.zip" "xiaozhi_server-macos-arm64-lite-${VERSION}"
+          tar -C "xiaozhi_server-linux-amd64-${VERSION}/xiaozhi_server-linux-amd64" -czf xiaozhi_models_asr_vi.tar.gz models/asr/zipformer-vietnamese-30m
+          tar -C "xiaozhi_server-linux-amd64-${VERSION}/xiaozhi_server-linux-amd64" -czf xiaozhi_models_piper_vi.tar.gz tts-model espeak-ng-data
 
       - name: Tạo GitHub Release
         uses: softprops/action-gh-release@v2
@@ -275,10 +331,28 @@ jobs:
           name: ${{ github.ref_name }}
           draft: false
           prerelease: false
+          body: |
+            ## Nên tải bản nào?
+
+            ### Bản Lite - khuyến nghị cho đa số người dùng
+            - File ZIP nhẹ hơn vì không đóng gói sẵn model ASR/Piper.
+            - Lần chạy đầu sẽ tự tải model ASR tiếng Việt, Piper voice và dữ liệu espeak-ng.
+            - Cần có internet ở lần chạy đầu; nếu tải lỗi, hãy chạy lại khi mạng ổn định hoặc dùng bản Full Offline.
+
+            ### Bản Full Offline
+            - File ZIP lớn hơn vì đã có sẵn model.
+            - Chạy được ngay và phù hợp máy không có internet.
+            - Nên chọn bản này nếu cần copy sang máy offline hoàn toàn.
           files: |
             release/xiaozhi_server-windows-amd64-${{ env.VERSION }}.zip
+            release/xiaozhi_server-windows-amd64-lite-${{ env.VERSION }}.zip
             release/xiaozhi_server-linux-amd64-${{ env.VERSION }}.zip
+            release/xiaozhi_server-linux-amd64-lite-${{ env.VERSION }}.zip
             release/xiaozhi_server-macos-amd64-${{ env.VERSION }}.zip
+            release/xiaozhi_server-macos-amd64-lite-${{ env.VERSION }}.zip
             release/xiaozhi_server-macos-arm64-${{ env.VERSION }}.zip
+            release/xiaozhi_server-macos-arm64-lite-${{ env.VERSION }}.zip
+            release/xiaozhi_models_asr_vi.tar.gz
+            release/xiaozhi_models_piper_vi.tar.gz
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

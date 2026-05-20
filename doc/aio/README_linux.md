@@ -2,6 +2,13 @@
 
 Chào mừng bạn sử dụng gói Linux AIO của Xiaozhi Server. Tài liệu này bao gồm hướng dẫn cài dependency, khởi động và cấu hình.
 
+## Nên tải bản Lite hay Full?
+
+- **Lite**: ZIP nhẹ hơn, lần chạy đầu cần internet để tự tải model ASR tiếng Việt, Piper voice và dữ liệu `espeak-ng-data`. Nếu tải lỗi do mạng yếu hoặc GitHub bị chặn, hãy chạy lại khi mạng ổn định hoặc tải bản Full.
+- **Full Offline**: ZIP lớn hơn nhưng có sẵn model, phù hợp máy không có internet hoặc muốn chạy offline hoàn toàn ngay sau khi giải nén.
+
+Khi dùng bản Lite, chương trình sẽ tự tạo lại các thư mục `models/asr/zipformer-vietnamese-30m`, `tts-model` và `espeak-ng-data` trong lần chạy đầu.
+
 ## Cấu trúc thư mục
 
 ```text
