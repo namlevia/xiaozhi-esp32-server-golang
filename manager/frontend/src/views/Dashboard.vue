@@ -502,13 +502,13 @@ const stats = ref({
 const programStartedAt = ref('—')
 const fileInput = ref(null)
 
-onMounted(async () => {
-  await loadStats()
+onMounted(() => {
   if (authStore.isAdmin) {
-    loadServiceAddress()
     healthAutoRefreshCount = 0
     loadHealthCheck({ auto: true })
+    loadServiceAddress()
   }
+  loadStats()
 })
 
 onUnmounted(() => {
