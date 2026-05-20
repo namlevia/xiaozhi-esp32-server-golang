@@ -178,16 +178,18 @@ jobs:
 
       - name: Tải model ASR Vietnamese và dữ liệu espeak
         run: |
-          brew install git-lfs
+          brew install git-lfs espeak-ng
           git lfs install
-          rm -rf /tmp/zipformer-vietnamese-30m /tmp/espeak-ng
+          rm -rf /tmp/zipformer-vietnamese-30m /tmp/espeak-ng-data
           git clone --depth 1 https://huggingface.co/hynt/Zipformer-30M-RNNT-6000h /tmp/zipformer-vietnamese-30m
           git -C /tmp/zipformer-vietnamese-30m lfs pull
           test "$(wc -c < /tmp/zipformer-vietnamese-30m/encoder-epoch-20-avg-10.onnx)" -gt 10000000
           test "$(wc -c < /tmp/zipformer-vietnamese-30m/decoder-epoch-20-avg-10.onnx)" -gt 1000000
           test "$(wc -c < /tmp/zipformer-vietnamese-30m/joiner-epoch-20-avg-10.onnx)" -gt 1000000
           test "$(wc -c < /tmp/zipformer-vietnamese-30m/config.json)" -gt 1000
-          git clone --depth 1 https://github.com/espeak-ng/espeak-ng /tmp/espeak-ng
+          ESPEAK_DATA_DIR="$(find "$(brew --prefix)" -type f -name phontab -path '*espeak-ng-data*' -print -quit | xargs dirname)"
+          test -f "$ESPEAK_DATA_DIR/phontab"
+          cp -R "$ESPEAK_DATA_DIR" /tmp/espeak-ng-data
 
       - name: Đóng gói release macOS
         run: |
@@ -202,7 +204,7 @@ jobs:
           cp -r build/common/models build/common/data "$PACK_DIR/"
           mkdir -p "$PACK_DIR/models/asr"
           cp -r /tmp/zipformer-vietnamese-30m "$PACK_DIR/models/asr/zipformer-vietnamese-30m"
-          cp -r /tmp/espeak-ng/espeak-ng-data "$PACK_DIR/espeak-ng-data"
+          cp -r /tmp/espeak-ng-data "$PACK_DIR/espeak-ng-data"
           mkdir -p "$PACK_DIR/tts-model"
           cp tts_server/tts-model/adam1.onnx tts_server/tts-model/adam1.onnx.json "$PACK_DIR/tts-model/"
           cp tts_server/tts-model/ngochuyen.onnx tts_server/tts-model/ngochuyen.onnx.json "$PACK_DIR/tts-model/"
