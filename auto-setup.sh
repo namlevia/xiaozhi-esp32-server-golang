@@ -131,7 +131,7 @@ start_server() {
   fi
 
   info "Khởi động server nền"
-  (cd "$dir" && nohup ./xiaozhi_server > logs/run.log 2>&1 & echo $! > logs/server.pid)
+  (cd "$dir" && { nohup ./xiaozhi_server > logs/run.log 2>&1 & echo $! > logs/server.pid; })
   pid="$(cat "$dir/logs/server.pid" 2>/dev/null || true)"
 
   sleep 3
