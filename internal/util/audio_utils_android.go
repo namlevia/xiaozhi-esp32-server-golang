@@ -79,3 +79,11 @@ func GetAudioFormatByMimeType(mimeType string) string {
 		return "mp3"
 	}
 }
+
+func PCMFloat32BytesToWav(audioData []byte, sampleRate, channels int) ([]byte, error) {
+	return nil, errors.New("WAV chuyển đổi chưa hỗ trợ trên Android")
+}
+
+func OpusFramesToWav(opusFrames [][]byte, sampleRate, channels int) ([]byte, error) {
+	return nil, errors.New("Opus chưa hỗ trợ trên Android")
+}
