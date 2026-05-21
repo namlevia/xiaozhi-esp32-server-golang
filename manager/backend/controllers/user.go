@@ -392,13 +392,13 @@ func normalizePiperVoiceOptionsURL(raw string) string {
 	baseURL = trimSuffixFoldForURL(baseURL, "/piper/tts")
 	baseURL = trimSuffixFoldForURL(baseURL, "/piper/voices")
 	if baseURL == "" {
-		baseURL = "http://127.0.0.1:9001"
+		baseURL = "http://127.0.0.1:1232"
 	}
 	return baseURL + "/piper/voices"
 }
 
 func (uc *UserController) fetchPiperVoices(c *gin.Context, configID, overrideURL string) ([]VoiceOption, error) {
-	apiURL := "http://127.0.0.1:9001/piper/tts"
+	apiURL := "http://127.0.0.1:1232/piper/tts"
 	if strings.TrimSpace(configID) != "" {
 		var cfg models.Config
 		if err := uc.DB.Where("type = ? AND config_id = ?", "tts", configID).First(&cfg).Error; err == nil {

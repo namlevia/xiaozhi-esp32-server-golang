@@ -185,14 +185,14 @@ const form = reactive({
     receive_timeout: 60
   },
   edge_offline: {
-    server_url: 'ws://127.0.0.1:9001/tts',
+    server_url: 'ws://127.0.0.1:1232/tts',
     timeout: 30,
     sample_rate: 16000,
     channels: 1,
     frame_duration: 20
   },
   piper: {
-    api_url: 'http://127.0.0.1:9001/piper/tts',
+    api_url: 'http://127.0.0.1:1232/piper/tts',
     voice: 'ngochuyen',
     model_path: 'tts-model/ngochuyen.onnx',
     model_config_path: 'tts-model/ngochuyen.onnx.json',
@@ -411,14 +411,14 @@ const editConfig = (config) => {
         form.edge.receive_timeout = configData.receive_timeout || 60
         break
       case 'edge_offline':
-        form.edge_offline.server_url = configData.server_url || 'ws://127.0.0.1:9001/tts'
+        form.edge_offline.server_url = configData.server_url || 'ws://127.0.0.1:1232/tts'
         form.edge_offline.timeout = configData.timeout || 30
         form.edge_offline.sample_rate = configData.sample_rate || 16000
         form.edge_offline.channels = configData.channels || 1
         form.edge_offline.frame_duration = configData.frame_duration || 20
         break
       case 'piper':
-        form.piper.api_url = configData.api_url || 'http://127.0.0.1:9001/piper/tts'
+        form.piper.api_url = configData.api_url || 'http://127.0.0.1:1232/piper/tts'
         form.piper.voice = configData.voice || 'ngochuyen'
         form.piper.model_path = configData.model_path || 'tts-model/ngochuyen.onnx'
         form.piper.model_config_path = configData.model_config_path || 'tts-model/ngochuyen.onnx.json'
@@ -772,14 +772,14 @@ const resetForm = () => {
       receive_timeout: 60
     },
     edge_offline: {
-      server_url: 'ws://127.0.0.1:9001/tts',
+      server_url: 'ws://127.0.0.1:1232/tts',
       timeout: 30,
       sample_rate: 16000,
       channels: 1,
       frame_duration: 20
     },
     piper: {
-      api_url: 'http://127.0.0.1:9001/piper/tts',
+      api_url: 'http://127.0.0.1:1232/piper/tts',
       voice: 'banmai',
       model_path: 'tts-model/banmai.onnx',
       model_config_path: 'tts-model/banmai.onnx.json',

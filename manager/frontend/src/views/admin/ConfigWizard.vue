@@ -231,7 +231,7 @@ const asrForm = reactive({
   config_id: 'wyoming_vietnamese_asr_default',
   provider: 'wyoming_vietnamese_asr',
   wyoming_vietnamese_asr: {
-    base_url: 'http://127.0.0.1:9000',
+    base_url: 'http://127.0.0.1:1231',
     sample_rate: 16000,
     timeout_ms: 30000
   },
@@ -460,7 +460,7 @@ const ttsForm = reactive({
     receive_timeout: 60
   },
   edge_offline: {
-    server_url: 'ws://127.0.0.1:9001/tts',
+    server_url: 'ws://127.0.0.1:1232/tts',
     timeout: 30,
     sample_rate: 16000,
     channels: 1,

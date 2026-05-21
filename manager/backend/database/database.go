@@ -332,7 +332,7 @@ func ensureDefaultASRConfig(db *gorm.DB) error {
 
 	baseURL := os.Getenv("DEFAULT_ASR_BASE_URL")
 	if baseURL == "" {
-		baseURL = "http://127.0.0.1:9000"
+		baseURL = "http://127.0.0.1:1231"
 	}
 	data := map[string]interface{}{
 		"base_url":    baseURL,
@@ -371,7 +371,7 @@ func ensureDefaultTTSConfig(db *gorm.DB) error {
 
 	serverURL := os.Getenv("DEFAULT_EDGE_OFFLINE_URL")
 	if serverURL == "" {
-		serverURL = "ws://127.0.0.1:9001/tts"
+		serverURL = "ws://127.0.0.1:1232/tts"
 	}
 	data := map[string]interface{}{
 		"provider":       "edge_offline",
@@ -413,7 +413,7 @@ func ensureDefaultPiperTTSConfig(db *gorm.DB) error {
 
 	apiURL := os.Getenv("DEFAULT_PIPER_API_URL")
 	if apiURL == "" {
-		apiURL = "http://127.0.0.1:9001/piper/tts"
+		apiURL = "http://127.0.0.1:1232/piper/tts"
 	}
 	modelPath := os.Getenv("DEFAULT_PIPER_MODEL_PATH")
 	if modelPath == "" {

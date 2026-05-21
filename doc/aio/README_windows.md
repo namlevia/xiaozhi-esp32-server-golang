@@ -54,6 +54,7 @@ Nhấp đúp `start.bat` để khởi động service. Sau khi khởi động, c
 
 - **Truy cập local**: `http://localhost:1234/`
 - **Truy cập LAN**: `http://<IP máy hiện tại>:1234/`
+- Khi chạy, server tự nhận IP LAN để gửi đúng địa chỉ WebSocket/UDP cho thiết bị. Nếu máy có nhiều card mạng và nhận sai IP, đặt biến môi trường trước khi chạy: `set PUBLIC_HOST=192.168.x.x`.
 
 ### Kết nối thiết bị/client
 

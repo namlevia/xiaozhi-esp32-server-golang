@@ -121,7 +121,7 @@
         </div>
       </el-form-item>
       <el-form-item label="API URL" prop="piper.api_url">
-        <el-input v-model="model.piper.api_url" placeholder="http://127.0.0.1:9001/piper/tts" />
+        <el-input v-model="model.piper.api_url" placeholder="http://127.0.0.1:1232/piper/tts" />
       </el-form-item>
       <el-form-item label="Giọng" prop="piper.voice">
         <el-select

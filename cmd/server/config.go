@@ -52,6 +52,7 @@ func Init(configFile string) error {
 	if err := updateConfigFromAPI(); err != nil {
 		fmt.Printf("Lấy cấu hình từ API thất bại, dùng cấu hình cục bộ: %v\n", err)
 	}
+	applyPublicHostOverrides()
 
 	// Khởi động cập nhật cấu hình định kỳ.
 	startPeriodicConfigUpdate()

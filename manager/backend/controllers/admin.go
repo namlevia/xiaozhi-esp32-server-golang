@@ -126,11 +126,11 @@ type healthCheckItem struct {
 func (ac *AdminController) HealthCheck(c *gin.Context) {
 	ttsBaseURL := os.Getenv("HEALTH_TTS_BASE_URL")
 	if ttsBaseURL == "" {
-		ttsBaseURL = "http://127.0.0.1:9001"
+		ttsBaseURL = "http://127.0.0.1:1232"
 	}
 	asrAddress := os.Getenv("HEALTH_ASR_ADDRESS")
 	if asrAddress == "" {
-		asrAddress = "127.0.0.1:9000"
+		asrAddress = "127.0.0.1:1231"
 	}
 
 	items := []healthCheckItem{{Name: "Backend", Status: "healthy", Message: "Backend đang phản hồi"}}
